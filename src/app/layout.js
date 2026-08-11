@@ -3,7 +3,7 @@ import Header from '@/components/Header.js';
 import './globals.css';
 
 export const metadata = {
-    title: 'HealthERP - Gestão e Regulação de Saúde',
+    title: 'RegulaHub - Gestão e Regulação de Saúde',
     description: 'ERP para Saúde Pública, Regulação de Exames e Zoonoses',
 };
 
