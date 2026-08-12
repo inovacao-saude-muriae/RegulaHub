@@ -1,13 +1,120 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Pessoa {
+  cpf            String        @id @db.VarChar(11)
+  nomeCompleto   String        @map("nome_completo") @db.VarChar(150)
+  dataNascimento DateTime      @map("data_nascimento") @db.Date
+  nomeMae        String        @map("nome_mae") @db.VarChar(150)
+  telefone       String        @db.VarChar(20)
+  enderecos      Endereco[]
+  pedidos        PedidoExame[]
+
+  @@index([nomeCompleto, dataNascimento], map: "idx_pessoa_nome")
+  @@map("pessoa")
+}
+
+model Endereco {
+  id            Int      @id @default(autoincrement())
+  pessoaCpf     String   @map("pessoa_cpf") @db.VarChar(11)
+  logradouro    String   @db.VarChar(150)
+  numero        String   @db.VarChar(20)
+  complemento   String?  @db.VarChar(50)
+  bairro        String   @db.VarChar(100)
+  cidade        String   @db.VarChar(100)
+  uf            String   @db.Char(2)
+  cep           String?  @db.VarChar(8)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  enderecoAtual Boolean  @default(true) @map("endereco_atual")
+  pessoa        Pessoa   @relation(fields: [pessoaCpf], references: [cpf], onDelete: NoAction, onUpdate: NoAction, map: "fk_endereco_pessoa")
+
+  @@index([pessoaCpf], map: "pessoa_cpf_idx")
+  @@map("endereco")
+}
+
+model TipoExame {
+  id            Int            @id @default(autoincrement())
+  nome          String         @db.VarChar(50)
+  procedimentos Procedimento[]
+
+  @@map("tipo_exame")
+}
+
+model Procedimento {
+  id          Int           @id @default(autoincrement())
+  tipoExameId Int           @map("tipo_exame_id")
+  nome        String        @db.VarChar(150)
+  valor       Decimal       @db.Decimal(10, 2)
+  tipoExame   TipoExame     @relation(fields: [tipoExameId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_procedimentos_tipo_exames")
+  pedidos     PedidoExame[]
+
+  @@index([tipoExameId], map: "exame_id_idx")
+  @@map("procedimentos")
+}
+
+model Medico {
+  id                 Int           @id @default(autoincrement())
+  crm                String        @db.VarChar(20)
+  ufCrm              String        @map("uf_crm") @db.Char(2)
+  nome               String        @db.VarChar(150)
+  especialidade      String        @db.VarChar(100)
+  ativo              Boolean       @default(true)
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  pedidosSolicitados PedidoExame[] @relation("medico_solicitante")
+  pedidosResponsavel PedidoExame[] @relation("medico_responsavel")
+
+  @@unique([crm, ufCrm], map: "idx_medico_crm")
+  @@map("medicos")
+}
+
+model Ubs {
+  id        Int           @id @default(autoincrement())
+  cnes      String        @unique @db.VarChar(45)
+  nome      String        @db.VarChar(150)
+  ativo     Boolean       @default(true)
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  pedidos   PedidoExame[]
+
+  @@map("ubs")
+}
+
+model PedidoExame {
+  id                  Int          @id @default(autoincrement())
+  pessoaCpf           String       @map("pessoa_cpf") @db.VarChar(11)
+  cnsPaciente         String?      @map("cns_paciente") @db.VarChar(15)
+  procedimentoId      Int          @map("procedimento_id")
+  ubsResponsavelId    Int?         @map("ubs_responsavel_id")
+  medicoSolicitanteId Int?         @map("medico_solicitante_id")
+  medicoResponsavelId Int?         @map("medico_responsavel_id")
+  classificacaoRisco  String?      @map("classificacao_risco") @db.VarChar(50)
+  tipoCota            String?      @map("tipo_cota") @db.VarChar(50)
+  status              String       @default("Aguardando") @db.VarChar(50)
+  statusComunicacao   String?      @default("PENDENTE") @map("status_comunicacao") @db.VarChar(50)
+  motivoLiberacao     String?      @map("motivo_liberacao")
+  observacao          String?
+  dataSolicitacao     DateTime?    @default(now()) @map("data_solicitacao") @db.Timestamptz(6)
+  dataComunicacao     DateTime?    @map("data_comunicacao") @db.Timestamptz(6)
+  dataLiberacao       DateTime?    @map("data_liberacao") @db.Timestamptz(6)
+
+  pessoa            Pessoa       @relation(fields: [pessoaCpf], references: [cpf], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_pessoa")
+  procedimento      Procedimento @relation(fields: [procedimentoId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_procedimento")
+  medicoSolicitante Medico?      @relation("medico_solicitante", fields: [medicoSolicitanteId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_med_solic")
+  medicoResponsavel Medico?      @relation("medico_responsavel", fields: [medicoResponsavelId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_med_resp")
+  ubs               Ubs?         @relation(fields: [ubsResponsavelId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_ubs")
+
+  @@index([pessoaCpf], map: "fk_pedidos_pessoa_idx")
+  @@index([status], map: "idx_pedidos_status")
+  @@index([dataSolicitacao], map: "idx_pedido_data_solic")
+  @@index([procedimentoId], map: "fk_pedidos_procedimento_idx")
+  @@index([medicoSolicitanteId], map: "fk_pedidos_med_solic_idx")
+  @@index([medicoResponsavelId], map: "fk_pedidos_med_resp_idx")
+  @@index([ubsResponsavelId], map: "fk_pedidos_ubs_idx")
+  @@map("pedidos_exames")
 }

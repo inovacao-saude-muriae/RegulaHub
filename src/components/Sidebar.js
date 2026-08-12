@@ -18,20 +18,20 @@ const menuSections = [
         ]
     },
     {
-        title: 'Regulação de Exames',
-        items: [
-            {
-                name: 'Regulação',
-                path: '/regulacao/tomografia',
-                icon: (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M12 2a7 7 0 1 0 10 7"/>
-                </svg>
-                )
-            },            
-        ]
-    },
+    title: 'Regulação de Exames',
+    items: [
+      {
+        name: 'Regulação de Exames',
+        path: '/regulacao',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 2a7 7 0 1 0 10 7"/>
+          </svg>
+        )
+      }
+    ]
+  },
     {
         title: 'Câmara Técnica',
         items: [
