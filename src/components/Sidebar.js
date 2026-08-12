@@ -21,7 +21,7 @@ const menuSections = [
         title: 'Regulação de Exames',
         items: [
             {
-                name: 'Tomografia',
+                name: 'Regulação',
                 path: '/regulacao/tomografia',
                 icon: (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
@@ -29,26 +29,7 @@ const menuSections = [
                     <path d="M12 2a7 7 0 1 0 10 7"/>
                 </svg>
                 )
-            },
-            {
-                name: 'Cintilografia',
-                path: '/regulacao/cintilografia',
-                icon: (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
-                </svg>
-                )
-            },
-            {
-                name: 'Ressonância',
-                path: '/regulacao/ressonancia',
-                icon: (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                </svg>
-                )
-            }
+            },            
         ]
     },
     {
@@ -118,7 +99,7 @@ export default function Sidebar() {
                         <path d="M12 6v12M6 12h12"/>
                     </svg>
                 </div>
-                <span className={styles.logoText}>HealthERP</span>
+                <span className={styles.logoText}>RegulaHub</span>
             </div>
 
             <nav className={styles.nav}>
