@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { 
   getPedidosExames, 
   getAuxiliaryData,
@@ -8,14 +9,31 @@ import {
   searchPessoasAutocomplete,
   createPedidoExame, 
   updateCommunicationDate, 
-  releasePaciente 
+  releasePaciente,
+  createPessoa,
+  createMedico,
+  createUbs,
+  createProcedimento,
+  getCotasFinanceiras,
+  saveCotaFinanceira,
+  updateBillingDate,
+  updatePedidoExame,
+  deletePedidoExame
 } from './actions';
-import styles from './page.module.css';
 
-const QUOTA_LIMITS = {
-  OCI: 25000.00,
-  Credenciamento: 30000.00
-};
+import FiltersBar from './components/FiltersBar';
+import TabNovoPedido from './components/TabNovoPedido';
+import TabListaEspera from './components/TabListaEspera';
+import TabLiberados from './components/TabLiberados';
+import TabFinanceiro from './components/TabFinanceiro';
+import TabCadastros from './components/TabCadastros';
+
+import ModalTetoFinanceiro from './components/Modals/ModalTetoFinanceiro';
+import ModalLiberacao from './components/Modals/ModalLiberacao';
+import ModalEdicaoPedido from './components/Modals/ModalEdicaoPedido';
+import ModalSeletorCotas from './components/Modals/ModalSeletorCotas';
+
+import styles from './page.module.css';
 
 const MONTHS_LIST = [
   { value: '01', name: 'Janeiro' },
@@ -34,106 +52,277 @@ const MONTHS_LIST = [
 
 export default function RegulacaoPage() {
   const [activeTab, setActiveTab] = useState('NOVO_PEDIDO');
+  const [cadSubTab, setCadSubTab] = useState('PACIENTES');
   const [selectedQueueExam, setSelectedQueueExam] = useState('');
+  const [selectedReleasedExam, setSelectedReleasedExam] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Dados Auxiliares vindos do banco
-  const [auxData, setAuxData] = useState({ tiposExame: [], procedimentos: [] });
+  // Seleções para exportação Excel
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedReleasedIds, setSelectedReleasedIds] = useState([]);
 
-  // Autocomplete
+  // Autocomplete Ref
+  const autocompleteRef = useRef(null);
+  const isSelectedRef = useRef(false);
+
+  // Estados dos Dados
+  const [auxData, setAuxData] = useState({ tiposExame: [], procedimentos: [], medicos: [], ubsList: [], pessoas: [] });
+  const [requests, setRequests] = useState([]);
+  const [cotasFinanceiras, setCotasFinanceiras] = useState([]);
+
+  // Autocomplete de Paciente
   const [patientSuggestions, setPatientSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearchingPatient, setIsSearchingPatient] = useState(false);
 
-  // Pop-up exclusivo de Cotas Mensais
+  // Financeiro
+  const [finMonth, setFinMonth] = useState('08');
+  const [finYear, setFinYear] = useState('2026');
+  const [editCotaModal, setEditCotaModal] = useState({ open: false, tipoCota: '', valor: '' });
+
+  // Pop-up Seletor de Cotas
   const [showQuotaModal, setShowQuotaModal] = useState(false);
   const [quotaModalType, setQuotaModalType] = useState('OCI');
   const [quotaModalYear, setQuotaModalYear] = useState('2026');
 
+  // Modal de Edição
+  const [editingItem, setEditingItem] = useState(null);
+
+  // Formulários de Cadastros Auxiliares
+  const [formPessoa, setFormPessoa] = useState({
+    cpf: '', nomeCompleto: '', dataNascimento: '', nomeMae: '', telefone: '',
+    logradouro: '', numero: '', complemento: '', bairro: '', cidade: 'Muriaé', uf: 'MG', cep: ''
+  });
+  const [formMedico, setFormMedico] = useState({ nome: '', crm: '', ufCrm: 'MG', especialidade: '', tipo: 'Solicitante' });
+  const [formUbs, setFormUbs] = useState({ nome: '', cnes: '' });
+  const [formProcedimento, setFormProcedimento] = useState({ nome: '', valor: '', tipoExameId: '' });
+
+  // Filtros Avançados
   const [filters, setFilters] = useState({
-    search: '',
-    procedure: '',
-    status: '',
-    classification: '',
-    communicationStatus: '',
-    quotaType: '',
-    entryDateStart: '',
-    entryDateEnd: '',
-    communicationDateStart: '',
-    communicationDateEnd: '',
-    releaseDateStart: '',
-    releaseDateEnd: '',
-    billingDateStart: '',
-    billingDateEnd: ''
+    search: '', procedure: '', status: '', classification: '', communicationStatus: '', quotaType: '',
+    entryDateStart: '', entryDateEnd: '', communicationDateStart: '', communicationDateEnd: '',
+    releaseDateStart: '', releaseDateEnd: '', billingDateStart: '', billingDateEnd: ''
   });
 
-  const [requests, setRequests] = useState([]);
-
-  // Função assíncrona colocada dentro do useEffect para evitar warnings do React
-  useEffect(() => {
-    const loadRequestsFromDb = async () => {
-      try {
-        setLoading(true);
-        const [pedidos, aux] = await Promise.all([
-          getPedidosExames(),
-          getAuxiliaryData()
-        ]);
-        setRequests(pedidos || []);
-        setAuxData(aux || { tiposExame: [], procedimentos: [] });
-
-        if (aux?.tiposExame?.length > 0) {
-          setSelectedQueueExam(aux.tiposExame[0].nome);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar dados do banco:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadRequestsFromDb();
-  }, []);
-
+  // Novo Pedido State
   const [newRequest, setNewRequest] = useState({
-    patientSearch: '',
-    patientName: '',
-    motherName: '',
-    cpf: '',
-    susCard: '',
-    examTypeId: '',
-    procedureId: '',
-    procedureName: '',
-    estimatedCost: 0,
+    patientSearch: '', patientName: '', motherName: '', cpf: '', susCard: '',
+    examTypeId: '', procedureId: '', procedureName: '', estimatedCost: 0,
     competence: `${new Date().toISOString().slice(5, 7)}/${new Date().getFullYear()}`,
-    requestDate: new Date().toISOString().split('T')[0],
-    classification: 'Verde',
-    requestDoctor: '',
-    requestUbs: '',
-    justification: ''
+    requestDate: new Date().toISOString().split('T')[0], classification: 'Verde',
+    medicoSolicitanteId: '', ubsResponsavelId: '', justification: ''
   });
 
   // Modal de Liberação
   const [releasingItem, setReleasingItem] = useState(null);
   const [regulationForm, setRegulationForm] = useState({
-    status: 'Liberado',
-    quota: '',
-    releaseDate: new Date().toISOString().split('T')[0],
+    status: 'Liberado', quota: '', releaseDate: new Date().toISOString().split('T')[0],
     quotaCompetenceMonth: new Date().toISOString().slice(5, 7),
-    quotaCompetenceYear: `${new Date().getFullYear()}`,
-    generalObservation: ''
+    quotaCompetenceYear: `${new Date().getFullYear()}`, generalObservation: '',
+    regulatorDoctorId: ''
   });
 
-  // Manipulação do Autocomplete de Pacientes
+  const reloadData = async () => {
+    try {
+      setLoading(true);
+      const [pedidos, aux, cotas] = await Promise.all([
+        getPedidosExames(),
+        getAuxiliaryData(),
+        getCotasFinanceiras()
+      ]);
+      setRequests(pedidos || []);
+      setAuxData(aux || { tiposExame: [], procedimentos: [], medicos: [], ubsList: [], pessoas: [] });
+      setCotasFinanceiras(cotas || []);
+
+      if (aux?.tiposExame?.length > 0) {
+        if (!selectedQueueExam) setSelectedQueueExam(aux.tiposExame[0].nome);
+        if (!selectedReleasedExam) setSelectedReleasedExam(aux.tiposExame[0].nome);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    reloadData();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (autocompleteRef.current && !autocompleteRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Resets de Seleções ao Trocar de Fila ou Aba
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [selectedQueueExam, activeTab]);
+
+  useEffect(() => {
+    setSelectedReleasedIds([]);
+  }, [selectedReleasedExam, activeTab]);
+
+  // AÇÕES E HANDLERS DA APLICAÇÃO
+  const handleDeleteOrder = async (item) => {
+    const confirmDelete = confirm(`Tem certeza que deseja excluir permanentemente o pedido de ${item.patientName} (${item.procedure})?`);
+    if (!confirmDelete) return;
+
+    const res = await deletePedidoExame(item.dbId || item.id);
+    if (res.success) {
+      alert('Pedido removido da fila com sucesso!');
+      setSelectedIds(prev => prev.filter(id => id !== item.id));
+      reloadData();
+    } else {
+      alert('Erro ao excluir o pedido: ' + res.error);
+    }
+  };
+
+  const handleEditStatusChange = (newStatus) => {
+    if (newStatus === 'Aguardando') {
+      setEditingItem(prev => ({
+        ...prev,
+        status: 'Aguardando',
+        quota: '',
+        releaseDate: '',
+        regulatorDoctorId: '',
+        regulatorDoctor: ''
+      }));
+    } else {
+      setEditingItem(prev => ({ ...prev, status: newStatus }));
+    }
+  };
+
+  const handleSaveEditedOrder = async (e) => {
+    e.preventDefault();
+    if (!editingItem) return;
+
+    const res = await updatePedidoExame(editingItem.dbId || editingItem.id, editingItem);
+    if (res.success) {
+      if (editingItem.status === 'Aguardando') {
+        alert(`O paciente ${editingItem.patientName} retornou para a Lista de Espera! Dados de liberação foram limpos.`);
+      } else {
+        alert('Dados do paciente e pedido atualizados com sucesso!');
+      }
+      setEditingItem(null);
+      reloadData();
+    } else {
+      alert('Erro ao atualizar registro: ' + res.error);
+    }
+  };
+
+  const handleSavePessoa = async (e) => {
+    e.preventDefault();
+    if (!formPessoa.cpf || !formPessoa.nomeCompleto || !formPessoa.dataNascimento || !formPessoa.nomeMae) {
+      return alert('Preencha os campos obrigatórios.');
+    }
+
+    const res = await createPessoa(formPessoa);
+    if (res.success) {
+      alert('Paciente cadastrado com sucesso!');
+      setFormPessoa({
+        cpf: '', nomeCompleto: '', dataNascimento: '', nomeMae: '', telefone: '',
+        logradouro: '', numero: '', complemento: '', bairro: '', cidade: 'Muriaé', uf: 'MG', cep: ''
+      });
+      reloadData();
+    } else alert('Erro ao cadastrar paciente: ' + res.error);
+  };
+
+  const handleSaveMedico = async (e) => {
+    e.preventDefault();
+    if (!formMedico.nome || !formMedico.crm) return alert('Preencha o Nome e o CRM.');
+    
+    const res = await createMedico(formMedico);
+    if (res.success) {
+      alert('Médico cadastrado com sucesso!');
+      setFormMedico({ nome: '', crm: '', ufCrm: 'MG', especialidade: '', tipo: 'Solicitante' });
+      reloadData();
+    } else alert('Erro ao cadastrar médico: ' + res.error);
+  };
+
+  const handleSaveUbs = async (e) => {
+    e.preventDefault();
+    if (!formUbs.nome || !formUbs.cnes) return alert('Preencha o Nome e o CNES.');
+    
+    const res = await createUbs(formUbs);
+    if (res.success) {
+      alert('UBS cadastrada com sucesso!');
+      setFormUbs({ nome: '', cnes: '' });
+      reloadData();
+    } else alert('Erro ao cadastrar UBS: ' + res.error);
+  };
+
+  const handleSaveProcedimento = async (e) => {
+    e.preventDefault();
+    if (!formProcedimento.nome || !formProcedimento.valor || !formProcedimento.tipoExameId) {
+      return alert('Preencha todos os campos do procedimento.');
+    }
+    
+    const res = await createProcedimento(formProcedimento);
+    if (res.success) {
+      alert('Procedimento cadastrado com sucesso!');
+      setFormProcedimento({ nome: '', valor: '', tipoExameId: '' });
+      reloadData();
+    } else alert('Erro ao cadastrar procedimento: ' + res.error);
+  };
+
+  const handleOpenDefineTetoModal = (tipoCota, valorAtual) => {
+    setEditCotaModal({ open: true, tipoCota, valor: valorAtual || '' });
+  };
+
+  const handleSaveTetoCota = async (e) => {
+    e.preventDefault();
+    const res = await saveCotaFinanceira({
+      tipoCota: editCotaModal.tipoCota,
+      mes: finMonth,
+      ano: finYear,
+      valorTeto: editCotaModal.valor
+    });
+
+    if (res.success) {
+      alert(`Teto da cota ${editCotaModal.tipoCota} atualizado!`);
+      setEditCotaModal({ open: false, tipoCota: '', valor: '' });
+      reloadData();
+    } else alert('Erro ao salvar teto: ' + res.error);
+  };
+
+  const calculateMonthQuotaDetails = (quotaType, year, monthValue) => {
+    const record = cotasFinanceiras.find(c => c.tipoCota === quotaType && c.mes === monthValue && c.ano === year);
+    const totalLimit = record ? record.valorTeto : 0;
+    
+    const totalUsed = requests
+      .filter(r => 
+        r.status === 'Liberado' && 
+        r.quota === quotaType && 
+        r.quotaCompetenceMonth === monthValue && 
+        r.quotaCompetenceYear === year
+      )
+      .reduce((sum, r) => sum + r.estimatedCost, 0);
+
+    return { totalLimit, totalUsed, available: totalLimit - totalUsed };
+  };
+
+  const handleUpdateBillingDate = async (id, newDate) => {
+    setRequests(prev => prev.map(req => req.id === id ? { ...req, billingDate: newDate } : req));
+    await updateBillingDate(id, newDate);
+  };
+
   const handlePatientSearchChange = async (e) => {
     const value = e.target.value;
+    isSelectedRef.current = false;
     setNewRequest(prev => ({ ...prev, patientSearch: value }));
 
     if (value.trim().length >= 2) {
       setIsSearchingPatient(true);
       const suggestions = await searchPessoasAutocomplete(value);
       setPatientSuggestions(suggestions || []);
-      setShowSuggestions(true);
+      if (!isSelectedRef.current) setShowSuggestions(true);
       setIsSearchingPatient(false);
     } else {
       setPatientSuggestions([]);
@@ -142,6 +331,10 @@ export default function RegulacaoPage() {
   };
 
   const handleSelectPatientSuggestion = (pessoa) => {
+    isSelectedRef.current = true;
+    setShowSuggestions(false);
+    setPatientSuggestions([]);
+
     setNewRequest(prev => ({
       ...prev,
       patientSearch: pessoa.nomeCompleto,
@@ -150,149 +343,13 @@ export default function RegulacaoPage() {
       cpf: pessoa.cpf,
       susCard: ''
     }));
-    setShowSuggestions(false);
   };
 
-  const handleOpenReleaseModal = (item) => {
-    const today = new Date().toISOString().split('T')[0];
-    const initialMonth = today.slice(5, 7);
-    const initialYear = today.slice(0, 4);
-
-    setReleasingItem(item);
-    setRegulationForm({
-      status: 'Liberado',
-      quota: item.quota || '',
-      releaseDate: today,
-      quotaCompetenceMonth: initialMonth,
-      quotaCompetenceYear: initialYear,
-      generalObservation: item.generalObservation || ''
-    });
-  };
-
-  const handleReleaseDateChange = (newReleaseDate) => {
-    if (!newReleaseDate) {
-      setRegulationForm(prev => ({ ...prev, releaseDate: '' }));
-      return;
+  const handleInputFocus = () => {
+    if (isSelectedRef.current) return;
+    if (newRequest.patientSearch.length >= 2 && patientSuggestions.length > 0) {
+      setShowSuggestions(true);
     }
-
-    const month = newReleaseDate.slice(5, 7);
-    const year = newReleaseDate.slice(0, 4);
-
-    setRegulationForm(prev => ({
-      ...prev,
-      releaseDate: newReleaseDate,
-      quotaCompetenceMonth: month,
-      quotaCompetenceYear: year
-    }));
-  };
-
-  const handleSelectQuotaType = (selectedQuota) => {
-    setRegulationForm(prev => ({ ...prev, quota: selectedQuota }));
-
-    if (selectedQuota) {
-      const yearToUse = regulationForm.quotaCompetenceYear || `${new Date().getFullYear()}`;
-      setQuotaModalType(selectedQuota);
-      setQuotaModalYear(yearToUse);
-      setShowQuotaModal(true);
-    }
-  };
-
-  const calculateMonthQuotaDetails = (quotaType, year, monthValue) => {
-    const totalLimit = QUOTA_LIMITS[quotaType] || 0;
-    const totalUsed = requests
-      .filter(r => 
-        r.status === 'Liberado' &&
-        r.quota === quotaType &&
-        r.quotaCompetenceMonth === monthValue &&
-        r.quotaCompetenceYear === year
-      )
-      .reduce((sum, r) => sum + r.estimatedCost, 0);
-
-    const available = totalLimit - totalUsed;
-    return { totalLimit, totalUsed, available };
-  };
-
-  const handleSelectMonthFromModal = (monthValue) => {
-    setRegulationForm(prev => ({
-      ...prev,
-      quota: quotaModalType,
-      quotaCompetenceMonth: monthValue,
-      quotaCompetenceYear: quotaModalYear
-    }));
-    setShowQuotaModal(false);
-  };
-
-  const handleUpdateCommunicationDate = async (id, newDate) => {
-    setRequests(prev => prev.map(req => {
-      if (req.id === id) {
-        return { ...req, communicationDate: newDate };
-      }
-      return req;
-    }));
-
-    await updateCommunicationDate(id, newDate);
-  };
-
-  const handleFilterChange = (field, value) => {
-    setFilters(prev => ({ ...prev, [field]: value }));
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      search: '',
-      procedure: '',
-      status: '',
-      classification: '',
-      communicationStatus: '',
-      quotaType: '',
-      entryDateStart: '',
-      entryDateEnd: '',
-      communicationDateStart: '',
-      communicationDateEnd: '',
-      releaseDateStart: '',
-      releaseDateEnd: '',
-      billingDateStart: '',
-      billingDateEnd: ''
-    });
-  };
-
-  const applyFilters = (items, targetStatus) => {
-    return items.filter(item => {
-      if (targetStatus && item.status !== targetStatus) return false;
-      if (filters.status && item.status !== filters.status) return false;
-
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        const matchesSearch = 
-          item.patientName.toLowerCase().includes(searchLower) ||
-          (item.motherName && item.motherName.toLowerCase().includes(searchLower)) ||
-          item.cpf.includes(filters.search) ||
-          (item.susCard && item.susCard.includes(filters.search)) ||
-          String(item.id).toLowerCase().includes(searchLower);
-        if (!matchesSearch) return false;
-      }
-
-      if (filters.procedure && item.procedure !== filters.procedure) return false;
-      if (filters.classification && item.classification !== filters.classification) return false;
-      if (filters.quotaType && item.quota !== filters.quotaType) return false;
-
-      if (filters.communicationStatus === 'FILLED' && !item.communicationDate) return false;
-      if (filters.communicationStatus === 'EMPTY' && item.communicationDate) return false;
-
-      if (filters.entryDateStart && item.requestDate < filters.entryDateStart) return false;
-      if (filters.entryDateEnd && item.requestDate > filters.entryDateEnd) return false;
-
-      if (filters.communicationDateStart && item.communicationDate < filters.communicationDateStart) return false;
-      if (filters.communicationDateEnd && item.communicationDate > filters.communicationDateEnd) return false;
-
-      if (filters.releaseDateStart && item.releaseDate < filters.releaseDateStart) return false;
-      if (filters.releaseDateEnd && item.releaseDate > filters.releaseDateEnd) return false;
-
-      if (filters.billingDateStart && item.billingDate < filters.billingDateStart) return false;
-      if (filters.billingDateEnd && item.billingDate > filters.billingDateEnd) return false;
-
-      return true;
-    });
   };
 
   const handleSearchPatientManual = async () => {
@@ -300,17 +357,11 @@ export default function RegulacaoPage() {
 
     const pessoa = await searchPessoa(newRequest.patientSearch.trim());
     if (pessoa) {
-      setNewRequest(prev => ({
-        ...prev,
-        patientName: pessoa.nomeCompleto,
-        motherName: pessoa.nomeMae,
-        cpf: pessoa.cpf,
-        susCard: ''
-      }));
+      isSelectedRef.current = true;
+      setNewRequest(prev => ({ ...prev, patientName: pessoa.nomeCompleto, motherName: pessoa.nomeMae, cpf: pessoa.cpf, susCard: '' }));
+      setPatientSuggestions([]);
       setShowSuggestions(false);
-    } else {
-      alert('Pessoa não encontrada no banco de dados.');
-    }
+    } else alert('Pessoa não encontrada no banco de dados.');
   };
 
   const handleExamTypeChange = (e) => {
@@ -335,9 +386,7 @@ export default function RegulacaoPage() {
         procedureName: foundProc.nome,
         estimatedCost: foundProc.valor
       }));
-    } else {
-      setNewRequest(prev => ({ ...prev, procedureId: '', procedureName: '', estimatedCost: 0 }));
-    }
+    } else setNewRequest(prev => ({ ...prev, procedureId: '', procedureName: '', estimatedCost: 0 }));
   };
 
   const handleCreateRequest = async (e) => {
@@ -349,44 +398,73 @@ export default function RegulacaoPage() {
 
     const res = await createPedidoExame(newRequest);
     if (res.success) {
-      alert('Pedido registrado com sucesso no banco de dados!');
-      const updatedPedidos = await getPedidosExames();
-      setRequests(updatedPedidos || []);
+      alert('Pedido registrado com sucesso!');
+      reloadData();
       setActiveTab('LISTA_ESPERA');
 
+      isSelectedRef.current = false;
       setNewRequest({
-        patientSearch: '',
-        patientName: '',
-        motherName: '',
-        cpf: '',
-        susCard: '',
-        examTypeId: '',
-        procedureId: '',
-        procedureName: '',
-        estimatedCost: 0,
+        patientSearch: '', patientName: '', motherName: '', cpf: '', susCard: '',
+        examTypeId: '', procedureId: '', procedureName: '', estimatedCost: 0,
         competence: `${new Date().toISOString().slice(5, 7)}/${new Date().getFullYear()}`,
-        requestDate: new Date().toISOString().split('T')[0],
-        classification: 'Verde',
-        requestDoctor: '',
-        requestUbs: '',
-        justification: ''
+        requestDate: new Date().toISOString().split('T')[0], classification: 'Verde',
+        medicoSolicitanteId: '', ubsResponsavelId: '', justification: ''
       });
-    } else {
-      alert('Erro ao registrar pedido no banco.');
+    } else alert('Erro ao registrar pedido.');
+  };
+
+  const handleOpenReleaseModal = (item) => {
+    const today = new Date().toISOString().split('T')[0];
+    const initialMonth = today.slice(5, 7);
+    const initialYear = today.slice(0, 4);
+
+    setReleasingItem(item);
+    setRegulationForm({
+      status: 'Liberado',
+      quota: item.quota || '',
+      releaseDate: today,
+      quotaCompetenceMonth: initialMonth,
+      quotaCompetenceYear: initialYear,
+      generalObservation: item.generalObservation || '',
+      regulatorDoctorId: item.regulatorDoctorId || ''
+    });
+  };
+
+  const handleReleaseDateChange = (newReleaseDate) => {
+    if (!newReleaseDate) return setRegulationForm(prev => ({ ...prev, releaseDate: '' }));
+    setRegulationForm(prev => ({
+      ...prev, releaseDate: newReleaseDate,
+      quotaCompetenceMonth: newReleaseDate.slice(5, 7),
+      quotaCompetenceYear: newReleaseDate.slice(0, 4)
+    }));
+  };
+
+  const handleSelectQuotaType = (selectedQuota) => {
+    setRegulationForm(prev => ({ ...prev, quota: selectedQuota }));
+    if (selectedQuota) {
+      const yearToUse = regulationForm.quotaCompetenceYear || `${new Date().getFullYear()}`;
+      setQuotaModalType(selectedQuota);
+      setQuotaModalYear(yearToUse);
+      setShowQuotaModal(true);
     }
+  };
+
+  const handleSelectMonthFromModal = (monthValue) => {
+    setRegulationForm(prev => ({
+      ...prev, quota: quotaModalType, quotaCompetenceMonth: monthValue, quotaCompetenceYear: quotaModalYear
+    }));
+    setShowQuotaModal(false);
+  };
+
+  const handleUpdateCommunicationDate = async (id, newDate) => {
+    setRequests(prev => prev.map(req => req.id === id ? { ...req, communicationDate: newDate } : req));
+    await updateCommunicationDate(id, newDate);
   };
 
   const handleConfirmRelease = async (e) => {
     e.preventDefault();
-    if (regulationForm.status !== 'Liberado') {
-      alert('Selecione o status "Liberado" para confirmar a autorização e o débito financeiro.');
-      return;
-    }
-
-    if (!regulationForm.quota) {
-      alert('Por favor, selecione um Tipo de Cota.');
-      return;
-    }
+    if (regulationForm.status !== 'Liberado') return alert('Selecione o status "Liberado".');
+    if (!regulationForm.quota) return alert('Selecione um Tipo de Cota.');
 
     const currentDetails = calculateMonthQuotaDetails(
       regulationForm.quota, 
@@ -395,25 +473,67 @@ export default function RegulacaoPage() {
     );
 
     if (releasingItem.estimatedCost > currentDetails.available) {
-      const confirmExceed = confirm(`Atenção: O valor do exame (R$ ${releasingItem.estimatedCost.toFixed(2)}) excede o saldo restante da cota ${regulationForm.quota} na competência ${regulationForm.quotaCompetenceMonth}/${regulationForm.quotaCompetenceYear} (Saldo Atual: R$ ${currentDetails.available.toFixed(2)}). Deseja confirmar mesmo assim?`);
+      const confirmExceed = confirm(`Atenção: O valor do exame (R$ ${releasingItem.estimatedCost.toFixed(2)}) excede o saldo da cota ${regulationForm.quota}. Deseja confirmar mesmo assim?`);
       if (!confirmExceed) return;
     }
 
     const res = await releasePaciente(releasingItem.id, regulationForm);
     if (res.success) {
       alert(`Paciente ${releasingItem.patientName} liberado com sucesso!`);
-      const updatedPedidos = await getPedidosExames();
-      setRequests(updatedPedidos || []);
+      reloadData();
       setReleasingItem(null);
-    } else {
-      alert('Erro ao atualizar a liberação no banco.');
-    }
+    } else alert('Erro ao atualizar a liberação.');
   };
 
-  const availableProcedures = auxData.procedimentos.filter(
-    p => String(p.tipoExameId) === String(newRequest.examTypeId)
-  );
+  const handleFilterChange = (field, value) => setFilters(prev => ({ ...prev, [field]: value }));
+  const clearFilters = () => setFilters({
+    search: '', procedure: '', status: '', classification: '', communicationStatus: '', quotaType: '',
+    entryDateStart: '', entryDateEnd: '', communicationDateStart: '', communicationDateEnd: '',
+    releaseDateStart: '', releaseDateEnd: '', billingDateStart: '', billingDateEnd: ''
+  });
 
+  const applyFilters = (items, targetStatus) => {
+    return items.filter(item => {
+      if (targetStatus && item.status !== targetStatus) return false;
+      if (filters.status && item.status !== filters.status) return false;
+
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        const matchesSearch = 
+          item.patientName.toLowerCase().includes(searchLower) ||
+          (item.motherName && item.motherName.toLowerCase().includes(searchLower)) ||
+          item.cpf.includes(filters.search) ||
+          (item.susCard && item.susCard.includes(filters.search)) ||
+          String(item.id).toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+
+      if (filters.procedure && item.procedure !== filters.procedure) return false;
+      if (filters.classification && item.classification !== filters.classification) return false;
+      if (filters.quotaType && item.quota !== filters.quotaType) return false;
+
+      if (filters.communicationStatus === 'FILLED' && !item.communicationDate) return false;
+      if (filters.communicationStatus === 'EMPTY' && item.communicationDate) return false;
+
+      const dateToCompare = item.requestDateRaw || item.requestDate;
+      if (filters.entryDateStart && dateToCompare < filters.entryDateStart) return false;
+      if (filters.entryDateEnd && dateToCompare > filters.entryDateEnd) return false;
+
+      if (filters.communicationDateStart && item.communicationDate < filters.communicationDateStart) return false;
+      if (filters.communicationDateEnd && item.communicationDate > filters.communicationDateEnd) return false;
+
+      const releaseToCompare = item.releaseDateRaw || item.releaseDate;
+      if (filters.releaseDateStart && releaseToCompare < filters.releaseDateStart) return false;
+      if (filters.releaseDateEnd && releaseToCompare > filters.releaseDateEnd) return false;
+
+      if (filters.billingDateStart && item.billingDate < filters.billingDateStart) return false;
+      if (filters.billingDateEnd && item.billingDate > filters.billingDateEnd) return false;
+
+      return true;
+    });
+  };
+
+  const availableProcedures = auxData.procedimentos.filter(p => String(p.tipoExameId) === String(newRequest.examTypeId));
   const allProceduresList = auxData.procedimentos.map(p => p.nome);
 
   return (
@@ -425,731 +545,212 @@ export default function RegulacaoPage() {
         </div>
 
         <div className={styles.tabNav}>
-          <button 
-            className={`${styles.tabBtn} ${activeTab === 'NOVO_PEDIDO' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('NOVO_PEDIDO')}
-          >
-            + Novo Pedido
-          </button>
-          <button 
-            className={`${styles.tabBtn} ${activeTab === 'LISTA_ESPERA' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('LISTA_ESPERA')}
-          >
-            Lista de Espera ({requests.filter(i => i.status === 'Aguardando').length})
-          </button>
-          <button 
-            className={`${styles.tabBtn} ${activeTab === 'LIBERADOS' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('LIBERADOS')}
-          >
-            Liberados ({requests.filter(i => i.status === 'Liberado').length})
-          </button>
-          <button 
-            className={`${styles.tabBtn} ${activeTab === 'FINANCEIRO' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('FINANCEIRO')}
-          >
-            Financeiro
-          </button>
+          <button className={`${styles.tabBtn} ${activeTab === 'NOVO_PEDIDO' ? styles.activeTab : ''}`} onClick={() => setActiveTab('NOVO_PEDIDO')}>+ Novo Pedido</button>
+          <button className={`${styles.tabBtn} ${activeTab === 'LISTA_ESPERA' ? styles.activeTab : ''}`} onClick={() => setActiveTab('LISTA_ESPERA')}>Lista de Espera ({requests.filter(i => i.status === 'Aguardando').length})</button>
+          <button className={`${styles.tabBtn} ${activeTab === 'LIBERADOS' ? styles.activeTab : ''}`} onClick={() => setActiveTab('LIBERADOS')}>Liberados ({requests.filter(i => i.status === 'Liberado').length})</button>
+          <button className={`${styles.tabBtn} ${activeTab === 'FINANCEIRO' ? styles.activeTab : ''}`} onClick={() => setActiveTab('FINANCEIRO')}>📊 Financeiro</button>
+          <button className={`${styles.tabBtn} ${activeTab === 'CADASTROS' ? styles.activeTab : ''}`} onClick={() => setActiveTab('CADASTROS')}>⚙ Cadastros</button>
         </div>
       </header>
 
-      {/* FILTROS */}
+      {/* COMPONENTE DE FILTROS AVANÇADOS */}
       {(activeTab === 'LISTA_ESPERA' || activeTab === 'LIBERADOS') && (
-        <div className={styles.filterCard}>
-          <div className={styles.filterBarTop}>
-            <div className={styles.mainSearchBox}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-              </svg>
-              <input 
-                type="text" 
-                placeholder="Buscar por paciente, cartão SUS, CPF ou código..." 
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-              />
-            </div>
-
-            <div className={styles.filterActionsTop}>
-              <button 
-                type="button"
-                className={styles.toggleFilterBtn}
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-                </svg>
-                {showAdvancedFilters ? 'Ocultar Filtros' : 'Filtros Avançados'}
-              </button>
-
-              <button type="button" onClick={clearFilters} className={styles.clearFilterBtn}>
-                Limpar
-              </button>
-            </div>
-          </div>
-
-          {showAdvancedFilters && (
-            <div className={styles.advancedFiltersWrapper}>
-              <div className={styles.filterSection}>
-                <span className={styles.sectionTitle}>1. Parâmetros Gerais</span>
-                <div className={styles.filterRow}>
-                  <div className={styles.fieldItem}>
-                    <label>Procedimento</label>
-                    <select value={filters.procedure} onChange={(e) => handleFilterChange('procedure', e.target.value)}>
-                      <option value="">Todos os procedimentos</option>
-                      {allProceduresList.map((procName, idx) => (
-                        <option key={idx} value={procName}>{procName}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className={styles.fieldItem}>
-                    <label>Status</label>
-                    <select value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)}>
-                      <option value="">Todos os Status</option>
-                      <option value="Aguardando">Aguardando</option>
-                      <option value="Inativo">Inativo</option>
-                      <option value="Liberado">Liberado</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.fieldItem}>
-                    <label>Classificação de Risco</label>
-                    <select value={filters.classification} onChange={(e) => handleFilterChange('classification', e.target.value)}>
-                      <option value="">Todas</option>
-                      <option value="Verde">Verde</option>
-                      <option value="Amarelo">Amarelo</option>
-                      <option value="Vermelho">Vermelho</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.fieldItem}>
-                    <label>Comunicação</label>
-                    <select value={filters.communicationStatus} onChange={(e) => handleFilterChange('communicationStatus', e.target.value)}>
-                      <option value="">Todas</option>
-                      <option value="FILLED">Preenchida</option>
-                      <option value="EMPTY">Vazia</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.fieldItem}>
-                    <label>Cota</label>
-                    <select value={filters.quotaType} onChange={(e) => handleFilterChange('quotaType', e.target.value)}>
-                      <option value="">Todas</option>
-                      <option value="OCI">OCI</option>
-                      <option value="Credenciamento">Credenciamento</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.filterSection}>
-                <span className={styles.sectionTitle}>2. Intervalos de Datas</span>
-                <div className={styles.filterRow}>
-                  <div className={styles.fieldItem}>
-                    <label>Período de Entrada</label>
-                    <div className={styles.dateRangeBox}>
-                      <input 
-                        type="date" 
-                        value={filters.entryDateStart} 
-                        onChange={(e) => handleFilterChange('entryDateStart', e.target.value)} 
-                      />
-                      <span>até</span>
-                      <input 
-                        type="date" 
-                        value={filters.entryDateEnd} 
-                        onChange={(e) => handleFilterChange('entryDateEnd', e.target.value)} 
-                      />
-                    </div>
-                  </div>
-
-                  <div className={styles.fieldItem}>
-                    <label>Período de Comunicação</label>
-                    <div className={styles.dateRangeBox}>
-                      <input 
-                        type="date" 
-                        value={filters.communicationDateStart} 
-                        onChange={(e) => handleFilterChange('communicationDateStart', e.target.value)} 
-                      />
-                      <span>até</span>
-                      <input 
-                        type="date" 
-                        value={filters.communicationDateEnd} 
-                        onChange={(e) => handleFilterChange('communicationDateEnd', e.target.value)} 
-                      />
-                    </div>
-                  </div>
-
-                  <div className={styles.fieldItem}>
-                    <label>Período de Liberação</label>
-                    <div className={styles.dateRangeBox}>
-                      <input 
-                        type="date" 
-                        value={filters.releaseDateStart} 
-                        onChange={(e) => handleFilterChange('releaseDateStart', e.target.value)} 
-                      />
-                      <span>até</span>
-                      <input 
-                        type="date" 
-                        value={filters.releaseDateEnd} 
-                        onChange={(e) => handleFilterChange('releaseDateEnd', e.target.value)} 
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <FiltersBar
+          filters={filters}
+          handleFilterChange={handleFilterChange}
+          clearFilters={clearFilters}
+          showAdvancedFilters={showAdvancedFilters}
+          setShowAdvancedFilters={setShowAdvancedFilters}
+          allProceduresList={allProceduresList}
+          styles={styles}
+        />
       )}
 
-      {/* ABA 1: NOVO PEDIDO */}
+      {/* COMPONENTES DE ABAS */}
       {activeTab === 'NOVO_PEDIDO' && (
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Nova Solicitação de Exame</h2>
-          
-          <form onSubmit={handleCreateRequest} className={styles.formGrid}>
-            <div className={`${styles.fieldGroup} ${styles.fullWidth}`}>
-              <label>Buscar Paciente (Digite Nome ou CPF)</label>
-              <div className={styles.autocompleteContainer}>
-                <div className={styles.searchBox}>
-                  <input 
-                    type="text"
-                    placeholder="Digite pelo menos 2 caracteres do nome ou CPF..."
-                    value={newRequest.patientSearch}
-                    onChange={handlePatientSearchChange}
-                    onFocus={() => newRequest.patientSearch.length >= 2 && setShowSuggestions(true)}
-                  />
-                  <button type="button" onClick={handleSearchPatientManual} className={styles.secondaryBtn}>
-                    Buscar
-                  </button>
-                  {isSearchingPatient && <span className={styles.loadingSpinner}>...</span>}
-                </div>
-
-                {showSuggestions && patientSuggestions.length > 0 && (
-                  <ul className={styles.suggestionsList}>
-                    {patientSuggestions.map((pessoa) => (
-                      <li 
-                        key={pessoa.cpf} 
-                        onClick={() => handleSelectPatientSuggestion(pessoa)}
-                        className={styles.suggestionItem}
-                      >
-                        <div className={styles.suggestionName}>{pessoa.nomeCompleto}</div>
-                        <div className={styles.suggestionDetails}>
-                          <span>CPF: {pessoa.cpf}</span>
-                          {pessoa.nomeMae && <span> • Mãe: {pessoa.nomeMae}</span>}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {showSuggestions && !isSearchingPatient && patientSuggestions.length === 0 && (
-                  <div className={styles.noSuggestions}>Nenhum paciente encontrado</div>
-                )}
-              </div>
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>Nome do Paciente</label>
-              <input type="text" value={newRequest.patientName} readOnly placeholder="Aguardando busca..." className={styles.readOnlyInput} />
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>Nome da Mãe</label>
-              <input type="text" value={newRequest.motherName} readOnly placeholder="Aguardando busca..." className={styles.readOnlyInput} />
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>CPF</label>
-              <input type="text" value={newRequest.cpf} readOnly placeholder="Aguardando busca..." className={styles.readOnlyInput} />
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>Cartão SUS</label>
-              <input type="text" value={newRequest.susCard} readOnly placeholder="Aguardando busca..." className={styles.readOnlyInput} />
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>1. Tipo de Exame</label>
-              <select value={newRequest.examTypeId} onChange={handleExamTypeChange} required>
-                <option value="">-- Selecione o Exame --</option>
-                {auxData.tiposExame.map((tipo) => (
-                  <option key={tipo.id} value={tipo.id}>
-                    {tipo.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>2. Procedimento Específico</label>
-              <select 
-                value={newRequest.procedureId} 
-                onChange={handleProcedureChange}
-                disabled={!newRequest.examTypeId}
-                required
-              >
-                <option value="">
-                  {newRequest.examTypeId ? '-- Selecione o Procedimento --' : 'Selecione primeiro o Exame acima'}
-                </option>
-                {availableProcedures.map((proc) => (
-                  <option key={proc.id} value={proc.id}>
-                    {proc.nome} (R$ {proc.valor.toFixed(2)})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>Classificação de Risco</label>
-              <select 
-                value={newRequest.classification} 
-                onChange={(e) => setNewRequest({ ...newRequest, classification: e.target.value })}
-              >
-                <option value="Verde">Verde (Eletivo)</option>
-                <option value="Amarelo">Amarelo (Prioritário)</option>
-                <option value="Vermelho">Vermelho (Urgente)</option>
-              </select>
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>Médico Solicitante</label>
-              <input 
-                type="text" 
-                placeholder="Ex: Dr. Carlos Eduardo" 
-                value={newRequest.requestDoctor} 
-                onChange={(e) => setNewRequest({ ...newRequest, requestDoctor: e.target.value })}
-                required 
-              />
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>UBS Solicitante</label>
-              <input 
-                type="text" 
-                placeholder="Ex: UBS Bairro Porto" 
-                value={newRequest.requestUbs} 
-                onChange={(e) => setNewRequest({ ...newRequest, requestUbs: e.target.value })}
-                required 
-              />
-            </div>
-
-            <div className={`${styles.fieldGroup} ${styles.fullWidth}`}>
-              <label>Justificativa do Pedido (Quadro Clínico)</label>
-              <textarea 
-                rows="3" 
-                placeholder="Descreva o histórico clínico..."
-                value={newRequest.justification}
-                onChange={(e) => setNewRequest({ ...newRequest, justification: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className={styles.formActions}>
-              <button type="submit" className={styles.primaryBtn}>
-                Enviar para Lista de Espera
-              </button>
-            </div>
-          </form>
-        </div>
+        <TabNovoPedido
+          newRequest={newRequest}
+          setNewRequest={setNewRequest}
+          handleCreateRequest={handleCreateRequest}
+          auxData={auxData}
+          availableProcedures={availableProcedures}
+          patientSuggestions={patientSuggestions}
+          showSuggestions={showSuggestions}
+          isSearchingPatient={isSearchingPatient}
+          autocompleteRef={autocompleteRef}
+          handlePatientSearchChange={handlePatientSearchChange}
+          handleInputFocus={handleInputFocus}
+          handleSearchPatientManual={handleSearchPatientManual}
+          handleSelectPatientSuggestion={handleSelectPatientSuggestion}
+          handleExamTypeChange={handleExamTypeChange}
+          handleProcedureChange={handleProcedureChange}
+          styles={styles}
+        />
       )}
 
-      {/* ABA 2: LISTA DE ESPERA */}
       {activeTab === 'LISTA_ESPERA' && (
-        <div className={styles.card}>
-          <div className={styles.examQueueNav}>
-            {auxData.tiposExame.map((exam) => {
-              const count = requests.filter(i => (i.examType === exam.nome || String(i.examTypeId) === String(exam.id)) && i.status === 'Aguardando').length;
-              return (
-                <button
-                  key={exam.id}
-                  className={`${styles.examQueueBtn} ${selectedQueueExam === exam.nome ? styles.activeExamQueue : ''}`}
-                  onClick={() => setSelectedQueueExam(exam.nome)}
-                >
-                  Fila de {exam.nome} <span className={styles.badgeCount}>{count}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {loading ? (
-            <div className={styles.loadingBox}>Carregando fila de espera do banco de dados...</div>
-          ) : (
-            <div className={styles.tableWrapper}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Data Entrada</th>
-                    <th>Data Comunicação (Editável)</th>
-                    <th>Paciente / Mãe / Classificação</th>
-                    <th>Procedimento</th>
-                    <th>Status</th>
-                    <th>Ação</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {applyFilters(
-                    requests.filter(r => r.examType === selectedQueueExam)
-                  ).map((item) => (
-                    <tr key={item.id}>
-                      <td className={styles.dateCell}>{item.requestDate}</td>
-                      <td className={styles.editDateCell}>
-                        <input 
-                          type="date" 
-                          value={item.communicationDate} 
-                          onChange={(e) => handleUpdateCommunicationDate(item.id, e.target.value)}
-                          className={styles.inlineDateInput}
-                        />
-                      </td>
-                      <td>
-                        <div className={styles.patientBlock}>
-                          <div className={styles.patientNameHeader}>
-                            <strong>{item.patientName}</strong>
-                            <span className={`${styles.classBadge} ${styles[item.classification.toLowerCase()]}`}>
-                              {item.classification}
-                            </span>
-                          </div>
-                          <small className={styles.motherText}>Mãe: {item.motherName || 'Não informada'}</small>
-                        </div>
-                      </td>
-                      <td><strong>{item.procedure}</strong></td>
-                      <td>
-                        <span className={`${styles.statusBadge} ${styles[item.status.toLowerCase()]}`}>
-                          {item.status}
-                        </span>
-                      </td>
-                      <td>
-                        {item.status === 'Aguardando' && (
-                          <button 
-                            className={styles.releaseBtn}
-                            onClick={() => handleOpenReleaseModal(item)}
-                          >
-                            Liberar Paciente
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <TabListaEspera
+          auxData={auxData}
+          requests={requests}
+          selectedQueueExam={selectedQueueExam}
+          setSelectedQueueExam={setSelectedQueueExam}
+          selectedIds={selectedIds}
+          handleSelectAllQueue={(e) => {
+            const visibleItems = applyFilters(requests.filter(r => r.examType === selectedQueueExam && r.status === 'Aguardando'));
+            if (e.target.checked) setSelectedIds(Array.from(new Set([...selectedIds, ...visibleItems.map(i => i.id)])));
+            else {
+              const visibleSet = new Set(visibleItems.map(i => i.id));
+              setSelectedIds(selectedIds.filter(id => !visibleSet.has(id)));
+            }
+          }}
+          handleSelectOneQueue={(id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id])}
+          handleExportToExcelQueue={() => {
+            if (selectedIds.length === 0) return alert('Selecione pelo menos um paciente.');
+            const selectedItems = requests.filter(r => selectedIds.includes(r.id));
+            const exportData = selectedItems.map(item => ({
+              'Código Regulação': item.id, 'Data de Entrada': item.requestDate, 'Data de Comunicação': item.communicationDate || 'Não informada',
+              'Nome do Paciente': item.patientName, 'CPF': item.cpf, 'Cartão SUS': item.susCard || 'Não informado',
+              'Nome da Mãe': item.motherName || 'Não informada', 'Tipo de Exame': item.examType, 'Procedimento': item.procedure,
+              'Classificação de Risco': item.classification, 'Médico Solicitante': item.requestDoctor || 'Não informado',
+              'UBS Solicitante': item.requestUbs || 'Não informada', 'Justificativa Clínica': item.justification || '', 'Status': item.status
+            }));
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Fila de Espera');
+            XLSX.writeFile(workbook, `Fila_Espera_${selectedQueueExam.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+          }}
+          applyFilters={applyFilters}
+          handleUpdateCommunicationDate={handleUpdateCommunicationDate}
+          handleOpenReleaseModal={handleOpenReleaseModal}
+          handleDeleteOrder={handleDeleteOrder}
+          loading={loading}
+          styles={styles}
+        />
       )}
 
-      {/* ABA 3: LIBERADOS */}
       {activeTab === 'LIBERADOS' && (
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>Histórico de Exames Liberados</h2>
-
-          {loading ? (
-            <div className={styles.loadingBox}>Carregando histórico do banco de dados...</div>
-          ) : (
-            <div className={styles.tableWrapper}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Código</th>
-                    <th>Data Liberação</th>
-                    <th>Data Comunicação</th>
-                    <th>Paciente / Mãe</th>
-                    <th>Procedimento</th>
-                    <th>Cota Utilizada</th>
-                    <th>Competência Cota</th>
-                    <th>Valor Débito</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {applyFilters(requests, 'Liberado').map((item) => (
-                    <tr key={item.id}>
-                      <td className={styles.codeCell}>{item.id}</td>
-                      <td>{item.releaseDate}</td>
-                      <td>{item.communicationDate || <span className={styles.emptyText}>Vazia</span>}</td>
-                      <td>
-                        <div className={styles.patientBlock}>
-                          <strong>{item.patientName}</strong>
-                          <small className={styles.motherText}>Mãe: {item.motherName}</small>
-                        </div>
-                      </td>
-                      <td>
-                        <div className={styles.patientInfo}>
-                          <strong>[{item.examType}]</strong>
-                          <span>{item.procedure}</span>
-                        </div>
-                      </td>
-                      <td><span className={styles.quotaBadge}>{item.quota}</span></td>
-                      <td><span className={styles.competenceBadge}>{item.quotaCompetenceMonth}/{item.quotaCompetenceYear}</span></td>
-                      <td><strong>R$ {item.estimatedCost.toFixed(2)}</strong></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <TabLiberados
+          auxData={auxData}
+          requests={requests}
+          selectedReleasedExam={selectedReleasedExam}
+          setSelectedReleasedExam={setSelectedReleasedExam}
+          selectedReleasedIds={selectedReleasedIds}
+          handleSelectAllReleased={(e) => {
+            const visibleItems = applyFilters(requests.filter(r => r.examType === selectedReleasedExam), 'Liberado');
+            if (e.target.checked) setSelectedReleasedIds(Array.from(new Set([...selectedReleasedIds, ...visibleItems.map(i => i.id)])));
+            else {
+              const visibleSet = new Set(visibleItems.map(i => i.id));
+              setSelectedReleasedIds(selectedReleasedIds.filter(id => !visibleSet.has(id)));
+            }
+          }}
+          handleSelectOneReleased={(id) => setSelectedReleasedIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id])}
+          handleExportToExcelReleased={() => {
+            if (selectedReleasedIds.length === 0) return alert('Selecione pelo menos um paciente liberado.');
+            const selectedItems = requests.filter(r => selectedReleasedIds.includes(r.id));
+            const exportData = selectedItems.map(item => ({
+              'Código Regulação': item.id, 'Nome do Paciente': item.patientName, 'CPF': item.cpf,
+              'Cartão SUS': item.susCard || 'Não informado', 'Tipo de Exame': item.examType, 'Procedimento': item.procedure,
+              'Data da Liberação': item.releaseDate || 'Não informada', 'Tipo de Cota': item.quota || 'N/A',
+              'Competência Cota': item.quotaCompetenceMonth && item.quotaCompetenceYear ? `${item.quotaCompetenceMonth}/${item.quotaCompetenceYear}` : 'N/A',
+              'Data Faturado': item.billingDate || 'Não informada', 'Médico Regulador': item.regulatorDoctor || 'Não informado',
+              'Médico Solicitante': item.requestDoctor || 'Não informado', 'UBS Solicitante': item.requestUbs || 'Não informada',
+              'Valor do Exame (R$)': item.estimatedCost ? item.estimatedCost.toFixed(2) : '0.00'
+            }));
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Exames Liberados');
+            XLSX.writeFile(workbook, `Liberados_${selectedReleasedExam.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+          }}
+          applyFilters={applyFilters}
+          handleUpdateBillingDate={handleUpdateBillingDate}
+          setEditingItem={setEditingItem}
+          loading={loading}
+          styles={styles}
+        />
       )}
 
-      {/* ABA 4: FINANCEIRO */}
       {activeTab === 'FINANCEIRO' && (
-        <div className={styles.financeContainer}>
-          <div className={styles.metricsGrid}>
-            <div className={styles.metricCard}>
-              <span>Total na Fila de Espera</span>
-              <h3>R$ {requests.filter(r => r.status === 'Aguardando').reduce((a, b) => a + b.estimatedCost, 0).toFixed(2)}</h3>
-              <small>{requests.filter(r => r.status === 'Aguardando').length} exames pendentes</small>
-            </div>
-
-            <div className={styles.metricCard}>
-              <span>Total Liberado (Debitado)</span>
-              <h3 className={styles.successText}>R$ {requests.filter(r => r.status === 'Liberado').reduce((a, b) => a + b.estimatedCost, 0).toFixed(2)}</h3>
-              <small>{requests.filter(r => r.status === 'Liberado').length} exames autorizados</small>
-            </div>
-          </div>
-        </div>
+        <TabFinanceiro
+          finMonth={finMonth}
+          setFinMonth={setFinMonth}
+          finYear={finYear}
+          setFinYear={setFinYear}
+          MONTHS_LIST={MONTHS_LIST}
+          calculateMonthQuotaDetails={calculateMonthQuotaDetails}
+          handleOpenDefineTetoModal={handleOpenDefineTetoModal}
+          styles={styles}
+        />
       )}
 
-      {/* POPUP PRINCIPAL: LIBERAÇÃO DE PACIENTE */}
-      {releasingItem && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContentLarge}>
-            <div className={styles.modalHeader}>
-              <h3>Liberar Paciente • Regulação de Exames</h3>
-              <button onClick={() => setReleasingItem(null)} className={styles.closeBtn}>×</button>
-            </div>
-
-            <div className={styles.autoDataSection}>
-              <h4 className={styles.modalSectionTitle}>Informações Automáticas do Paciente e Pedido</h4>
-              
-              <div className={styles.autoDataGrid}>
-                <div className={styles.autoDataItem}>
-                  <label>Paciente</label>
-                  <span>{releasingItem.patientName}</span>
-                </div>
-
-                <div className={styles.autoDataItem}>
-                  <label>Cartão SUS</label>
-                  <span>{releasingItem.susCard || 'Não informado'}</span>
-                </div>
-
-                <div className={styles.autoDataItem}>
-                  <label>CPF</label>
-                  <span>{releasingItem.cpf}</span>
-                </div>
-
-                <div className={styles.autoDataItem}>
-                  <label>Data do Pedido</label>
-                  <span>{releasingItem.requestDate}</span>
-                </div>
-
-                <div className={styles.autoDataItem}>
-                  <label>Procedimento</label>
-                  <span>[{releasingItem.examType}] - {releasingItem.procedure}</span>
-                </div>
-
-                <div className={styles.autoDataItem}>
-                  <label>Classificação de Risco</label>
-                  <span className={`${styles.classBadge} ${styles[releasingItem.classification.toLowerCase()]}`}>
-                    {releasingItem.classification}
-                  </span>
-                </div>
-
-                <div className={styles.autoDataItem}>
-                  <label>UBS Solicitante</label>
-                  <span>{releasingItem.requestUbs}</span>
-                </div>
-
-                <div className={styles.autoDataItem}>
-                  <label>Médico Solicitante</label>
-                  <span>{releasingItem.requestDoctor}</span>
-                </div>
-
-                <div className={styles.autoDataItem}>
-                  <label>Data da Comunicação</label>
-                  <span>{releasingItem.communicationDate || 'Não preenchida'}</span>
-                </div>
-
-                <div className={styles.autoDataItem}>
-                  <label>Valor do Exame</label>
-                  <strong>R$ {releasingItem.estimatedCost.toFixed(2)}</strong>
-                </div>
-              </div>
-            </div>
-
-            <form onSubmit={handleConfirmRelease} className={styles.modalReleaseForm}>
-              <h4 className={styles.modalSectionTitle}>Parâmetros de Autorização, Cota e Débito</h4>
-
-              <div className={styles.releaseFieldsGrid}>
-                <div className={styles.fieldGroup}>
-                  <label>Status da Solicitação *</label>
-                  <select 
-                    value={regulationForm.status} 
-                    onChange={(e) => setRegulationForm({ ...regulationForm, status: e.target.value })}
-                    required
-                  >
-                    <option value="Liberado">Liberado (Confirmar Débito Financeiro)</option>
-                    <option value="Aguardando">Manter em Aguardando</option>
-                  </select>
-                </div>
-
-                <div className={styles.fieldGroup}>
-                  <label>Data da Liberação *</label>
-                  <input 
-                    type="date" 
-                    value={regulationForm.releaseDate} 
-                    onChange={(e) => handleReleaseDateChange(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className={styles.fieldGroup}>
-                  <label>Tipo de Cota *</label>
-                  <select 
-                    value={regulationForm.quota} 
-                    onChange={(e) => handleSelectQuotaType(e.target.value)}
-                    required
-                  >
-                    <option value="">-- Selecione o Tipo de Cota --</option>
-                    <option value="OCI">OCI</option>
-                    <option value="Credenciamento">Credenciamento</option>
-                  </select>
-                </div>
-
-                <div className={styles.fieldGroup}>
-                  <label>Competência de Débito (Mês / Ano)</label>
-                  <div className={styles.monthYearDisplayBox}>
-                    <span>{regulationForm.quotaCompetenceMonth}/{regulationForm.quotaCompetenceYear}</span>
-                    <button 
-                      type="button" 
-                      onClick={() => {
-                        setQuotaModalType(regulationForm.quota || 'OCI');
-                        setQuotaModalYear(regulationForm.quotaCompetenceYear);
-                        setShowQuotaModal(true);
-                      }}
-                      className={styles.openQuotaModalBtn}
-                    >
-                      Consultar / Mudar Mês 📊
-                    </button>
-                  </div>
-                </div>
-
-                <div className={`${styles.fieldGroup} ${styles.fullWidth}`}>
-                  <label>Observação Geral</label>
-                  <textarea 
-                    rows="2" 
-                    placeholder="Insira observações adicionais referente à liberação..."
-                    value={regulationForm.generalObservation}
-                    onChange={(e) => setRegulationForm({ ...regulationForm, generalObservation: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className={styles.modalActions}>
-                <button type="button" onClick={() => setReleasingItem(null)} className={styles.secondaryBtn}>
-                  Cancelar
-                </button>
-                <button type="submit" className={styles.approveBtn}>
-                  Confirmar e Liberar Paciente
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {activeTab === 'CADASTROS' && (
+        <TabCadastros
+          cadSubTab={cadSubTab}
+          setCadSubTab={setCadSubTab}
+          formPessoa={formPessoa}
+          setFormPessoa={setFormPessoa}
+          handleSavePessoa={handleSavePessoa}
+          formMedico={formMedico}
+          setFormMedico={setFormMedico}
+          handleSaveMedico={handleSaveMedico}
+          formUbs={formUbs}
+          setFormUbs={setFormUbs}
+          handleSaveUbs={handleSaveUbs}
+          formProcedimento={formProcedimento}
+          setFormProcedimento={setFormProcedimento}
+          handleSaveProcedimento={handleSaveProcedimento}
+          auxData={auxData}
+          styles={styles}
+        />
       )}
 
-      {/* POP-UP AUXILIAR EXCLUSIVO DE COTAS MENSAIS */}
-      {showQuotaModal && (
-        <div className={styles.modalOverlayQuota}>
-          <div className={styles.modalContentQuota}>
-            <div className={styles.modalHeader}>
-              <div>
-                <h3>Consulta de Cotas Mensais e Saldos</h3>
-                <p>Cota selecionada: <strong>{quotaModalType}</strong>. Escolha a competência para o débito:</p>
-              </div>
-              <button onClick={() => setShowQuotaModal(false)} className={styles.closeBtn}>×</button>
-            </div>
+      {/* COMPONENTES DE MODAIS */}
+      <ModalTetoFinanceiro
+        editCotaModal={editCotaModal}
+        setEditCotaModal={setEditCotaModal}
+        handleSaveTetoCota={handleSaveTetoCota}
+        finMonth={finMonth}
+        finYear={finYear}
+        styles={styles}
+      />
 
-            <div className={styles.quotaModalFilterRow}>
-              <div className={styles.fieldItem}>
-                <label>Tipo de Cota</label>
-                <select 
-                  value={quotaModalType} 
-                  onChange={(e) => setQuotaModalType(e.target.value)}
-                >
-                  <option value="OCI">OCI (Teto Mensal: R$ 25.000,00)</option>
-                  <option value="Credenciamento">Credenciamento (Teto Mensal: R$ 30.000,00)</option>
-                </select>
-              </div>
+      <ModalLiberacao
+        releasingItem={releasingItem}
+        setReleasingItem={setReleasingItem}
+        regulationForm={regulationForm}
+        setRegulationForm={setRegulationForm}
+        handleReleaseDateChange={handleReleaseDateChange}
+        handleSelectQuotaType={handleSelectQuotaType}
+        handleConfirmRelease={handleConfirmRelease}
+        setShowQuotaModal={setShowQuotaModal}
+        setQuotaModalType={setQuotaModalType}
+        setQuotaModalYear={setQuotaModalYear}
+        auxData={auxData}
+        styles={styles}
+      />
 
-              <div className={styles.fieldItem}>
-                <label>Ano da Competência</label>
-                <select 
-                  value={quotaModalYear} 
-                  onChange={(e) => setQuotaModalYear(e.target.value)}
-                >
-                  <option value="2026">2026</option>
-                  <option value="2027">2027</option>
-                </select>
-              </div>
-            </div>
+      <ModalEdicaoPedido
+        editingItem={editingItem}
+        setEditingItem={setEditingItem}
+        handleEditStatusChange={handleEditStatusChange}
+        handleSaveEditedOrder={handleSaveEditedOrder}
+        auxData={auxData}
+        styles={styles}
+      />
 
-            <div className={styles.tableWrapperModal}>
-              <table className={styles.tableModal}>
-                <thead>
-                  <tr>
-                    <th>Mês / Competência</th>
-                    <th>Teto Mensal</th>
-                    <th>Acumulado Utilizado</th>
-                    <th>Saldo Restante</th>
-                    <th>Ação</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {MONTHS_LIST.map((m) => {
-                    const details = calculateMonthQuotaDetails(quotaModalType, quotaModalYear, m.value);
-                    const isSelected = 
-                      regulationForm.quota === quotaModalType &&
-                      regulationForm.quotaCompetenceMonth === m.value &&
-                      regulationForm.quotaCompetenceYear === quotaModalYear;
-
-                    return (
-                      <tr key={m.value} className={isSelected ? styles.selectedQuotaRow : ''}>
-                        <td>
-                          <strong>{m.name} ({m.value}/{quotaModalYear})</strong>
-                        </td>
-                        <td>R$ {details.totalLimit.toFixed(2)}</td>
-                        <td>R$ {details.totalUsed.toFixed(2)}</td>
-                        <td>
-                          <strong className={details.available >= (releasingItem?.estimatedCost || 0) ? styles.positiveText : styles.negativeText}>
-                            R$ {details.available.toFixed(2)}
-                          </strong>
-                        </td>
-                        <td>
-                          <button 
-                            type="button" 
-                            className={styles.selectMonthBtn}
-                            onClick={() => handleSelectMonthFromModal(m.value)}
-                          >
-                            {isSelected ? 'Mês Selecionado' : 'Selecionar Mês'}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <div className={styles.modalActions}>
-              <button 
-                type="button" 
-                onClick={() => setShowQuotaModal(false)} 
-                className={styles.primaryBtn}
-              >
-                Concluir Seleção
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalSeletorCotas
+        showQuotaModal={showQuotaModal}
+        setShowQuotaModal={setShowQuotaModal}
+        quotaModalType={quotaModalType}
+        setQuotaModalType={setQuotaModalType}
+        quotaModalYear={quotaModalYear}
+        setQuotaModalYear={setQuotaModalYear}
+        MONTHS_LIST={MONTHS_LIST}
+        calculateMonthQuotaDetails={calculateMonthQuotaDetails}
+        regulationForm={regulationForm}
+        releasingItem={releasingItem}
+        handleSelectMonthFromModal={handleSelectMonthFromModal}
+        styles={styles}
+      />
     </div>
   );
 }

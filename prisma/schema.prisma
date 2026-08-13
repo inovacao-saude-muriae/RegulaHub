@@ -118,3 +118,15 @@ model PedidoExame {
   @@index([ubsResponsavelId], map: "fk_pedidos_ubs_idx")
   @@map("pedidos_exames")
 }
+
+model CotaFinanceira {
+  id          Int      @id @default(autoincrement())
+  tipoCota    String   @map("tipo_cota") @db.VarChar(50) // "SUS", "Credenciamento", "OCI"
+  mes         String   @db.VarChar(2)                   // "01", "02", ..., "12"
+  ano         String   @db.VarChar(4)                   // "2026", "2027"
+  valorTeto   Decimal  @map("valor_teto") @db.Decimal(12, 2)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([tipoCota, mes, ano], map: "idx_cota_competencia_unica")
+  @@map("cotas_financeiras")
+}

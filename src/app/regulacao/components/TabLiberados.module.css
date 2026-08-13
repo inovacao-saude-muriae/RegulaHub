@@ -1,0 +1,203 @@
+.card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
+}
+
+.examQueueNav {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  overflow-x: auto;
+}
+
+.examQueueBtn {
+  background: transparent;
+  border: none;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #64748b;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.examQueueBtn:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+.activeExamQueue {
+  background-color: #eff6ff !important;
+  color: #2563eb !important;
+}
+
+.badgeCount {
+  background-color: #cbd5e1;
+  color: #1e293b;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.activeExamQueue .badgeCount {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.secondaryBtn {
+  background-color: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondaryBtn:hover {
+  filter: brightness(0.95);
+}
+
+.loadingBox {
+  padding: 3rem;
+  text-align: center;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.table th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.patientBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.motherText {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.patientInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.patientInfo strong {
+  color: #2563eb;
+  font-size: 0.8rem;
+}
+
+.dateCell {
+  white-space: nowrap;
+  font-weight: 500;
+  color: #475569;
+}
+
+.editDateCell {
+  min-width: 140px;
+}
+
+.inlineDateInput {
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #1e293b;
+  background-color: #ffffff;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.inlineDateInput:focus {
+  border-color: #2563eb;
+}
+
+.quotaBadge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: #e0e7ff;
+  color: #3730a3;
+}
+
+.competenceBadge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.smallActionBtn {
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.smallActionBtn:hover {
+  background-color: #e2e8f0;
+  border-color: #94a3b8;
+}
