@@ -1,6 +1,6 @@
 'use client';
 
-import styles from './ModalSeletorCotas.module.css';
+
 
 export default function ModalSeletorCotas({
   showQuotaModal,
