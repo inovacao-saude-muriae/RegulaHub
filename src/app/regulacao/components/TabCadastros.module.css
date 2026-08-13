@@ -8,12 +8,13 @@
 }
 
 .card h3 {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #1e293b;
   margin-bottom: 1.25rem;
 }
 
+/* ── Sub-nav ── */
 .examQueueNav {
   display: flex;
   gap: 0.5rem;
@@ -21,19 +22,22 @@
   margin-bottom: 1.5rem;
   padding-bottom: 0.5rem;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .examQueueBtn {
   background: transparent;
   border: none;
   padding: 0.6rem 1.25rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: #64748b;
   border-radius: 8px;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 .examQueueBtn:hover {
@@ -46,11 +50,12 @@
   color: #2563eb !important;
 }
 
+/* ── Formulário ── */
 .formGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1.25rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.75rem;
 }
 
 .fieldGroup {
@@ -60,13 +65,14 @@
 }
 
 .fieldGroup label {
-  font-size: 0.85rem;
+  font-size: 0.83rem;
   font-weight: 600;
   color: #475569;
 }
 
 .fieldGroup input,
-.fieldGroup select {
+.fieldGroup select,
+.fieldGroup textarea {
   width: 100%;
   padding: 0.65rem 0.85rem;
   border: 1px solid #cbd5e1;
@@ -75,13 +81,24 @@
   color: #1e293b;
   outline: none;
   background-color: #ffffff;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+  font-family: inherit;
+  box-sizing: border-box;
 }
 
 .fieldGroup input:focus,
-.fieldGroup select:focus {
+.fieldGroup select:focus,
+.fieldGroup textarea:focus {
   border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.fieldGroup input:disabled {
+  background-color: #f8fafc;
+  color: #94a3b8;
+  cursor: not-allowed;
 }
 
 .fullWidth {
@@ -89,18 +106,21 @@
 }
 
 .formActions {
+  grid-column: 1 / -1;
   display: flex;
   justify-content: flex-end;
-  margin-top: 0.5rem;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
 }
 
+/* ── Botões ── */
 .primaryBtn {
   background-color: #2563eb;
   color: #ffffff;
   border: none;
   padding: 0.65rem 1.5rem;
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -110,20 +130,39 @@
   background-color: #1d4ed8;
 }
 
-.sectionHeaderMargin {
-  margin-top: 2rem;
-  margin-bottom: 1rem;
-  font-size: 1rem;
-  font-weight: 700;
+.secondaryBtn {
+  background-color: #f1f5f9;
   color: #334155;
-  border-top: 1px solid #f1f5f9;
-  padding-top: 1.25rem;
+  border: 1px solid #cbd5e1;
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
+.secondaryBtn:hover {
+  background-color: #e2e8f0;
+}
+
+/* ── Cabeçalho de seção ── */
+.sectionHeaderMargin {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-top: 1.75rem;
+  margin-bottom: 0.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* ── Tabela ── */
 .tableWrapper {
   overflow-x: auto;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table {
@@ -139,12 +178,14 @@
   font-weight: 600;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
 }
 
 .table td {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid #f1f5f9;
   color: #334155;
+  vertical-align: middle;
 }
 
 .table tbody tr:last-child td {
@@ -155,12 +196,69 @@
   background-color: #f8fafc;
 }
 
-.quotaBadge {
-  display: inline-block;
-  padding: 0.25rem 0.6rem;
+/* ── Ações da tabela ── */
+.actionsColumn {
+  width: 160px;
+  text-align: right;
+}
+
+.actionsCell {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.editBtn {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  padding: 0.35rem 0.75rem;
   border-radius: 6px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  background-color: #e2e8f0;
-  color: #334155;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+
+.editBtn:hover {
+  background-color: #dcfce7;
+}
+
+.deleteBtn {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+
+.deleteBtn:hover {
+  background-color: #fee2e2;
+}
+
+/* ── Endereço na Tabela ── */
+.endereco {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.enderecoComplemento {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  display: flex;
+  gap: 0;
+  flex-wrap: wrap;
+}
+
+.semEndereco {
+  color: #94a3b8;
+  font-style: italic;
 }

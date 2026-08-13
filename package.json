@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@prisma/client": "5.22.0",
+    "@prisma/client": "^7.9.1",
     "@supabase/supabase-js": "^2.109.0",
     "lucide-react": "^1.31.0",
     "next": "16.3.0",
@@ -18,9 +18,11 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/node": "^26.2.0",
     "babel-plugin-react-compiler": "1.0.0",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
-    "prisma": "5.22.0"
+    "prisma": "^7.9.1"
   }
 }

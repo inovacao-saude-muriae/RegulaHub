@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import * as XLSX from 'xlsx';
-import { 
-  getPedidosExames, 
+import { useState, useEffect, useRef } from "react";
+import * as XLSX from "xlsx";
+import {
+  getPedidosExames,
   getAuxiliaryData,
-  searchPessoa, 
+  searchPessoa,
   searchPessoasAutocomplete,
-  createPedidoExame, 
-  updateCommunicationDate, 
+  createPedidoExame,
+  updateCommunicationDate,
   releasePaciente,
   createPessoa,
   createMedico,
@@ -18,43 +18,49 @@ import {
   saveCotaFinanceira,
   updateBillingDate,
   updatePedidoExame,
-  deletePedidoExame
-} from './actions';
+  deletePedidoExame,
+  updateMedico,
+  deleteMedico,
+  updatePessoa,
+  deletePessoa,
+  updateUbs,
+  deleteUbs,
+} from "./actions";
 
-import FiltersBar from './components/FiltersBar';
-import TabNovoPedido from './components/TabNovoPedido';
-import TabListaEspera from './components/TabListaEspera';
-import TabLiberados from './components/TabLiberados';
-import TabFinanceiro from './components/TabFinanceiro';
-import TabCadastros from './components/TabCadastros';
+import FiltersBar from "./components/FiltersBar";
+import TabNovoPedido from "./components/TabNovoPedido";
+import TabListaEspera from "./components/TabListaEspera";
+import TabLiberados from "./components/TabLiberados";
+import TabFinanceiro from "./components/TabFinanceiro";
+import TabCadastros from "./components/TabCadastros";
 
-import ModalTetoFinanceiro from './components/Modals/ModalTetoFinanceiro';
-import ModalLiberacao from './components/Modals/ModalLiberacao';
-import ModalEdicaoPedido from './components/Modals/ModalEdicaoPedido';
-import ModalSeletorCotas from './components/Modals/ModalSeletorCotas';
+import ModalTetoFinanceiro from "./components/Modals/ModalTetoFinanceiro";
+import ModalLiberacao from "./components/Modals/ModalLiberacao";
+import ModalEdicaoPedido from "./components/Modals/ModalEdicaoPedido";
+import ModalSeletorCotas from "./components/Modals/ModalSeletorCotas";
 
-import styles from './page.module.css';
+import styles from "./page.module.css";
 
 const MONTHS_LIST = [
-  { value: '01', name: 'Janeiro' },
-  { value: '02', name: 'Fevereiro' },
-  { value: '03', name: 'Março' },
-  { value: '04', name: 'Abril' },
-  { value: '05', name: 'Maio' },
-  { value: '06', name: 'Junho' },
-  { value: '07', name: 'Julho' },
-  { value: '08', name: 'Agosto' },
-  { value: '09', name: 'Setembro' },
-  { value: '10', name: 'Outubro' },
-  { value: '11', name: 'Novembro' },
-  { value: '12', name: 'Dezembro' }
+  { value: "01", name: "Janeiro" },
+  { value: "02", name: "Fevereiro" },
+  { value: "03", name: "Março" },
+  { value: "04", name: "Abril" },
+  { value: "05", name: "Maio" },
+  { value: "06", name: "Junho" },
+  { value: "07", name: "Julho" },
+  { value: "08", name: "Agosto" },
+  { value: "09", name: "Setembro" },
+  { value: "10", name: "Outubro" },
+  { value: "11", name: "Novembro" },
+  { value: "12", name: "Dezembro" },
 ];
 
 export default function RegulacaoPage() {
-  const [activeTab, setActiveTab] = useState('NOVO_PEDIDO');
-  const [cadSubTab, setCadSubTab] = useState('PACIENTES');
-  const [selectedQueueExam, setSelectedQueueExam] = useState('');
-  const [selectedReleasedExam, setSelectedReleasedExam] = useState('');
+  const [activeTab, setActiveTab] = useState("NOVO_PEDIDO");
+  const [cadSubTab, setCadSubTab] = useState("PACIENTES");
+  const [selectedQueueExam, setSelectedQueueExam] = useState("");
+  const [selectedReleasedExam, setSelectedReleasedExam] = useState("");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -67,7 +73,13 @@ export default function RegulacaoPage() {
   const isSelectedRef = useRef(false);
 
   // Estados dos Dados
-  const [auxData, setAuxData] = useState({ tiposExame: [], procedimentos: [], medicos: [], ubsList: [], pessoas: [] });
+  const [auxData, setAuxData] = useState({
+    tiposExame: [],
+    procedimentos: [],
+    medicos: [],
+    ubsList: [],
+    pessoas: [],
+  });
   const [requests, setRequests] = useState([]);
   const [cotasFinanceiras, setCotasFinanceiras] = useState([]);
 
@@ -77,50 +89,98 @@ export default function RegulacaoPage() {
   const [isSearchingPatient, setIsSearchingPatient] = useState(false);
 
   // Financeiro
-  const [finMonth, setFinMonth] = useState('08');
-  const [finYear, setFinYear] = useState('2026');
-  const [editCotaModal, setEditCotaModal] = useState({ open: false, tipoCota: '', valor: '' });
+  const [finMonth, setFinMonth] = useState("08");
+  const [finYear, setFinYear] = useState("2026");
+  const [editCotaModal, setEditCotaModal] = useState({
+    open: false,
+    tipoCota: "",
+    valor: "",
+  });
 
   // Pop-up Seletor de Cotas
   const [showQuotaModal, setShowQuotaModal] = useState(false);
-  const [quotaModalType, setQuotaModalType] = useState('OCI');
-  const [quotaModalYear, setQuotaModalYear] = useState('2026');
+  const [quotaModalType, setQuotaModalType] = useState("OCI");
+  const [quotaModalYear, setQuotaModalYear] = useState("2026");
 
   // Modal de Edição
   const [editingItem, setEditingItem] = useState(null);
 
   // Formulários de Cadastros Auxiliares
   const [formPessoa, setFormPessoa] = useState({
-    cpf: '', nomeCompleto: '', dataNascimento: '', nomeMae: '', telefone: '',
-    logradouro: '', numero: '', complemento: '', bairro: '', cidade: 'Muriaé', uf: 'MG', cep: ''
+    cpf: "",
+    nomeCompleto: "",
+    dataNascimento: "",
+    nomeMae: "",
+    telefone: "",
+    logradouro: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    cidade: "Muriaé",
+    uf: "MG",
+    cep: "",
   });
-  const [formMedico, setFormMedico] = useState({ nome: '', crm: '', ufCrm: 'MG', especialidade: '', tipo: 'Solicitante' });
-  const [formUbs, setFormUbs] = useState({ nome: '', cnes: '' });
-  const [formProcedimento, setFormProcedimento] = useState({ nome: '', valor: '', tipoExameId: '' });
+  const [formMedico, setFormMedico] = useState({
+    nome: "",
+    crm: "",
+    ufCrm: "MG",
+    especialidade: "",
+    tipo: "Solicitante",
+  });
+  const [formUbs, setFormUbs] = useState({ nome: "", cnes: "" });
+  const [formProcedimento, setFormProcedimento] = useState({
+    nome: "",
+    valor: "",
+    tipoExameId: "",
+  });
 
   // Filtros Avançados
   const [filters, setFilters] = useState({
-    search: '', procedure: '', status: '', classification: '', communicationStatus: '', quotaType: '',
-    entryDateStart: '', entryDateEnd: '', communicationDateStart: '', communicationDateEnd: '',
-    releaseDateStart: '', releaseDateEnd: '', billingDateStart: '', billingDateEnd: ''
+    search: "",
+    procedure: "",
+    status: "",
+    classification: "",
+    communicationStatus: "",
+    quotaType: "",
+    entryDateStart: "",
+    entryDateEnd: "",
+    communicationDateStart: "",
+    communicationDateEnd: "",
+    releaseDateStart: "",
+    releaseDateEnd: "",
+    billingDateStart: "",
+    billingDateEnd: "",
   });
 
   // Novo Pedido State
   const [newRequest, setNewRequest] = useState({
-    patientSearch: '', patientName: '', motherName: '', cpf: '', susCard: '',
-    examTypeId: '', procedureId: '', procedureName: '', estimatedCost: 0,
+    patientSearch: "",
+    patientName: "",
+    motherName: "",
+    cpf: "",
+    susCard: "",
+    examTypeId: "",
+    procedureId: "",
+    procedureName: "",
+    estimatedCost: 0,
     competence: `${new Date().toISOString().slice(5, 7)}/${new Date().getFullYear()}`,
-    requestDate: new Date().toISOString().split('T')[0], classification: 'Verde',
-    medicoSolicitanteId: '', ubsResponsavelId: '', justification: ''
+    requestDate: new Date().toISOString().split("T")[0],
+    classification: "Verde",
+    medicoSolicitanteId: "",
+    ubsResponsavelId: "",
+    justification: "",
   });
 
   // Modal de Liberação
   const [releasingItem, setReleasingItem] = useState(null);
   const [regulationForm, setRegulationForm] = useState({
-    status: 'Liberado', quota: '', releaseDate: new Date().toISOString().split('T')[0],
+    status: "Liberado",
+    quota: "",
+    releaseDate: new Date().toISOString().split("T")[0],
     quotaCompetenceMonth: new Date().toISOString().slice(5, 7),
-    quotaCompetenceYear: `${new Date().getFullYear()}`, generalObservation: '',
-    regulatorDoctorId: ''
+    quotaCompetenceYear: `${new Date().getFullYear()}`,
+    generalObservation: "",
+    regulatorDoctorId: "",
   });
 
   const reloadData = async () => {
@@ -129,18 +189,27 @@ export default function RegulacaoPage() {
       const [pedidos, aux, cotas] = await Promise.all([
         getPedidosExames(),
         getAuxiliaryData(),
-        getCotasFinanceiras()
+        getCotasFinanceiras(),
       ]);
       setRequests(pedidos || []);
-      setAuxData(aux || { tiposExame: [], procedimentos: [], medicos: [], ubsList: [], pessoas: [] });
+      setAuxData(
+        aux || {
+          tiposExame: [],
+          procedimentos: [],
+          medicos: [],
+          ubsList: [],
+          pessoas: [],
+        },
+      );
       setCotasFinanceiras(cotas || []);
 
       if (aux?.tiposExame?.length > 0) {
         if (!selectedQueueExam) setSelectedQueueExam(aux.tiposExame[0].nome);
-        if (!selectedReleasedExam) setSelectedReleasedExam(aux.tiposExame[0].nome);
+        if (!selectedReleasedExam)
+          setSelectedReleasedExam(aux.tiposExame[0].nome);
       }
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      console.error("Erro ao carregar dados:", error);
     } finally {
       setLoading(false);
     }
@@ -152,12 +221,15 @@ export default function RegulacaoPage() {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (autocompleteRef.current && !autocompleteRef.current.contains(event.target)) {
+      if (
+        autocompleteRef.current &&
+        !autocompleteRef.current.contains(event.target)
+      ) {
         setShowSuggestions(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Resets de Seleções ao Trocar de Fila ou Aba
@@ -171,31 +243,33 @@ export default function RegulacaoPage() {
 
   // AÇÕES E HANDLERS DA APLICAÇÃO
   const handleDeleteOrder = async (item) => {
-    const confirmDelete = confirm(`Tem certeza que deseja excluir permanentemente o pedido de ${item.patientName} (${item.procedure})?`);
+    const confirmDelete = confirm(
+      `Tem certeza que deseja excluir permanentemente o pedido de ${item.patientName} (${item.procedure})?`,
+    );
     if (!confirmDelete) return;
 
     const res = await deletePedidoExame(item.dbId || item.id);
     if (res.success) {
-      alert('Pedido removido da fila com sucesso!');
-      setSelectedIds(prev => prev.filter(id => id !== item.id));
+      alert("Pedido removido da fila com sucesso!");
+      setSelectedIds((prev) => prev.filter((id) => id !== item.id));
       reloadData();
     } else {
-      alert('Erro ao excluir o pedido: ' + res.error);
+      alert("Erro ao excluir o pedido: " + res.error);
     }
   };
 
   const handleEditStatusChange = (newStatus) => {
-    if (newStatus === 'Aguardando') {
-      setEditingItem(prev => ({
+    if (newStatus === "Aguardando") {
+      setEditingItem((prev) => ({
         ...prev,
-        status: 'Aguardando',
-        quota: '',
-        releaseDate: '',
-        regulatorDoctorId: '',
-        regulatorDoctor: ''
+        status: "Aguardando",
+        quota: "",
+        releaseDate: "",
+        regulatorDoctorId: "",
+        regulatorDoctor: "",
       }));
     } else {
-      setEditingItem(prev => ({ ...prev, status: newStatus }));
+      setEditingItem((prev) => ({ ...prev, status: newStatus }));
     }
   };
 
@@ -203,77 +277,202 @@ export default function RegulacaoPage() {
     e.preventDefault();
     if (!editingItem) return;
 
-    const res = await updatePedidoExame(editingItem.dbId || editingItem.id, editingItem);
+    const res = await updatePedidoExame(
+      editingItem.dbId || editingItem.id,
+      editingItem,
+    );
     if (res.success) {
-      if (editingItem.status === 'Aguardando') {
-        alert(`O paciente ${editingItem.patientName} retornou para a Lista de Espera! Dados de liberação foram limpos.`);
+      if (editingItem.status === "Aguardando") {
+        alert(
+          `O paciente ${editingItem.patientName} retornou para a Lista de Espera! Dados de liberação foram limpos.`,
+        );
       } else {
-        alert('Dados do paciente e pedido atualizados com sucesso!');
+        alert("Dados do paciente e pedido atualizados com sucesso!");
       }
       setEditingItem(null);
       reloadData();
     } else {
-      alert('Erro ao atualizar registro: ' + res.error);
+      alert("Erro ao atualizar registro: " + res.error);
     }
   };
 
   const handleSavePessoa = async (e) => {
     e.preventDefault();
-    if (!formPessoa.cpf || !formPessoa.nomeCompleto || !formPessoa.dataNascimento || !formPessoa.nomeMae) {
-      return alert('Preencha os campos obrigatórios.');
+    if (
+      !formPessoa.cpf ||
+      !formPessoa.nomeCompleto ||
+      !formPessoa.dataNascimento ||
+      !formPessoa.nomeMae
+    ) {
+      return alert("Preencha os campos obrigatórios.");
     }
 
-    const res = await createPessoa(formPessoa);
-    if (res.success) {
-      alert('Paciente cadastrado com sucesso!');
-      setFormPessoa({
-        cpf: '', nomeCompleto: '', dataNascimento: '', nomeMae: '', telefone: '',
-        logradouro: '', numero: '', complemento: '', bairro: '', cidade: 'Muriaé', uf: 'MG', cep: ''
-      });
-      reloadData();
-    } else alert('Erro ao cadastrar paciente: ' + res.error);
+    try {
+      let res;
+      if (editingItem && editingType === "PESSOA") {
+        // Editar pessoa existente
+        res = await updatePessoa(formPessoa.cpf, formPessoa);
+        if (res.success) {
+          alert("Paciente atualizado com sucesso!");
+          setEditingItem(null);
+          setEditingType(null);
+        }
+      } else {
+        // Criar nova pessoa
+        res = await createPessoa(formPessoa);
+        if (res.success) {
+          alert("Paciente cadastrado com sucesso!");
+        }
+      }
+
+      if (res.success) {
+        setFormPessoa({
+          cpf: "",
+          nomeCompleto: "",
+          dataNascimento: "",
+          nomeMae: "",
+          telefone: "",
+          logradouro: "",
+          numero: "",
+          complemento: "",
+          bairro: "",
+          cidade: "Muriaé",
+          uf: "MG",
+          cep: "",
+        });
+        reloadData();
+      } else alert("Erro ao salvar paciente: " + res.error);
+    } catch (error) {
+      alert("Erro ao salvar paciente: " + error.message);
+    }
+  };
+
+  const handleDeletePessoa = async (cpf, nome) => {
+    try {
+      const res = await deletePessoa(cpf);
+      if (res.success) {
+        alert("Paciente removido com sucesso!");
+        reloadData();
+      } else alert("Erro ao excluir paciente: " + res.error);
+    } catch (error) {
+      alert("Erro ao excluir paciente: " + error.message);
+    }
   };
 
   const handleSaveMedico = async (e) => {
     e.preventDefault();
-    if (!formMedico.nome || !formMedico.crm) return alert('Preencha o Nome e o CRM.');
-    
-    const res = await createMedico(formMedico);
-    if (res.success) {
-      alert('Médico cadastrado com sucesso!');
-      setFormMedico({ nome: '', crm: '', ufCrm: 'MG', especialidade: '', tipo: 'Solicitante' });
-      reloadData();
-    } else alert('Erro ao cadastrar médico: ' + res.error);
+    if (!formMedico.nome || !formMedico.crm)
+      return alert("Preencha o Nome e o CRM.");
+
+    try {
+      let res;
+      if (editingItem && editingType === "MEDICO") {
+        // Editar médico existente
+        res = await updateMedico(editingItem.id, formMedico);
+        if (res.success) {
+          alert("Médico atualizado com sucesso!");
+          setEditingItem(null);
+          setEditingType(null);
+        }
+      } else {
+        // Criar novo médico
+        res = await createMedico(formMedico);
+        if (res.success) {
+          alert("Médico cadastrado com sucesso!");
+        }
+      }
+
+      if (res.success) {
+        setFormMedico({
+          nome: "",
+          crm: "",
+          ufCrm: "MG",
+          especialidade: "",
+          tipo: "Solicitante",
+        });
+        reloadData();
+      } else alert("Erro ao salvar médico: " + res.error);
+    } catch (error) {
+      alert("Erro ao salvar médico: " + error.message);
+    }
+  };
+
+  const handleDeleteMedico = async (id, nome) => {
+    try {
+      const res = await deleteMedico(id);
+      if (res.success) {
+        alert("Médico removido com sucesso!");
+        reloadData();
+      } else alert("Erro ao excluir médico: " + res.error);
+    } catch (error) {
+      alert("Erro ao excluir médico: " + error.message);
+    }
   };
 
   const handleSaveUbs = async (e) => {
     e.preventDefault();
-    if (!formUbs.nome || !formUbs.cnes) return alert('Preencha o Nome e o CNES.');
-    
-    const res = await createUbs(formUbs);
-    if (res.success) {
-      alert('UBS cadastrada com sucesso!');
-      setFormUbs({ nome: '', cnes: '' });
-      reloadData();
-    } else alert('Erro ao cadastrar UBS: ' + res.error);
+    if (!formUbs.nome || !formUbs.cnes)
+      return alert("Preencha o Nome e o CNES.");
+
+    try {
+      let res;
+      if (editingItem && editingType === "UBS") {
+        // Editar UBS existente
+        res = await updateUbs(editingItem.id, formUbs);
+        if (res.success) {
+          alert("UBS atualizada com sucesso!");
+          setEditingItem(null);
+          setEditingType(null);
+        }
+      } else {
+        // Criar nova UBS
+        res = await createUbs(formUbs);
+        if (res.success) {
+          alert("UBS cadastrada com sucesso!");
+        }
+      }
+
+      if (res.success) {
+        setFormUbs({ nome: "", cnes: "" });
+        reloadData();
+      } else alert("Erro ao salvar UBS: " + res.error);
+    } catch (error) {
+      alert("Erro ao salvar UBS: " + error.message);
+    }
+  };
+
+  const handleDeleteUbs = async (id, nome) => {
+    try {
+      const res = await deleteUbs(id);
+      if (res.success) {
+        alert("UBS removida com sucesso!");
+        reloadData();
+      } else alert("Erro ao excluir UBS: " + res.error);
+    } catch (error) {
+      alert("Erro ao excluir UBS: " + error.message);
+    }
   };
 
   const handleSaveProcedimento = async (e) => {
     e.preventDefault();
-    if (!formProcedimento.nome || !formProcedimento.valor || !formProcedimento.tipoExameId) {
-      return alert('Preencha todos os campos do procedimento.');
+    if (
+      !formProcedimento.nome ||
+      !formProcedimento.valor ||
+      !formProcedimento.tipoExameId
+    ) {
+      return alert("Preencha todos os campos do procedimento.");
     }
-    
+
     const res = await createProcedimento(formProcedimento);
     if (res.success) {
-      alert('Procedimento cadastrado com sucesso!');
-      setFormProcedimento({ nome: '', valor: '', tipoExameId: '' });
+      alert("Procedimento cadastrado com sucesso!");
+      setFormProcedimento({ nome: "", valor: "", tipoExameId: "" });
       reloadData();
-    } else alert('Erro ao cadastrar procedimento: ' + res.error);
+    } else alert("Erro ao cadastrar procedimento: " + res.error);
   };
 
   const handleOpenDefineTetoModal = (tipoCota, valorAtual) => {
-    setEditCotaModal({ open: true, tipoCota, valor: valorAtual || '' });
+    setEditCotaModal({ open: true, tipoCota, valor: valorAtual || "" });
   };
 
   const handleSaveTetoCota = async (e) => {
@@ -282,26 +481,29 @@ export default function RegulacaoPage() {
       tipoCota: editCotaModal.tipoCota,
       mes: finMonth,
       ano: finYear,
-      valorTeto: editCotaModal.valor
+      valorTeto: editCotaModal.valor,
     });
 
     if (res.success) {
       alert(`Teto da cota ${editCotaModal.tipoCota} atualizado!`);
-      setEditCotaModal({ open: false, tipoCota: '', valor: '' });
+      setEditCotaModal({ open: false, tipoCota: "", valor: "" });
       reloadData();
-    } else alert('Erro ao salvar teto: ' + res.error);
+    } else alert("Erro ao salvar teto: " + res.error);
   };
 
   const calculateMonthQuotaDetails = (quotaType, year, monthValue) => {
-    const record = cotasFinanceiras.find(c => c.tipoCota === quotaType && c.mes === monthValue && c.ano === year);
+    const record = cotasFinanceiras.find(
+      (c) => c.tipoCota === quotaType && c.mes === monthValue && c.ano === year,
+    );
     const totalLimit = record ? record.valorTeto : 0;
-    
+
     const totalUsed = requests
-      .filter(r => 
-        r.status === 'Liberado' && 
-        r.quota === quotaType && 
-        r.quotaCompetenceMonth === monthValue && 
-        r.quotaCompetenceYear === year
+      .filter(
+        (r) =>
+          r.status === "Liberado" &&
+          r.quota === quotaType &&
+          r.quotaCompetenceMonth === monthValue &&
+          r.quotaCompetenceYear === year,
       )
       .reduce((sum, r) => sum + r.estimatedCost, 0);
 
@@ -309,14 +511,18 @@ export default function RegulacaoPage() {
   };
 
   const handleUpdateBillingDate = async (id, newDate) => {
-    setRequests(prev => prev.map(req => req.id === id ? { ...req, billingDate: newDate } : req));
+    setRequests((prev) =>
+      prev.map((req) =>
+        req.id === id ? { ...req, billingDate: newDate } : req,
+      ),
+    );
     await updateBillingDate(id, newDate);
   };
 
   const handlePatientSearchChange = async (e) => {
     const value = e.target.value;
     isSelectedRef.current = false;
-    setNewRequest(prev => ({ ...prev, patientSearch: value }));
+    setNewRequest((prev) => ({ ...prev, patientSearch: value }));
 
     if (value.trim().length >= 2) {
       setIsSearchingPatient(true);
@@ -335,13 +541,13 @@ export default function RegulacaoPage() {
     setShowSuggestions(false);
     setPatientSuggestions([]);
 
-    setNewRequest(prev => ({
+    setNewRequest((prev) => ({
       ...prev,
       patientSearch: pessoa.nomeCompleto,
       patientName: pessoa.nomeCompleto,
-      motherName: pessoa.nomeMae || '',
+      motherName: pessoa.nomeMae || "",
       cpf: pessoa.cpf,
-      susCard: ''
+      susCard: "",
     }));
   };
 
@@ -358,91 +564,122 @@ export default function RegulacaoPage() {
     const pessoa = await searchPessoa(newRequest.patientSearch.trim());
     if (pessoa) {
       isSelectedRef.current = true;
-      setNewRequest(prev => ({ ...prev, patientName: pessoa.nomeCompleto, motherName: pessoa.nomeMae, cpf: pessoa.cpf, susCard: '' }));
+      setNewRequest((prev) => ({
+        ...prev,
+        patientName: pessoa.nomeCompleto,
+        motherName: pessoa.nomeMae,
+        cpf: pessoa.cpf,
+        susCard: "",
+      }));
       setPatientSuggestions([]);
       setShowSuggestions(false);
-    } else alert('Pessoa não encontrada no banco de dados.');
+    } else alert("Pessoa não encontrada no banco de dados.");
   };
 
   const handleExamTypeChange = (e) => {
     const selectedTypeId = e.target.value;
-    setNewRequest(prev => ({
+    setNewRequest((prev) => ({
       ...prev,
       examTypeId: selectedTypeId,
-      procedureId: '',
-      procedureName: '',
-      estimatedCost: 0
+      procedureId: "",
+      procedureName: "",
+      estimatedCost: 0,
     }));
   };
 
   const handleProcedureChange = (e) => {
     const selectedProcId = Number(e.target.value);
-    const foundProc = auxData.procedimentos.find(p => p.id === selectedProcId);
+    const foundProc = auxData.procedimentos.find(
+      (p) => p.id === selectedProcId,
+    );
 
     if (foundProc) {
-      setNewRequest(prev => ({
+      setNewRequest((prev) => ({
         ...prev,
         procedureId: foundProc.id,
         procedureName: foundProc.nome,
-        estimatedCost: foundProc.valor
+        estimatedCost: foundProc.valor,
       }));
-    } else setNewRequest(prev => ({ ...prev, procedureId: '', procedureName: '', estimatedCost: 0 }));
+    } else
+      setNewRequest((prev) => ({
+        ...prev,
+        procedureId: "",
+        procedureName: "",
+        estimatedCost: 0,
+      }));
   };
 
   const handleCreateRequest = async (e) => {
     e.preventDefault();
-    if (!newRequest.patientName || !newRequest.examTypeId || !newRequest.procedureId) {
-      alert('Preencha os dados do paciente, tipo de exame e procedimento.');
+    if (
+      !newRequest.patientName ||
+      !newRequest.examTypeId ||
+      !newRequest.procedureId
+    ) {
+      alert("Preencha os dados do paciente, tipo de exame e procedimento.");
       return;
     }
 
     const res = await createPedidoExame(newRequest);
     if (res.success) {
-      alert('Pedido registrado com sucesso!');
+      alert("Pedido registrado com sucesso!");
       reloadData();
-      setActiveTab('LISTA_ESPERA');
+      setActiveTab("LISTA_ESPERA");
 
       isSelectedRef.current = false;
       setNewRequest({
-        patientSearch: '', patientName: '', motherName: '', cpf: '', susCard: '',
-        examTypeId: '', procedureId: '', procedureName: '', estimatedCost: 0,
+        patientSearch: "",
+        patientName: "",
+        motherName: "",
+        cpf: "",
+        susCard: "",
+        examTypeId: "",
+        procedureId: "",
+        procedureName: "",
+        estimatedCost: 0,
         competence: `${new Date().toISOString().slice(5, 7)}/${new Date().getFullYear()}`,
-        requestDate: new Date().toISOString().split('T')[0], classification: 'Verde',
-        medicoSolicitanteId: '', ubsResponsavelId: '', justification: ''
+        requestDate: new Date().toISOString().split("T")[0],
+        classification: "Verde",
+        medicoSolicitanteId: "",
+        ubsResponsavelId: "",
+        justification: "",
       });
-    } else alert('Erro ao registrar pedido.');
+    } else alert("Erro ao registrar pedido.");
   };
 
   const handleOpenReleaseModal = (item) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split("T")[0];
     const initialMonth = today.slice(5, 7);
     const initialYear = today.slice(0, 4);
 
     setReleasingItem(item);
     setRegulationForm({
-      status: 'Liberado',
-      quota: item.quota || '',
+      status: "Liberado",
+      quota: item.quota || "",
       releaseDate: today,
       quotaCompetenceMonth: initialMonth,
       quotaCompetenceYear: initialYear,
-      generalObservation: item.generalObservation || '',
-      regulatorDoctorId: item.regulatorDoctorId || ''
+      generalObservation: item.generalObservation || "",
+      regulatorDoctorId: item.regulatorDoctorId || "",
     });
   };
 
   const handleReleaseDateChange = (newReleaseDate) => {
-    if (!newReleaseDate) return setRegulationForm(prev => ({ ...prev, releaseDate: '' }));
-    setRegulationForm(prev => ({
-      ...prev, releaseDate: newReleaseDate,
+    if (!newReleaseDate)
+      return setRegulationForm((prev) => ({ ...prev, releaseDate: "" }));
+    setRegulationForm((prev) => ({
+      ...prev,
+      releaseDate: newReleaseDate,
       quotaCompetenceMonth: newReleaseDate.slice(5, 7),
-      quotaCompetenceYear: newReleaseDate.slice(0, 4)
+      quotaCompetenceYear: newReleaseDate.slice(0, 4),
     }));
   };
 
   const handleSelectQuotaType = (selectedQuota) => {
-    setRegulationForm(prev => ({ ...prev, quota: selectedQuota }));
+    setRegulationForm((prev) => ({ ...prev, quota: selectedQuota }));
     if (selectedQuota) {
-      const yearToUse = regulationForm.quotaCompetenceYear || `${new Date().getFullYear()}`;
+      const yearToUse =
+        regulationForm.quotaCompetenceYear || `${new Date().getFullYear()}`;
       setQuotaModalType(selectedQuota);
       setQuotaModalYear(yearToUse);
       setShowQuotaModal(true);
@@ -450,30 +687,40 @@ export default function RegulacaoPage() {
   };
 
   const handleSelectMonthFromModal = (monthValue) => {
-    setRegulationForm(prev => ({
-      ...prev, quota: quotaModalType, quotaCompetenceMonth: monthValue, quotaCompetenceYear: quotaModalYear
+    setRegulationForm((prev) => ({
+      ...prev,
+      quota: quotaModalType,
+      quotaCompetenceMonth: monthValue,
+      quotaCompetenceYear: quotaModalYear,
     }));
     setShowQuotaModal(false);
   };
 
   const handleUpdateCommunicationDate = async (id, newDate) => {
-    setRequests(prev => prev.map(req => req.id === id ? { ...req, communicationDate: newDate } : req));
+    setRequests((prev) =>
+      prev.map((req) =>
+        req.id === id ? { ...req, communicationDate: newDate } : req,
+      ),
+    );
     await updateCommunicationDate(id, newDate);
   };
 
   const handleConfirmRelease = async (e) => {
     e.preventDefault();
-    if (regulationForm.status !== 'Liberado') return alert('Selecione o status "Liberado".');
-    if (!regulationForm.quota) return alert('Selecione um Tipo de Cota.');
+    if (regulationForm.status !== "Liberado")
+      return alert('Selecione o status "Liberado".');
+    if (!regulationForm.quota) return alert("Selecione um Tipo de Cota.");
 
     const currentDetails = calculateMonthQuotaDetails(
-      regulationForm.quota, 
-      regulationForm.quotaCompetenceYear, 
-      regulationForm.quotaCompetenceMonth
+      regulationForm.quota,
+      regulationForm.quotaCompetenceYear,
+      regulationForm.quotaCompetenceMonth,
     );
 
     if (releasingItem.estimatedCost > currentDetails.available) {
-      const confirmExceed = confirm(`Atenção: O valor do exame (R$ ${releasingItem.estimatedCost.toFixed(2)}) excede o saldo da cota ${regulationForm.quota}. Deseja confirmar mesmo assim?`);
+      const confirmExceed = confirm(
+        `Atenção: O valor do exame (R$ ${releasingItem.estimatedCost.toFixed(2)}) excede o saldo da cota ${regulationForm.quota}. Deseja confirmar mesmo assim?`,
+      );
       if (!confirmExceed) return;
     }
 
@@ -482,59 +729,102 @@ export default function RegulacaoPage() {
       alert(`Paciente ${releasingItem.patientName} liberado com sucesso!`);
       reloadData();
       setReleasingItem(null);
-    } else alert('Erro ao atualizar a liberação.');
+    } else alert("Erro ao atualizar a liberação.");
   };
 
-  const handleFilterChange = (field, value) => setFilters(prev => ({ ...prev, [field]: value }));
-  const clearFilters = () => setFilters({
-    search: '', procedure: '', status: '', classification: '', communicationStatus: '', quotaType: '',
-    entryDateStart: '', entryDateEnd: '', communicationDateStart: '', communicationDateEnd: '',
-    releaseDateStart: '', releaseDateEnd: '', billingDateStart: '', billingDateEnd: ''
-  });
+  const handleFilterChange = (field, value) =>
+    setFilters((prev) => ({ ...prev, [field]: value }));
+  const clearFilters = () =>
+    setFilters({
+      search: "",
+      procedure: "",
+      status: "",
+      classification: "",
+      communicationStatus: "",
+      quotaType: "",
+      entryDateStart: "",
+      entryDateEnd: "",
+      communicationDateStart: "",
+      communicationDateEnd: "",
+      releaseDateStart: "",
+      releaseDateEnd: "",
+      billingDateStart: "",
+      billingDateEnd: "",
+    });
 
   const applyFilters = (items, targetStatus) => {
-    return items.filter(item => {
+    return items.filter((item) => {
       if (targetStatus && item.status !== targetStatus) return false;
       if (filters.status && item.status !== filters.status) return false;
 
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
-        const matchesSearch = 
+        const matchesSearch =
           item.patientName.toLowerCase().includes(searchLower) ||
-          (item.motherName && item.motherName.toLowerCase().includes(searchLower)) ||
+          (item.motherName &&
+            item.motherName.toLowerCase().includes(searchLower)) ||
           item.cpf.includes(filters.search) ||
           (item.susCard && item.susCard.includes(filters.search)) ||
           String(item.id).toLowerCase().includes(searchLower);
         if (!matchesSearch) return false;
       }
 
-      if (filters.procedure && item.procedure !== filters.procedure) return false;
-      if (filters.classification && item.classification !== filters.classification) return false;
+      if (filters.procedure && item.procedure !== filters.procedure)
+        return false;
+      if (
+        filters.classification &&
+        item.classification !== filters.classification
+      )
+        return false;
       if (filters.quotaType && item.quota !== filters.quotaType) return false;
 
-      if (filters.communicationStatus === 'FILLED' && !item.communicationDate) return false;
-      if (filters.communicationStatus === 'EMPTY' && item.communicationDate) return false;
+      if (filters.communicationStatus === "FILLED" && !item.communicationDate)
+        return false;
+      if (filters.communicationStatus === "EMPTY" && item.communicationDate)
+        return false;
 
       const dateToCompare = item.requestDateRaw || item.requestDate;
-      if (filters.entryDateStart && dateToCompare < filters.entryDateStart) return false;
-      if (filters.entryDateEnd && dateToCompare > filters.entryDateEnd) return false;
+      if (filters.entryDateStart && dateToCompare < filters.entryDateStart)
+        return false;
+      if (filters.entryDateEnd && dateToCompare > filters.entryDateEnd)
+        return false;
 
-      if (filters.communicationDateStart && item.communicationDate < filters.communicationDateStart) return false;
-      if (filters.communicationDateEnd && item.communicationDate > filters.communicationDateEnd) return false;
+      if (
+        filters.communicationDateStart &&
+        item.communicationDate < filters.communicationDateStart
+      )
+        return false;
+      if (
+        filters.communicationDateEnd &&
+        item.communicationDate > filters.communicationDateEnd
+      )
+        return false;
 
       const releaseToCompare = item.releaseDateRaw || item.releaseDate;
-      if (filters.releaseDateStart && releaseToCompare < filters.releaseDateStart) return false;
-      if (filters.releaseDateEnd && releaseToCompare > filters.releaseDateEnd) return false;
+      if (
+        filters.releaseDateStart &&
+        releaseToCompare < filters.releaseDateStart
+      )
+        return false;
+      if (filters.releaseDateEnd && releaseToCompare > filters.releaseDateEnd)
+        return false;
 
-      if (filters.billingDateStart && item.billingDate < filters.billingDateStart) return false;
-      if (filters.billingDateEnd && item.billingDate > filters.billingDateEnd) return false;
+      if (
+        filters.billingDateStart &&
+        item.billingDate < filters.billingDateStart
+      )
+        return false;
+      if (filters.billingDateEnd && item.billingDate > filters.billingDateEnd)
+        return false;
 
       return true;
     });
   };
 
-  const availableProcedures = auxData.procedimentos.filter(p => String(p.tipoExameId) === String(newRequest.examTypeId));
-  const allProceduresList = auxData.procedimentos.map(p => p.nome);
+  const availableProcedures = auxData.procedimentos.filter(
+    (p) => String(p.tipoExameId) === String(newRequest.examTypeId),
+  );
+  const allProceduresList = auxData.procedimentos.map((p) => p.nome);
 
   return (
     <div className={styles.container}>
@@ -545,16 +835,42 @@ export default function RegulacaoPage() {
         </div>
 
         <div className={styles.tabNav}>
-          <button className={`${styles.tabBtn} ${activeTab === 'NOVO_PEDIDO' ? styles.activeTab : ''}`} onClick={() => setActiveTab('NOVO_PEDIDO')}>+ Novo Pedido</button>
-          <button className={`${styles.tabBtn} ${activeTab === 'LISTA_ESPERA' ? styles.activeTab : ''}`} onClick={() => setActiveTab('LISTA_ESPERA')}>Lista de Espera ({requests.filter(i => i.status === 'Aguardando').length})</button>
-          <button className={`${styles.tabBtn} ${activeTab === 'LIBERADOS' ? styles.activeTab : ''}`} onClick={() => setActiveTab('LIBERADOS')}>Liberados ({requests.filter(i => i.status === 'Liberado').length})</button>
-          <button className={`${styles.tabBtn} ${activeTab === 'FINANCEIRO' ? styles.activeTab : ''}`} onClick={() => setActiveTab('FINANCEIRO')}>📊 Financeiro</button>
-          <button className={`${styles.tabBtn} ${activeTab === 'CADASTROS' ? styles.activeTab : ''}`} onClick={() => setActiveTab('CADASTROS')}>⚙ Cadastros</button>
+          <button
+            className={`${styles.tabBtn} ${activeTab === "NOVO_PEDIDO" ? styles.activeTab : ""}`}
+            onClick={() => setActiveTab("NOVO_PEDIDO")}
+          >
+            + Novo Pedido
+          </button>
+          <button
+            className={`${styles.tabBtn} ${activeTab === "LISTA_ESPERA" ? styles.activeTab : ""}`}
+            onClick={() => setActiveTab("LISTA_ESPERA")}
+          >
+            Lista de Espera (
+            {requests.filter((i) => i.status === "Aguardando").length})
+          </button>
+          <button
+            className={`${styles.tabBtn} ${activeTab === "LIBERADOS" ? styles.activeTab : ""}`}
+            onClick={() => setActiveTab("LIBERADOS")}
+          >
+            Liberados ({requests.filter((i) => i.status === "Liberado").length})
+          </button>
+          <button
+            className={`${styles.tabBtn} ${activeTab === "FINANCEIRO" ? styles.activeTab : ""}`}
+            onClick={() => setActiveTab("FINANCEIRO")}
+          >
+            📊 Financeiro
+          </button>
+          <button
+            className={`${styles.tabBtn} ${activeTab === "CADASTROS" ? styles.activeTab : ""}`}
+            onClick={() => setActiveTab("CADASTROS")}
+          >
+            ⚙ Cadastros
+          </button>
         </div>
       </header>
 
       {/* COMPONENTE DE FILTROS AVANÇADOS */}
-      {(activeTab === 'LISTA_ESPERA' || activeTab === 'LIBERADOS') && (
+      {(activeTab === "LISTA_ESPERA" || activeTab === "LIBERADOS") && (
         <FiltersBar
           filters={filters}
           handleFilterChange={handleFilterChange}
@@ -567,7 +883,7 @@ export default function RegulacaoPage() {
       )}
 
       {/* COMPONENTES DE ABAS */}
-      {activeTab === 'NOVO_PEDIDO' && (
+      {activeTab === "NOVO_PEDIDO" && (
         <TabNovoPedido
           newRequest={newRequest}
           setNewRequest={setNewRequest}
@@ -588,7 +904,7 @@ export default function RegulacaoPage() {
         />
       )}
 
-      {activeTab === 'LISTA_ESPERA' && (
+      {activeTab === "LISTA_ESPERA" && (
         <TabListaEspera
           auxData={auxData}
           requests={requests}
@@ -596,28 +912,59 @@ export default function RegulacaoPage() {
           setSelectedQueueExam={setSelectedQueueExam}
           selectedIds={selectedIds}
           handleSelectAllQueue={(e) => {
-            const visibleItems = applyFilters(requests.filter(r => r.examType === selectedQueueExam && r.status === 'Aguardando'));
-            if (e.target.checked) setSelectedIds(Array.from(new Set([...selectedIds, ...visibleItems.map(i => i.id)])));
+            const visibleItems = applyFilters(
+              requests.filter(
+                (r) =>
+                  r.examType === selectedQueueExam && r.status === "Aguardando",
+              ),
+            );
+            if (e.target.checked)
+              setSelectedIds(
+                Array.from(
+                  new Set([...selectedIds, ...visibleItems.map((i) => i.id)]),
+                ),
+              );
             else {
-              const visibleSet = new Set(visibleItems.map(i => i.id));
-              setSelectedIds(selectedIds.filter(id => !visibleSet.has(id)));
+              const visibleSet = new Set(visibleItems.map((i) => i.id));
+              setSelectedIds(selectedIds.filter((id) => !visibleSet.has(id)));
             }
           }}
-          handleSelectOneQueue={(id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id])}
+          handleSelectOneQueue={(id) =>
+            setSelectedIds((prev) =>
+              prev.includes(id)
+                ? prev.filter((item) => item !== id)
+                : [...prev, id],
+            )
+          }
           handleExportToExcelQueue={() => {
-            if (selectedIds.length === 0) return alert('Selecione pelo menos um paciente.');
-            const selectedItems = requests.filter(r => selectedIds.includes(r.id));
-            const exportData = selectedItems.map(item => ({
-              'Código Regulação': item.id, 'Data de Entrada': item.requestDate, 'Data de Comunicação': item.communicationDate || 'Não informada',
-              'Nome do Paciente': item.patientName, 'CPF': item.cpf, 'Cartão SUS': item.susCard || 'Não informado',
-              'Nome da Mãe': item.motherName || 'Não informada', 'Tipo de Exame': item.examType, 'Procedimento': item.procedure,
-              'Classificação de Risco': item.classification, 'Médico Solicitante': item.requestDoctor || 'Não informado',
-              'UBS Solicitante': item.requestUbs || 'Não informada', 'Justificativa Clínica': item.justification || '', 'Status': item.status
+            if (selectedIds.length === 0)
+              return alert("Selecione pelo menos um paciente.");
+            const selectedItems = requests.filter((r) =>
+              selectedIds.includes(r.id),
+            );
+            const exportData = selectedItems.map((item) => ({
+              "Código Regulação": item.id,
+              "Data de Entrada": item.requestDate,
+              "Data de Comunicação": item.communicationDate || "Não informada",
+              "Nome do Paciente": item.patientName,
+              CPF: item.cpf,
+              "Cartão SUS": item.susCard || "Não informado",
+              "Nome da Mãe": item.motherName || "Não informada",
+              "Tipo de Exame": item.examType,
+              Procedimento: item.procedure,
+              "Classificação de Risco": item.classification,
+              "Médico Solicitante": item.requestDoctor || "Não informado",
+              "UBS Solicitante": item.requestUbs || "Não informada",
+              "Justificativa Clínica": item.justification || "",
+              Status: item.status,
             }));
             const worksheet = XLSX.utils.json_to_sheet(exportData);
             const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Fila de Espera');
-            XLSX.writeFile(workbook, `Fila_Espera_${selectedQueueExam.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Fila de Espera");
+            XLSX.writeFile(
+              workbook,
+              `Fila_Espera_${selectedQueueExam.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.xlsx`,
+            );
           }}
           applyFilters={applyFilters}
           handleUpdateCommunicationDate={handleUpdateCommunicationDate}
@@ -628,7 +975,7 @@ export default function RegulacaoPage() {
         />
       )}
 
-      {activeTab === 'LIBERADOS' && (
+      {activeTab === "LIBERADOS" && (
         <TabLiberados
           auxData={auxData}
           requests={requests}
@@ -636,30 +983,71 @@ export default function RegulacaoPage() {
           setSelectedReleasedExam={setSelectedReleasedExam}
           selectedReleasedIds={selectedReleasedIds}
           handleSelectAllReleased={(e) => {
-            const visibleItems = applyFilters(requests.filter(r => r.examType === selectedReleasedExam), 'Liberado');
-            if (e.target.checked) setSelectedReleasedIds(Array.from(new Set([...selectedReleasedIds, ...visibleItems.map(i => i.id)])));
+            const visibleItems = applyFilters(
+              requests.filter((r) => r.examType === selectedReleasedExam),
+              "Liberado",
+            );
+            if (e.target.checked)
+              setSelectedReleasedIds(
+                Array.from(
+                  new Set([
+                    ...selectedReleasedIds,
+                    ...visibleItems.map((i) => i.id),
+                  ]),
+                ),
+              );
             else {
-              const visibleSet = new Set(visibleItems.map(i => i.id));
-              setSelectedReleasedIds(selectedReleasedIds.filter(id => !visibleSet.has(id)));
+              const visibleSet = new Set(visibleItems.map((i) => i.id));
+              setSelectedReleasedIds(
+                selectedReleasedIds.filter((id) => !visibleSet.has(id)),
+              );
             }
           }}
-          handleSelectOneReleased={(id) => setSelectedReleasedIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id])}
+          handleSelectOneReleased={(id) =>
+            setSelectedReleasedIds((prev) =>
+              prev.includes(id)
+                ? prev.filter((item) => item !== id)
+                : [...prev, id],
+            )
+          }
           handleExportToExcelReleased={() => {
-            if (selectedReleasedIds.length === 0) return alert('Selecione pelo menos um paciente liberado.');
-            const selectedItems = requests.filter(r => selectedReleasedIds.includes(r.id));
-            const exportData = selectedItems.map(item => ({
-              'Código Regulação': item.id, 'Nome do Paciente': item.patientName, 'CPF': item.cpf,
-              'Cartão SUS': item.susCard || 'Não informado', 'Tipo de Exame': item.examType, 'Procedimento': item.procedure,
-              'Data da Liberação': item.releaseDate || 'Não informada', 'Tipo de Cota': item.quota || 'N/A',
-              'Competência Cota': item.quotaCompetenceMonth && item.quotaCompetenceYear ? `${item.quotaCompetenceMonth}/${item.quotaCompetenceYear}` : 'N/A',
-              'Data Faturado': item.billingDate || 'Não informada', 'Médico Regulador': item.regulatorDoctor || 'Não informado',
-              'Médico Solicitante': item.requestDoctor || 'Não informado', 'UBS Solicitante': item.requestUbs || 'Não informada',
-              'Valor do Exame (R$)': item.estimatedCost ? item.estimatedCost.toFixed(2) : '0.00'
+            if (selectedReleasedIds.length === 0)
+              return alert("Selecione pelo menos um paciente liberado.");
+            const selectedItems = requests.filter((r) =>
+              selectedReleasedIds.includes(r.id),
+            );
+            const exportData = selectedItems.map((item) => ({
+              "Código Regulação": item.id,
+              "Nome do Paciente": item.patientName,
+              CPF: item.cpf,
+              "Cartão SUS": item.susCard || "Não informado",
+              "Tipo de Exame": item.examType,
+              Procedimento: item.procedure,
+              "Data da Liberação": item.releaseDate || "Não informada",
+              "Tipo de Cota": item.quota || "N/A",
+              "Competência Cota":
+                item.quotaCompetenceMonth && item.quotaCompetenceYear
+                  ? `${item.quotaCompetenceMonth}/${item.quotaCompetenceYear}`
+                  : "N/A",
+              "Data Faturado": item.billingDate || "Não informada",
+              "Médico Regulador": item.regulatorDoctor || "Não informado",
+              "Médico Solicitante": item.requestDoctor || "Não informado",
+              "UBS Solicitante": item.requestUbs || "Não informada",
+              "Valor do Exame (R$)": item.estimatedCost
+                ? item.estimatedCost.toFixed(2)
+                : "0.00",
             }));
             const worksheet = XLSX.utils.json_to_sheet(exportData);
             const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Exames Liberados');
-            XLSX.writeFile(workbook, `Liberados_${selectedReleasedExam.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+            XLSX.utils.book_append_sheet(
+              workbook,
+              worksheet,
+              "Exames Liberados",
+            );
+            XLSX.writeFile(
+              workbook,
+              `Liberados_${selectedReleasedExam.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.xlsx`,
+            );
           }}
           applyFilters={applyFilters}
           handleUpdateBillingDate={handleUpdateBillingDate}
@@ -669,7 +1057,7 @@ export default function RegulacaoPage() {
         />
       )}
 
-      {activeTab === 'FINANCEIRO' && (
+      {activeTab === "FINANCEIRO" && (
         <TabFinanceiro
           finMonth={finMonth}
           setFinMonth={setFinMonth}
@@ -682,19 +1070,22 @@ export default function RegulacaoPage() {
         />
       )}
 
-      {activeTab === 'CADASTROS' && (
+      {activeTab === "CADASTROS" && (
         <TabCadastros
           cadSubTab={cadSubTab}
           setCadSubTab={setCadSubTab}
           formPessoa={formPessoa}
           setFormPessoa={setFormPessoa}
           handleSavePessoa={handleSavePessoa}
+          handleDeletePessoa={handleDeletePessoa}
           formMedico={formMedico}
           setFormMedico={setFormMedico}
           handleSaveMedico={handleSaveMedico}
+          handleDeleteMedico={handleDeleteMedico}
           formUbs={formUbs}
           setFormUbs={setFormUbs}
           handleSaveUbs={handleSaveUbs}
+          handleDeleteUbs={handleDeleteUbs}
           formProcedimento={formProcedimento}
           setFormProcedimento={setFormProcedimento}
           handleSaveProcedimento={handleSaveProcedimento}
