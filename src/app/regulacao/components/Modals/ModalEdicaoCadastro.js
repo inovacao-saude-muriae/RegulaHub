@@ -11,10 +11,17 @@ export default function ModalEdicaoCadastro({
   setFormMedico,
   formUbs,
   setFormUbs,
+  formProcedimento,
+  setFormProcedimento,
   handleSavePessoa,
   handleSaveMedico,
   handleSaveUbs,
+  handleSaveProcedimento,
+  auxData,
   onClose,
+  maskTelefone,
+  maskCep,
+  onlyDigits,
 }) {
   if (!editingItem || !editingType) return null;
 
@@ -22,12 +29,22 @@ export default function ModalEdicaoCadastro({
     if (editingType === 'PESSOA') return `✏️ Editar Paciente — ${editingItem.nomeCompleto}`;
     if (editingType === 'MEDICO') return `✏️ Editar Médico — ${editingItem.nome}`;
     if (editingType === 'UBS') return `✏️ Editar Unidade — ${editingItem.nome}`;
+    if (editingType === 'PROCEDIMENTO') return `✏️ Editar Procedimento — ${editingItem.nome}`;
     return '✏️ Editar';
+  };
+
+  const isLarge = editingType === 'PESSOA';
+
+  // Wrapper para limpar máscara antes de salvar paciente
+  const handleSubmitPessoa = (e) => {
+    e.preventDefault();
+    // As máscaras já foram limpas no handleSavePessoaModal do TabCadastros
+    handleSavePessoa(e);
   };
 
   return (
     <div className={styles.modalOverlay}>
-      <div className={`${styles.modalContent} ${editingType === 'PESSOA' ? styles.modalLarge : styles.modalMedium}`}>
+      <div className={`${styles.modalContent} ${isLarge ? styles.modalLarge : styles.modalMedium}`}>
         <div className={styles.modalHeader}>
           <h3>{getTitulo()}</h3>
           <button type="button" onClick={onClose} className={styles.closeBtn}>×</button>
@@ -35,7 +52,7 @@ export default function ModalEdicaoCadastro({
 
         {/* FORMULÁRIO PACIENTE */}
         {editingType === 'PESSOA' && (
-          <form onSubmit={handleSavePessoa} className={styles.modalForm}>
+          <form onSubmit={handleSubmitPessoa} className={styles.modalForm}>
             <p className={styles.sectionTitle}>Dados Pessoais</p>
             <div className={styles.fieldsGrid}>
               <div className={styles.fieldGroup}>
@@ -79,8 +96,8 @@ export default function ModalEdicaoCadastro({
                 <input
                   type="text"
                   value={formPessoa.telefone}
-                  onChange={(e) => setFormPessoa({ ...formPessoa, telefone: e.target.value })}
-                  placeholder="Ex: 32999998888"
+                  onChange={(e) => setFormPessoa({ ...formPessoa, telefone: maskTelefone(e.target.value) })}
+                  placeholder="(32) 99999-8888"
                 />
               </div>
             </div>
@@ -145,9 +162,8 @@ export default function ModalEdicaoCadastro({
                 <input
                   type="text"
                   value={formPessoa.cep}
-                  onChange={(e) => setFormPessoa({ ...formPessoa, cep: e.target.value })}
-                  placeholder="Ex: 36880000"
-                  maxLength={8}
+                  onChange={(e) => setFormPessoa({ ...formPessoa, cep: maskCep(e.target.value) })}
+                  placeholder="00000-000"
                 />
               </div>
             </div>
@@ -250,6 +266,53 @@ export default function ModalEdicaoCadastro({
             <div className={styles.modalActions}>
               <button type="button" onClick={onClose} className={styles.secondaryBtn}>Cancelar</button>
               <button type="submit" className={styles.primaryBtn}>💾 Atualizar UBS</button>
+            </div>
+          </form>
+        )}
+        {/* FORMULÁRIO PROCEDIMENTO */}
+        {editingType === 'PROCEDIMENTO' && (
+          <form onSubmit={handleSaveProcedimento} className={styles.modalForm}>
+            <p className={styles.sectionTitle}>Dados do Procedimento</p>
+            <div className={styles.fieldsGrid}>
+              <div className={`${styles.fieldGroup} ${styles.fullWidth}`}>
+                <label>Nome do Procedimento *</label>
+                <input
+                  type="text"
+                  value={formProcedimento.nome}
+                  onChange={(e) => setFormProcedimento({ ...formProcedimento, nome: e.target.value })}
+                  placeholder="Ex: Ecocardiograma com Doppler"
+                  required
+                />
+              </div>
+              <div className={styles.fieldGroup}>
+                <label>Tipo de Exame *</label>
+                <select
+                  value={formProcedimento.tipoExameId}
+                  onChange={(e) => setFormProcedimento({ ...formProcedimento, tipoExameId: e.target.value })}
+                  required
+                >
+                  <option value="">-- Selecione --</option>
+                  {auxData.tiposExame.map((t) => (
+                    <option key={t.id} value={t.id}>{t.nome}</option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.fieldGroup}>
+                <label>Valor (R$) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formProcedimento.valor}
+                  onChange={(e) => setFormProcedimento({ ...formProcedimento, valor: e.target.value })}
+                  placeholder="Ex: 180.00"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className={styles.modalActions}>
+              <button type="button" onClick={onClose} className={styles.secondaryBtn}>Cancelar</button>
+              <button type="submit" className={styles.primaryBtn}>💾 Atualizar Procedimento</button>
             </div>
           </form>
         )}

@@ -386,7 +386,27 @@ export async function createProcedimento(data) {
   }
 }
 
-// 12. Buscar Tetos de Cotas Financeiras
+// 12. Atualizar Procedimento
+export async function updateProcedimento(id, data) {
+  try {
+    const procedimento = await prisma.procedimento.update({
+      where: { id: Number(id) },
+      data: {
+        nome: data.nome,
+        valor: parseFloat(data.valor),
+        tipoExameId: Number(data.tipoExameId),
+      },
+    });
+
+    revalidatePath("/regulacao");
+    return { success: true, data: procedimento };
+  } catch (error) {
+    console.error("Erro ao atualizar procedimento:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// 13. Buscar Tetos de Cotas Financeiras
 export async function getCotasFinanceiras() {
   try {
     const data = await prisma.cotaFinanceira.findMany();

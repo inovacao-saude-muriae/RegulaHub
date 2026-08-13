@@ -5,29 +5,67 @@ import styles from "./TabCadastros.module.css";
 import ModalEdicaoCadastro from "./Modals/ModalEdicaoCadastro";
 import ModalConfirmacaoExclusao from "./Modals/ModalConfirmacaoExclusao";
 
+// ── Funções de máscara ──────────────────────────────────────────────────────
+function maskCpf(value) {
+  return value
+    .replace(/\D/g, "")
+    .slice(0, 11)
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+
+function maskTelefone(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 10) {
+    return digits
+      .replace(/(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{4})(\d{1,4})$/, "$1-$2");
+  }
+  return digits
+    .replace(/(\d{2})(\d)/, "($1) $2")
+    .replace(/(\d{5})(\d{1,4})$/, "$1-$2");
+}
+
+function maskCep(value) {
+  return value
+    .replace(/\D/g, "")
+    .slice(0, 8)
+    .replace(/(\d{5})(\d{1,3})$/, "$1-$2");
+}
+
+// Retira a máscara para salvar só dígitos
+function onlyDigits(value) {
+  return value.replace(/\D/g, "");
+}
+
 export default function TabCadastros({
   cadSubTab,
   setCadSubTab,
   formPessoa,
   setFormPessoa,
   handleSavePessoa,
+  handleUpdatePessoa,
   handleDeletePessoa,
   formMedico,
   setFormMedico,
   handleSaveMedico,
+  handleUpdateMedico,
   handleDeleteMedico,
   formUbs,
   setFormUbs,
   handleSaveUbs,
+  handleUpdateUbs,
   handleDeleteUbs,
   formProcedimento,
   setFormProcedimento,
   handleSaveProcedimento,
+  handleUpdateProcedimento,
   auxData,
 }) {
   const [editingItem, setEditingItem] = useState(null);
   const [editingType, setEditingType] = useState(null);
-  const [deleteConfig, setDeleteConfig] = useState(null); // { tipo, nome, detalhe, onConfirm }
+  const [deleteConfig, setDeleteConfig] = useState(null);
 
   const confirmarExclusao = ({ tipo, nome, detalhe, onConfirm }) => {
     setDeleteConfig({ tipo, nome, detalhe, onConfirm });
@@ -38,6 +76,7 @@ export default function TabCadastros({
     setDeleteConfig(null);
   };
 
+  // ── Abrir modal de edição ────────────────────────────────────────────────
   const handleEditPessoa = (pessoa) => {
     setEditingItem(pessoa);
     setEditingType("PESSOA");
@@ -46,14 +85,14 @@ export default function TabCadastros({
       nomeCompleto: pessoa.nomeCompleto,
       dataNascimento: pessoa.dataNascimento,
       nomeMae: pessoa.nomeMae,
-      telefone: pessoa.telefone || "",
+      telefone: pessoa.telefone ? maskTelefone(pessoa.telefone) : "",
       logradouro: pessoa.logradouro || "",
       numero: pessoa.numero || "",
       complemento: pessoa.complemento || "",
       bairro: pessoa.bairro || "",
       cidade: pessoa.cidade || "Muriaé",
       uf: pessoa.uf || "MG",
-      cep: pessoa.cep || "",
+      cep: pessoa.cep ? maskCep(pessoa.cep) : "",
     });
   };
 
@@ -72,9 +111,16 @@ export default function TabCadastros({
   const handleEditUbs = (ubs) => {
     setEditingItem(ubs);
     setEditingType("UBS");
-    setFormUbs({
-      nome: ubs.nome,
-      cnes: ubs.cnes,
+    setFormUbs({ nome: ubs.nome, cnes: ubs.cnes });
+  };
+
+  const handleEditProcedimento = (proc) => {
+    setEditingItem(proc);
+    setEditingType("PROCEDIMENTO");
+    setFormProcedimento({
+      tipoExameId: proc.tipoExameId ?? "",
+      nome: proc.nome,
+      valor: proc.valor,
     });
   };
 
@@ -83,20 +129,68 @@ export default function TabCadastros({
     setEditingType(null);
   };
 
-  // Wrappers que fecham o modal após salvar
-  const handleSavePessoaModal = (e) => {
-    handleSavePessoa(e);
+  // ── Wrappers que fecham o modal após salvar ──────────────────────────────
+  const handleSavePessoaModal = async (e) => {
+    e.preventDefault();
+    const data = {
+      ...formPessoa,
+      telefone: onlyDigits(formPessoa.telefone),
+      cep: onlyDigits(formPessoa.cep),
+    };
+    const cpf = data.cpf; // captura antes de fechar
     closeModal();
+    await handleUpdatePessoa(cpf, data);
   };
 
-  const handleSaveMedicoModal = (e) => {
-    handleSaveMedico(e);
+  const handleSaveMedicoModal = async (e) => {
+    e.preventDefault();
+    const id = editingItem?.id; // captura antes de fechar
+    const data = { ...formMedico };
     closeModal();
+    if (id) await handleUpdateMedico(id, data);
   };
 
-  const handleSaveUbsModal = (e) => {
-    handleSaveUbs(e);
+  const handleSaveUbsModal = async (e) => {
+    e.preventDefault();
+    const id = editingItem?.id; // captura antes de fechar
+    const data = { ...formUbs };
     closeModal();
+    if (id) await handleUpdateUbs(id, data);
+  };
+
+  const handleSaveProcedimentoModal = async (e) => {
+    e.preventDefault();
+    const id = editingItem?.id; // captura antes de fechar
+    const data = { ...formProcedimento };
+    closeModal();
+    if (id) await handleUpdateProcedimento(id, data);
+  };
+
+  // ── Helpers de máscara nos formulários de cadastro ───────────────────────
+  const handleCpfChange = (raw) => {
+    setFormPessoa({ ...formPessoa, cpf: maskCpf(raw) });
+  };
+
+  const handleTelefoneChange = (raw) => {
+    setFormPessoa({ ...formPessoa, telefone: maskTelefone(raw) });
+  };
+
+  const handleCepChange = (raw) => {
+    setFormPessoa({ ...formPessoa, cep: maskCep(raw) });
+  };
+
+  // Antes de submeter, limpa máscaras do CPF/telefone/CEP
+  const handleSavePessoaForm = (e) => {
+    e.preventDefault();
+    const cleaned = {
+      ...formPessoa,
+      cpf: onlyDigits(formPessoa.cpf),
+      telefone: onlyDigits(formPessoa.telefone),
+      cep: onlyDigits(formPessoa.cep),
+    };
+    setFormPessoa(cleaned);
+    // Pequeno timeout para o state atualizar antes do submit original
+    setTimeout(() => handleSavePessoa(e), 0);
   };
 
   return (
@@ -118,12 +212,20 @@ export default function TabCadastros({
         setFormMedico={setFormMedico}
         formUbs={formUbs}
         setFormUbs={setFormUbs}
+        formProcedimento={formProcedimento}
+        setFormProcedimento={setFormProcedimento}
         handleSavePessoa={handleSavePessoaModal}
         handleSaveMedico={handleSaveMedicoModal}
         handleSaveUbs={handleSaveUbsModal}
+        handleSaveProcedimento={handleSaveProcedimentoModal}
+        auxData={auxData}
         onClose={closeModal}
+        maskTelefone={maskTelefone}
+        maskCep={maskCep}
+        onlyDigits={onlyDigits}
       />
 
+      {/* ── Navegação sub-abas ─────────────────────────────────────────── */}
       <div className={styles.examQueueNav}>
         <button
           type="button"
@@ -155,21 +257,18 @@ export default function TabCadastros({
         </button>
       </div>
 
-      {/* SUB-ABA: PACIENTES / PESSOAS */}
+      {/* ── SUB-ABA: PACIENTES ─────────────────────────────────────────── */}
       {cadSubTab === "PACIENTES" && (
         <div>
-          <h3>➕ Cadastrar Novo Paciente / Pessoa</h3>
-          <form onSubmit={handleSavePessoa} className={styles.formGrid}>
+          <h3>➕ Cadastrar Novo Paciente</h3>
+          <form onSubmit={handleSavePessoaForm} className={styles.formGrid}>
             <div className={styles.fieldGroup}>
-              <label>CPF * (Apenas números)</label>
+              <label>CPF *</label>
               <input
                 type="text"
                 value={formPessoa.cpf}
-                onChange={(e) =>
-                  setFormPessoa({ ...formPessoa, cpf: e.target.value })
-                }
-                placeholder="Ex: 12345678901"
-                maxLength={11}
+                onChange={(e) => handleCpfChange(e.target.value)}
+                placeholder="000.000.000-00"
                 required
               />
             </div>
@@ -191,10 +290,7 @@ export default function TabCadastros({
                 type="date"
                 value={formPessoa.dataNascimento}
                 onChange={(e) =>
-                  setFormPessoa({
-                    ...formPessoa,
-                    dataNascimento: e.target.value,
-                  })
+                  setFormPessoa({ ...formPessoa, dataNascimento: e.target.value })
                 }
                 required
               />
@@ -216,10 +312,8 @@ export default function TabCadastros({
               <input
                 type="text"
                 value={formPessoa.telefone}
-                onChange={(e) =>
-                  setFormPessoa({ ...formPessoa, telefone: e.target.value })
-                }
-                placeholder="Ex: 32999998888"
+                onChange={(e) => handleTelefoneChange(e.target.value)}
+                placeholder="(32) 99999-8888"
               />
             </div>
             <div className={styles.fieldGroup}>
@@ -285,7 +379,7 @@ export default function TabCadastros({
                 onChange={(e) =>
                   setFormPessoa({ ...formPessoa, uf: e.target.value })
                 }
-                placeholder="Ex: MG"
+                placeholder="MG"
                 maxLength={2}
               />
             </div>
@@ -294,11 +388,8 @@ export default function TabCadastros({
               <input
                 type="text"
                 value={formPessoa.cep}
-                onChange={(e) =>
-                  setFormPessoa({ ...formPessoa, cep: e.target.value })
-                }
-                placeholder="Ex: 36880000"
-                maxLength={8}
+                onChange={(e) => handleCepChange(e.target.value)}
+                placeholder="00000-000"
               />
             </div>
             <div className={`${styles.formActions} ${styles.fullWidth}`}>
@@ -317,7 +408,6 @@ export default function TabCadastros({
                   <th>Nome Completo</th>
                   <th>Mãe</th>
                   <th>Data Nasc.</th>
-                  <th>Endereço</th>
                   <th>Telefone</th>
                   <th className={styles.actionsColumn}>Ações</th>
                 </tr>
@@ -326,33 +416,13 @@ export default function TabCadastros({
                 {auxData.pessoas &&
                   auxData.pessoas.map((p) => (
                     <tr key={p.cpf}>
-                      <td>{p.cpf}</td>
+                      <td>{maskCpf(p.cpf)}</td>
                       <td>
                         <strong>{p.nomeCompleto}</strong>
                       </td>
                       <td>{p.nomeMae}</td>
                       <td>{p.dataNascimento}</td>
-                      <td>
-                        <div className={styles.endereco}>
-                          {p.logradouro ? (
-                            <>
-                              <div>
-                                {p.logradouro}, {p.numero}
-                              </div>
-                              <div className={styles.enderecoComplemento}>
-                                {p.complemento && (
-                                  <span>{p.complemento} • </span>
-                                )}
-                                {p.bairro && <span>{p.bairro} • </span>}
-                                {p.cep && <span>{p.cep}</span>}
-                              </div>
-                            </>
-                          ) : (
-                            <span className={styles.semEndereco}>-</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>{p.telefone || "-"}</td>
+                      <td>{p.telefone ? maskTelefone(p.telefone) : "-"}</td>
                       <td className={styles.actionsCell}>
                         <button
                           className={styles.editBtn}
@@ -367,7 +437,7 @@ export default function TabCadastros({
                             confirmarExclusao({
                               tipo: "PESSOA",
                               nome: p.nomeCompleto,
-                              detalhe: `CPF: ${p.cpf}`,
+                              detalhe: `CPF: ${maskCpf(p.cpf)}`,
                               onConfirm: () =>
                                 handleDeletePessoa(p.cpf, p.nomeCompleto),
                             })
@@ -385,7 +455,7 @@ export default function TabCadastros({
         </div>
       )}
 
-      {/* SUB-ABA: MÉDICOS */}
+      {/* ── SUB-ABA: MÉDICOS ───────────────────────────────────────────── */}
       {cadSubTab === "MEDICOS" && (
         <div>
           <h3>➕ Cadastrar Novo Médico</h3>
@@ -432,10 +502,7 @@ export default function TabCadastros({
                 type="text"
                 value={formMedico.especialidade}
                 onChange={(e) =>
-                  setFormMedico({
-                    ...formMedico,
-                    especialidade: e.target.value,
-                  })
+                  setFormMedico({ ...formMedico, especialidade: e.target.value })
                 }
                 placeholder="Ex: Cardiologia"
               />
@@ -499,7 +566,7 @@ export default function TabCadastros({
         </div>
       )}
 
-      {/* SUB-ABA: UBS */}
+      {/* ── SUB-ABA: UBS ──────────────────────────────────────────────── */}
       {cadSubTab === "UBS" && (
         <div>
           <h3>➕ Cadastrar Nova Unidade de Saúde</h3>
@@ -583,20 +650,17 @@ export default function TabCadastros({
         </div>
       )}
 
-      {/* SUB-ABA: PROCEDIMENTOS */}
+      {/* ── SUB-ABA: PROCEDIMENTOS ────────────────────────────────────── */}
       {cadSubTab === "PROCEDIMENTOS" && (
         <div>
-          <h3>➕ Cadastrar Novo Procedimento de Exame</h3>
+          <h3>➕ Cadastrar Novo Procedimento</h3>
           <form onSubmit={handleSaveProcedimento} className={styles.formGrid}>
             <div className={styles.fieldGroup}>
-              <label>Tipo de Exame Pertencente *</label>
+              <label>Tipo de Exame *</label>
               <select
                 value={formProcedimento.tipoExameId}
                 onChange={(e) =>
-                  setFormProcedimento({
-                    ...formProcedimento,
-                    tipoExameId: e.target.value,
-                  })
+                  setFormProcedimento({ ...formProcedimento, tipoExameId: e.target.value })
                 }
                 required
               >
@@ -614,26 +678,20 @@ export default function TabCadastros({
                 type="text"
                 value={formProcedimento.nome}
                 onChange={(e) =>
-                  setFormProcedimento({
-                    ...formProcedimento,
-                    nome: e.target.value,
-                  })
+                  setFormProcedimento({ ...formProcedimento, nome: e.target.value })
                 }
                 placeholder="Ex: Ecocardiograma com Doppler"
                 required
               />
             </div>
             <div className={styles.fieldGroup}>
-              <label>Valor do Procedimento (R$) *</label>
+              <label>Valor (R$) *</label>
               <input
                 type="number"
                 step="0.01"
                 value={formProcedimento.valor}
                 onChange={(e) =>
-                  setFormProcedimento({
-                    ...formProcedimento,
-                    valor: e.target.value,
-                  })
+                  setFormProcedimento({ ...formProcedimento, valor: e.target.value })
                 }
                 placeholder="Ex: 180.00"
                 required
@@ -646,9 +704,7 @@ export default function TabCadastros({
             </div>
           </form>
 
-          <h4 className={styles.sectionHeaderMargin}>
-            Procedimentos Cadastrados
-          </h4>
+          <h4 className={styles.sectionHeaderMargin}>Procedimentos Cadastrados</h4>
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
               <thead>
@@ -656,6 +712,7 @@ export default function TabCadastros({
                   <th>Nome do Procedimento</th>
                   <th>Tipo de Exame</th>
                   <th>Valor (R$)</th>
+                  <th className={styles.actionsColumn}>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -665,7 +722,16 @@ export default function TabCadastros({
                       <strong>{p.nome}</strong>
                     </td>
                     <td>{p.tipoExameNome}</td>
-                    <td>R$ {p.valor.toFixed(2)}</td>
+                    <td>R$ {Number(p.valor).toFixed(2)}</td>
+                    <td className={styles.actionsCell}>
+                      <button
+                        className={styles.editBtn}
+                        onClick={() => handleEditProcedimento(p)}
+                        title="Editar"
+                      >
+                        ✏️ Editar
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

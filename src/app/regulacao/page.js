@@ -25,6 +25,7 @@ import {
   deletePessoa,
   updateUbs,
   deleteUbs,
+  updateProcedimento,
 } from "./actions";
 
 import FiltersBar from "./components/FiltersBar";
@@ -308,42 +309,35 @@ export default function RegulacaoPage() {
     }
 
     try {
-      let res;
-      if (editingItem && editingType === "PESSOA") {
-        // Editar pessoa existente
-        res = await updatePessoa(formPessoa.cpf, formPessoa);
-        if (res.success) {
-          alert("Paciente atualizado com sucesso!");
-          setEditingItem(null);
-          setEditingType(null);
-        }
-      } else {
-        // Criar nova pessoa
-        res = await createPessoa(formPessoa);
-        if (res.success) {
-          alert("Paciente cadastrado com sucesso!");
-        }
-      }
-
+      const res = await createPessoa(formPessoa);
       if (res.success) {
+        alert("Paciente cadastrado com sucesso!");
         setFormPessoa({
-          cpf: "",
-          nomeCompleto: "",
-          dataNascimento: "",
-          nomeMae: "",
-          telefone: "",
-          logradouro: "",
-          numero: "",
-          complemento: "",
-          bairro: "",
-          cidade: "Muriaé",
-          uf: "MG",
-          cep: "",
+          cpf: "", nomeCompleto: "", dataNascimento: "", nomeMae: "",
+          telefone: "", logradouro: "", numero: "", complemento: "",
+          bairro: "", cidade: "Muriaé", uf: "MG", cep: "",
         });
         reloadData();
       } else alert("Erro ao salvar paciente: " + res.error);
     } catch (error) {
       alert("Erro ao salvar paciente: " + error.message);
+    }
+  };
+
+  const handleUpdatePessoa = async (cpf, data) => {
+    try {
+      const res = await updatePessoa(cpf, data);
+      if (res.success) {
+        alert("Paciente atualizado com sucesso!");
+        setFormPessoa({
+          cpf: "", nomeCompleto: "", dataNascimento: "", nomeMae: "",
+          telefone: "", logradouro: "", numero: "", complemento: "",
+          bairro: "", cidade: "Muriaé", uf: "MG", cep: "",
+        });
+        reloadData();
+      } else alert("Erro ao atualizar paciente: " + res.error);
+    } catch (error) {
+      alert("Erro ao atualizar paciente: " + error.message);
     }
   };
 
@@ -365,35 +359,27 @@ export default function RegulacaoPage() {
       return alert("Preencha o Nome e o CRM.");
 
     try {
-      let res;
-      if (editingItem && editingType === "MEDICO") {
-        // Editar médico existente
-        res = await updateMedico(editingItem.id, formMedico);
-        if (res.success) {
-          alert("Médico atualizado com sucesso!");
-          setEditingItem(null);
-          setEditingType(null);
-        }
-      } else {
-        // Criar novo médico
-        res = await createMedico(formMedico);
-        if (res.success) {
-          alert("Médico cadastrado com sucesso!");
-        }
-      }
-
+      const res = await createMedico(formMedico);
       if (res.success) {
-        setFormMedico({
-          nome: "",
-          crm: "",
-          ufCrm: "MG",
-          especialidade: "",
-          tipo: "Solicitante",
-        });
+        alert("Médico cadastrado com sucesso!");
+        setFormMedico({ nome: "", crm: "", ufCrm: "MG", especialidade: "", tipo: "Solicitante" });
         reloadData();
       } else alert("Erro ao salvar médico: " + res.error);
     } catch (error) {
       alert("Erro ao salvar médico: " + error.message);
+    }
+  };
+
+  const handleUpdateMedico = async (id, data) => {
+    try {
+      const res = await updateMedico(id, data);
+      if (res.success) {
+        alert("Médico atualizado com sucesso!");
+        setFormMedico({ nome: "", crm: "", ufCrm: "MG", especialidade: "", tipo: "Solicitante" });
+        reloadData();
+      } else alert("Erro ao atualizar médico: " + res.error);
+    } catch (error) {
+      alert("Erro ao atualizar médico: " + error.message);
     }
   };
 
@@ -415,29 +401,27 @@ export default function RegulacaoPage() {
       return alert("Preencha o Nome e o CNES.");
 
     try {
-      let res;
-      if (editingItem && editingType === "UBS") {
-        // Editar UBS existente
-        res = await updateUbs(editingItem.id, formUbs);
-        if (res.success) {
-          alert("UBS atualizada com sucesso!");
-          setEditingItem(null);
-          setEditingType(null);
-        }
-      } else {
-        // Criar nova UBS
-        res = await createUbs(formUbs);
-        if (res.success) {
-          alert("UBS cadastrada com sucesso!");
-        }
-      }
-
+      const res = await createUbs(formUbs);
       if (res.success) {
+        alert("UBS cadastrada com sucesso!");
         setFormUbs({ nome: "", cnes: "" });
         reloadData();
       } else alert("Erro ao salvar UBS: " + res.error);
     } catch (error) {
       alert("Erro ao salvar UBS: " + error.message);
+    }
+  };
+
+  const handleUpdateUbs = async (id, data) => {
+    try {
+      const res = await updateUbs(id, data);
+      if (res.success) {
+        alert("UBS atualizada com sucesso!");
+        setFormUbs({ nome: "", cnes: "" });
+        reloadData();
+      } else alert("Erro ao atualizar UBS: " + res.error);
+    } catch (error) {
+      alert("Erro ao atualizar UBS: " + error.message);
     }
   };
 
@@ -469,6 +453,18 @@ export default function RegulacaoPage() {
       setFormProcedimento({ nome: "", valor: "", tipoExameId: "" });
       reloadData();
     } else alert("Erro ao cadastrar procedimento: " + res.error);
+  };
+
+  const handleUpdateProcedimento = async (id, data) => {
+    if (!data.nome || !data.valor || !data.tipoExameId) {
+      return alert("Preencha todos os campos do procedimento.");
+    }
+    const res = await updateProcedimento(id, data);
+    if (res.success) {
+      alert("Procedimento atualizado com sucesso!");
+      setFormProcedimento({ nome: "", valor: "", tipoExameId: "" });
+      reloadData();
+    } else alert("Erro ao atualizar procedimento: " + res.error);
   };
 
   const handleOpenDefineTetoModal = (tipoCota, valorAtual) => {
@@ -1077,18 +1073,22 @@ export default function RegulacaoPage() {
           formPessoa={formPessoa}
           setFormPessoa={setFormPessoa}
           handleSavePessoa={handleSavePessoa}
+          handleUpdatePessoa={handleUpdatePessoa}
           handleDeletePessoa={handleDeletePessoa}
           formMedico={formMedico}
           setFormMedico={setFormMedico}
           handleSaveMedico={handleSaveMedico}
+          handleUpdateMedico={handleUpdateMedico}
           handleDeleteMedico={handleDeleteMedico}
           formUbs={formUbs}
           setFormUbs={setFormUbs}
           handleSaveUbs={handleSaveUbs}
+          handleUpdateUbs={handleUpdateUbs}
           handleDeleteUbs={handleDeleteUbs}
           formProcedimento={formProcedimento}
           setFormProcedimento={setFormProcedimento}
           handleSaveProcedimento={handleSaveProcedimento}
+          handleUpdateProcedimento={handleUpdateProcedimento}
           auxData={auxData}
           styles={styles}
         />
