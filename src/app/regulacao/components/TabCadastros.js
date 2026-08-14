@@ -34,6 +34,32 @@ function maskCep(value) {
     .replace(/(\d{5})(\d{1,3})$/, "$1-$2");
 }
 
+function normalizeDateForInput(value) {
+  if (!value) return "";
+
+  if (typeof value === "string") {
+    const isoMatch = value.match(/^\d{4}-\d{2}-\d{2}$/);
+    if (isoMatch) return value;
+
+    const brMatch = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (brMatch) {
+      const [, day, month, year] = brMatch;
+      return `${year}-${month}-${day}`;
+    }
+
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toISOString().slice(0, 10);
+    }
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  return "";
+}
+
 // Retira a máscara para salvar só dígitos
 function onlyDigits(value) {
   return value.replace(/\D/g, "");
@@ -80,48 +106,21 @@ export default function TabCadastros({
   const handleEditPessoa = (pessoa) => {
     setEditingItem(pessoa);
     setEditingType("PESSOA");
-    setFormPessoa({
-      cpf: pessoa.cpf,
-      nomeCompleto: pessoa.nomeCompleto,
-      dataNascimento: pessoa.dataNascimento,
-      nomeMae: pessoa.nomeMae,
-      telefone: pessoa.telefone ? maskTelefone(pessoa.telefone) : "",
-      logradouro: pessoa.logradouro || "",
-      numero: pessoa.numero || "",
-      complemento: pessoa.complemento || "",
-      bairro: pessoa.bairro || "",
-      cidade: pessoa.cidade || "Muriaé",
-      uf: pessoa.uf || "MG",
-      cep: pessoa.cep ? maskCep(pessoa.cep) : "",
-    });
   };
 
   const handleEditMedico = (medico) => {
     setEditingItem(medico);
     setEditingType("MEDICO");
-    setFormMedico({
-      nome: medico.nome,
-      crm: medico.crm,
-      ufCrm: medico.ufCrm,
-      especialidade: medico.especialidade || "",
-      tipo: medico.tipo || "Solicitante",
-    });
   };
 
   const handleEditUbs = (ubs) => {
     setEditingItem(ubs);
     setEditingType("UBS");
-    setFormUbs({ nome: ubs.nome, cnes: ubs.cnes });
   };
 
   const handleEditProcedimento = (proc) => {
     setEditingItem(proc);
     setEditingType("PROCEDIMENTO");
-    setFormProcedimento({
-      tipoExameId: proc.tipoExameId ?? "",
-      nome: proc.nome,
-      valor: proc.valor,
-    });
   };
 
   const closeModal = () => {
@@ -130,38 +129,34 @@ export default function TabCadastros({
   };
 
   // ── Wrappers que fecham o modal após salvar ──────────────────────────────
-  const handleSavePessoaModal = async (e) => {
-    e.preventDefault();
+  const handleSavePessoaModal = async (payload) => {
     const data = {
-      ...formPessoa,
-      telefone: onlyDigits(formPessoa.telefone),
-      cep: onlyDigits(formPessoa.cep),
+      ...(payload || formPessoa),
+      telefone: onlyDigits((payload || formPessoa).telefone || ""),
+      cep: onlyDigits((payload || formPessoa).cep || ""),
     };
-    const cpf = data.cpf; // captura antes de fechar
+    const cpf = data.cpf;
     closeModal();
     await handleUpdatePessoa(cpf, data);
   };
 
-  const handleSaveMedicoModal = async (e) => {
-    e.preventDefault();
-    const id = editingItem?.id; // captura antes de fechar
-    const data = { ...formMedico };
+  const handleSaveMedicoModal = async (payload) => {
+    const id = editingItem?.id;
+    const data = payload || formMedico;
     closeModal();
     if (id) await handleUpdateMedico(id, data);
   };
 
-  const handleSaveUbsModal = async (e) => {
-    e.preventDefault();
-    const id = editingItem?.id; // captura antes de fechar
-    const data = { ...formUbs };
+  const handleSaveUbsModal = async (payload) => {
+    const id = editingItem?.id;
+    const data = payload || formUbs;
     closeModal();
     if (id) await handleUpdateUbs(id, data);
   };
 
-  const handleSaveProcedimentoModal = async (e) => {
-    e.preventDefault();
-    const id = editingItem?.id; // captura antes de fechar
-    const data = { ...formProcedimento };
+  const handleSaveProcedimentoModal = async (payload) => {
+    const id = editingItem?.id;
+    const data = payload || formProcedimento;
     closeModal();
     if (id) await handleUpdateProcedimento(id, data);
   };
@@ -290,7 +285,10 @@ export default function TabCadastros({
                 type="date"
                 value={formPessoa.dataNascimento}
                 onChange={(e) =>
-                  setFormPessoa({ ...formPessoa, dataNascimento: e.target.value })
+                  setFormPessoa({
+                    ...formPessoa,
+                    dataNascimento: e.target.value,
+                  })
                 }
                 required
               />
@@ -502,7 +500,10 @@ export default function TabCadastros({
                 type="text"
                 value={formMedico.especialidade}
                 onChange={(e) =>
-                  setFormMedico({ ...formMedico, especialidade: e.target.value })
+                  setFormMedico({
+                    ...formMedico,
+                    especialidade: e.target.value,
+                  })
                 }
                 placeholder="Ex: Cardiologia"
               />
@@ -660,7 +661,10 @@ export default function TabCadastros({
               <select
                 value={formProcedimento.tipoExameId}
                 onChange={(e) =>
-                  setFormProcedimento({ ...formProcedimento, tipoExameId: e.target.value })
+                  setFormProcedimento({
+                    ...formProcedimento,
+                    tipoExameId: e.target.value,
+                  })
                 }
                 required
               >
@@ -678,7 +682,10 @@ export default function TabCadastros({
                 type="text"
                 value={formProcedimento.nome}
                 onChange={(e) =>
-                  setFormProcedimento({ ...formProcedimento, nome: e.target.value })
+                  setFormProcedimento({
+                    ...formProcedimento,
+                    nome: e.target.value,
+                  })
                 }
                 placeholder="Ex: Ecocardiograma com Doppler"
                 required
@@ -691,7 +698,10 @@ export default function TabCadastros({
                 step="0.01"
                 value={formProcedimento.valor}
                 onChange={(e) =>
-                  setFormProcedimento({ ...formProcedimento, valor: e.target.value })
+                  setFormProcedimento({
+                    ...formProcedimento,
+                    valor: e.target.value,
+                  })
                 }
                 placeholder="Ex: 180.00"
                 required
@@ -704,7 +714,9 @@ export default function TabCadastros({
             </div>
           </form>
 
-          <h4 className={styles.sectionHeaderMargin}>Procedimentos Cadastrados</h4>
+          <h4 className={styles.sectionHeaderMargin}>
+            Procedimentos Cadastrados
+          </h4>
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
               <thead>
