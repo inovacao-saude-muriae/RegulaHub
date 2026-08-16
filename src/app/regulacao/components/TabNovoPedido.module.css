@@ -8,33 +8,58 @@
 }
 
 .cardTitle {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #1e293b;
   margin-bottom: 1.25rem;
 }
 
-.formGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+/* ── Container Geral do Formulário ── */
+.patientFormContainer {
+  display: flex;
+  flex-direction: column;
   gap: 1.25rem;
 }
 
-.fieldGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+.formSection {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.25rem;
 }
 
-.fieldGroup label {
+.formSectionHeader {
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.formSectionHeader h4 {
   font-size: 0.85rem;
-  font-weight: 600;
-  color: #475569;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin: 0;
 }
 
-.fieldGroup input,
-.fieldGroup select,
-.fieldGroup textarea {
+/* ── Busca de Paciente / Autocomplete ── */
+.searchSectionContainer {
+  margin-bottom: 1.25rem;
+}
+
+.searchActionRow {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.autocompleteWrapper {
+  position: relative;
+  flex: 1;
+}
+
+.autocompleteWrapper input {
   width: 100%;
   padding: 0.65rem 0.85rem;
   border: 1px solid #cbd5e1;
@@ -44,60 +69,22 @@
   outline: none;
   background-color: #ffffff;
   transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
 }
 
-.fieldGroup input:focus,
-.fieldGroup select:focus,
-.fieldGroup textarea:focus {
+.autocompleteWrapper input:focus {
   border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.readOnlyInput {
-  background-color: #f8fafc !important;
-  color: #64748b !important;
-  cursor: not-allowed;
-}
-
-.fullWidth {
-  grid-column: 1 / -1;
-}
-
-/* Autocomplete e Busca de Paciente */
-.autocompleteContainer {
-  position: relative;
-  width: 100%;
-}
-
-.searchBox {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.secondaryBtn {
-  background-color: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
-  padding: 0.65rem 1.25rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background-color 0.2s;
-}
-
-.secondaryBtn:hover {
-  background-color: #e2e8f0;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
 .loadingSpinner {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #2563eb;
-  font-weight: 700;
+  font-weight: 600;
+  margin-top: 0.35rem;
 }
 
+/* Dropdown de Sugestões */
 .suggestionsList {
   position: absolute;
   top: 100%;
@@ -132,12 +119,12 @@
 
 .suggestionName {
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: #1e293b;
 }
 
 .suggestionDetails {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: #64748b;
   margin-top: 0.15rem;
 }
@@ -151,27 +138,123 @@
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   padding: 0.75rem 1rem;
-  font-size: 0.85rem;
+  font-size: 0.83rem;
   color: #94a3b8;
   margin-top: 0.25rem;
   z-index: 50;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.formActions {
+/* ── Botão Quadrado da Lupa ── */
+.iconSquareBtn {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.iconSquareBtn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.iconImg {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+.btnBlue {
+  background-color: #2563eb;
+}
+
+/* ── Grid Flexível de 12 Colunas ── */
+.formGridStrict {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fieldGroup label {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.fieldGroup input,
+.fieldGroup select,
+.fieldGroup textarea {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #1e293b;
+  outline: none;
+  background-color: #ffffff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.fieldGroup input:focus,
+.fieldGroup select:focus,
+.fieldGroup textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.readOnlyInput {
+  background-color: #f8fafc !important;
+  color: #64748b !important;
+  border-color: #e2e8f0 !important;
+  cursor: not-allowed;
+}
+
+/* Larguras do Grid */
+.colName { grid-column: span 5; }
+.colMother { grid-column: span 4; }
+.colCpf { grid-column: span 3; }
+.colSus { grid-column: span 3; }
+
+.colExamType { grid-column: span 4; }
+.colProcedure { grid-column: span 5; }
+.colDoctor { grid-column: span 6; }
+.colUbs { grid-column: span 6; }
+.colRisk { grid-column: span 3; }
+
+.fullWidth {
   grid-column: 1 / -1;
+}
+
+/* ── Botões de Ação ── */
+.formActions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 0.5rem;
+  padding-top: 0.5rem;
 }
 
 .primaryBtn {
   background-color: #2563eb;
   color: #ffffff;
   border: none;
-  padding: 0.75rem 1.75rem;
+  padding: 0.65rem 1.5rem;
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -179,4 +262,11 @@
 
 .primaryBtn:hover {
   background-color: #1d4ed8;
+}
+
+/* ── Responsividade ── */
+@media (max-width: 900px) {
+  .colName, .colMother, .colCpf, .colSus, .colExamType, .colProcedure, .colDoctor, .colUbs, .colRisk {
+    grid-column: span 12;
+  }
 }

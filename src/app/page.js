@@ -5,7 +5,7 @@ const modules = [
   {
     title: 'Regulação de Exames',
     description: 'Gestão e autorização de pedidos de Tomografia, Ressonância e Cintilografia.',
-    path: '/regulacao', // <--- Ajustado para a rota correta
+    path: '/regulacao',
     tag: 'Alta Complexidade',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -16,7 +16,7 @@ const modules = [
   {
     title: 'Câmara Técnica',
     description: 'Análise de Farmácia Judicial, pareceres e acompanhamento de processos.',
-    path: '/camara-tecnica/farmacia-judicial',
+    path: '/camara-tecnica/farmacia',
     tag: 'Jurídico',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">

@@ -1,143 +1,209 @@
-'use client';
+"use client";
 
-import styles from './TabLiberados.module.css';
+import { useState } from "react";
+import styles from "./TabLiberados.module.css";
 
 export default function TabLiberados({
   auxData,
   requests,
   selectedReleasedExam,
   setSelectedReleasedExam,
-  selectedReleasedIds,
-  handleSelectAllReleased,
-  handleSelectOneReleased,
-  handleExportToExcelReleased,
   applyFilters,
   handleUpdateBillingDate,
-  setEditingItem,
-  loading
+  handleEditOrder,
+  handleExportToExcelReleased,
+  loading,
 }) {
-  const visibleReleasedItems = applyFilters(
-    requests.filter(r => r.examType === selectedReleasedExam), 
-    'Liberado'
-  );
+  const [selectedIds, setSelectedIds] = useState([]);
 
-  const isAllVisibleReleasedSelected = 
-    visibleReleasedItems.length > 0 && 
-    visibleReleasedItems.every(i => selectedReleasedIds.includes(i.id));
+  // 1. Filtra primeiro por Status "Liberado" e pelo Tipo de Exame selecionado
+  const baseReleased = requests.filter((item) => {
+    if (item.status !== "Liberado") return false;
+    if (selectedReleasedExam && item.examType !== selectedReleasedExam) {
+      return false;
+    }
+    return true;
+  });
+
+  // 2. Aplica os filtros avançados passando o Array completo
+  const releasedList =
+    typeof applyFilters === "function"
+      ? applyFilters(baseReleased)
+      : baseReleased;
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIds(releasedList.map((item) => item.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter((item) => item !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  const getRiskClass = (classification) => {
+    switch (classification) {
+      case "Vermelho":
+        return styles.riskRed;
+      case "Amarelo":
+        return styles.riskYellow;
+      default:
+        return styles.riskGreen;
+    }
+  };
 
   return (
-    <div className={styles.card}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div className={styles.examQueueNav} style={{ marginBottom: 0, borderBottom: 'none' }}>
-          {auxData.tiposExame.map((exam) => {
-            const count = requests.filter(i => (i.examType === exam.nome || String(i.examTypeId) === String(exam.id)) && i.status === 'Liberado').length;
-            return (
-              <button 
-                type="button"
-                key={exam.id} 
-                className={`${styles.examQueueBtn} ${selectedReleasedExam === exam.nome ? styles.activeExamQueue : ''}`} 
-                onClick={() => setSelectedReleasedExam(exam.nome)}
-              >
-                Liberados de {exam.nome} <span className={styles.badgeCount}>{count}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* BARRA DE EXPORTAÇÃO DE LIBERADOS */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-            Selecionados: <strong>{selectedReleasedIds.length}</strong>
-          </span>
-          <button 
+    <div className={styles.container}>
+      {/* ABAS SELETORAS DE TIPO DE EXAME */}
+      <div className={styles.examTabs}>
+        {auxData?.tiposExame?.map((tipo) => (
+          <button
+            key={tipo.id}
             type="button"
-            onClick={handleExportToExcelReleased}
-            className={styles.secondaryBtn}
-            style={{ backgroundColor: '#107c41', color: '#ffffff', borderColor: '#107c41' }}
+            className={`${styles.examTabBtn} ${
+              selectedReleasedExam === tipo.nome ? styles.activeExamTab : ""
+            }`}
+            onClick={() => {
+              setSelectedReleasedExam(tipo.nome);
+              setSelectedIds([]);
+            }}
           >
-            📊 Exportar Excel (.xlsx)
+            {tipo.nome}
           </button>
-        </div>
+        ))}
       </div>
 
+      {/* CABEÇALHO E AÇÃO DE EXPORTAR */}
+      <div className={styles.tableHeaderBar}>
+        <div className={styles.infoGroup}>
+          <h3>
+            Pacientes Liberados: <span>{selectedReleasedExam || "Todos"}</span>
+          </h3>
+          <p>
+            Total de registros: <strong>{releasedList.length}</strong>
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className={styles.exportBtn}
+          onClick={() => handleExportToExcelReleased(selectedIds)}
+          disabled={selectedIds.length === 0}
+        >
+          📊 Exportar Selecionados ({selectedIds.length}) para Excel
+        </button>
+      </div>
+
+      {/* TABELA DE DADOS */}
       {loading ? (
-        <div className={styles.loadingBox}>Carregando histórico do banco de dados...</div>
+        <div className={styles.loadingState}>Carregando pacientes liberados...</div>
+      ) : releasedList.length === 0 ? (
+        <div className={styles.emptyState}>
+          Nenhum paciente liberado encontrado para os filtros selecionados.
+        </div>
       ) : (
-        <div className={styles.tableWrapper}>
+        <div className={styles.tableContainer}>
           <table className={styles.table}>
             <thead>
               <tr>
-                <th style={{ width: '40px', textAlign: 'center' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={isAllVisibleReleasedSelected}
-                    onChange={handleSelectAllReleased}
-                    title="Selecionar todos visíveis"
+                <th style={{ width: "40px", textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    onChange={handleSelectAll}
+                    checked={
+                      releasedList.length > 0 &&
+                      selectedIds.length === releasedList.length
+                    }
                   />
                 </th>
-                <th>PACIENTE</th>
-                <th>PROCEDIMENTO</th>
-                <th>DATA DA LIBERAÇÃO</th>
-                <th>COTA</th>
-                <th>DATA FATURADO</th>
-                <th>COMPETÊNCIA</th>
-                <th>AÇÃO</th>
+                <th>Cód. Reg.</th>
+                <th>Paciente</th>
+                <th>CPF</th>
+                <th>Procedimento</th>
+                <th>Data Liberação</th>
+                <th>Cota</th>
+                <th>Competência</th>
+                <th>Data Faturado</th>
+                <th style={{ textAlign: "center" }}>Ações</th>
               </tr>
             </thead>
             <tbody>
-              {visibleReleasedItems.map((item) => {
-                const isSelected = selectedReleasedIds.includes(item.id);
+              {releasedList.map((item) => {
+                const isSelected = selectedIds.includes(item.id);
+                const competence =
+                  item.quotaCompetenceMonth && item.quotaCompetenceYear
+                    ? `${item.quotaCompetenceMonth}/${item.quotaCompetenceYear}`
+                    : "—";
 
                 return (
-                  <tr key={item.id} style={{ backgroundColor: isSelected ? '#eff6ff' : 'transparent' }}>
-                    <td style={{ textAlign: 'center' }}>
-                      <input 
-                        type="checkbox" 
+                  <tr
+                    key={item.id}
+                    className={isSelected ? styles.selectedRow : ""}
+                  >
+                    <td style={{ textAlign: "center" }}>
+                      <input
+                        type="checkbox"
                         checked={isSelected}
-                        onChange={() => handleSelectOneReleased(item.id)}
+                        onChange={() => handleSelectOne(item.id)}
                       />
                     </td>
                     <td>
-                      <div className={styles.patientBlock}>
-                        <strong>{item.patientName}</strong>
-                        <small className={styles.motherText}>CPF: {item.cpf}</small>
-                      </div>
+                      <strong>#{item.id}</strong>
                     </td>
-
                     <td>
-                      <div className={styles.patientInfo}>
-                        <strong>[{item.examType}]</strong>
-                        <span>{item.procedure}</span>
+                      <div className={styles.patientHeader}>
+                        <span className={styles.patientName}>{item.patientName}</span>
+                        <span
+                          className={`${styles.riskTag} ${getRiskClass(
+                            item.classification
+                          )}`}
+                        >
+                          {item.classification || "Verde"}
+                        </span>
                       </div>
+                      <small className={styles.subText}>
+                        Mãe: {item.motherName || "Não informada"}
+                      </small>
                     </td>
-
-                    <td className={styles.dateCell}>{item.releaseDate || 'Não informada'}</td>
-                    <td><span className={styles.quotaBadge}>{item.quota || 'N/A'}</span></td>
-
-                    <td className={styles.editDateCell}>
-                      <input 
-                        type="date" 
-                        value={item.billingDate || ''} 
-                        onChange={(e) => handleUpdateBillingDate(item.id, e.target.value)}
-                        className={styles.inlineDateInput}
-                      />
-                    </td>
-
+                    <td>{item.cpf || "—"}</td>
+                    <td>{item.procedure}</td>
+                    <td>{item.releaseDate || "—"}</td>
                     <td>
-                      <span className={styles.competenceBadge}>
-                        {item.quotaCompetenceMonth && item.quotaCompetenceYear 
-                          ? `${item.quotaCompetenceMonth}/${item.quotaCompetenceYear}` 
-                          : 'N/A'}
+                      <span className={styles.quotaBadge}>
+                        {item.quota || "N/A"}
                       </span>
                     </td>
-
+                    <td>{competence}</td>
                     <td>
-                      <button 
-                        type="button" 
-                        onClick={() => setEditingItem({ ...item })} 
-                        className={styles.smallActionBtn}
+                      <input
+                        type="date"
+                        className={styles.dateInput}
+                        value={item.billingDate || ""}
+                        onChange={(e) =>
+                          handleUpdateBillingDate(item.id, e.target.value)
+                        }
+                      />
+                    </td>
+                    <td className={styles.actionsCell}>
+                      <button
+                        type="button"
+                        className={styles.iconBtn}
+                        onClick={() => handleEditOrder(item)}
+                        title="Editar Pedido"
                       >
-                        ✏ Editar
+                        <img
+                          src="/img/icon/editar.png"
+                          alt="Editar"
+                          width={16}
+                          height={16}
+                          style={{ objectFit: "contain" }}
+                        />
                       </button>
                     </td>
                   </tr>
@@ -149,4 +215,4 @@ export default function TabLiberados({
       )}
     </div>
   );
-}   
+}

@@ -1,0 +1,633 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import {
+  getPedidosExames,
+  getAuxiliaryData,
+  searchPessoa,
+  searchPessoasAutocomplete,
+  createPedidoExame,
+  updateCommunicationDate,
+  releasePaciente,
+  createPessoa,
+  createMedico,
+  createUbs,
+  createProcedimento,
+  getCotasFinanceiras,
+  saveCotaFinanceira,
+  updateBillingDate,
+  updatePedidoExame,
+  deletePedidoExame,
+  updateMedico,
+  deleteMedico,
+  updatePessoa,
+  deletePessoa,
+  updateUbs,
+  deleteUbs,
+  updateProcedimento,
+} from "../actions";
+
+export function useRegulacaoData(setActiveTab) {
+  const [cadSubTab, setCadSubTab] = useState("PACIENTES");
+  const [selectedQueueExam, setSelectedQueueExam] = useState("");
+  const [selectedReleasedExam, setSelectedReleasedExam] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectedReleasedIds, setSelectedReleasedIds] = useState([]);
+
+  const autocompleteRef = useRef(null);
+  const isSelectedRef = useRef(false);
+
+  const [auxData, setAuxData] = useState({
+    tiposExame: [],
+    procedimentos: [],
+    medicos: [],
+    ubsList: [],
+    pessoas: [],
+  });
+  const [requests, setRequests] = useState([]);
+  const [cotasFinanceiras, setCotasFinanceiras] = useState([]);
+
+  const [patientSuggestions, setPatientSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearchingPatient, setIsSearchingPatient] = useState(false);
+
+  const [finMonth, setFinMonth] = useState("08");
+  const [finYear, setFinYear] = useState("2026");
+
+  // ⚠️ FIX: Inicializa estritamente como NULL para evitar renderização involuntária no F5
+  const [editCotaModal, setEditCotaModal] = useState(null);
+
+  const [showQuotaModal, setShowQuotaModal] = useState(false);
+  const [quotaModalType, setQuotaModalType] = useState("OCI");
+  const [quotaModalYear, setQuotaModalYear] = useState("2026");
+
+  const [editingItem, setEditingItem] = useState(null);
+  const [releasingItem, setReleasingItem] = useState(null);
+  const [regulationForm, setRegulationForm] = useState({
+    status: "Liberado",
+    quota: "",
+    releaseDate: new Date().toISOString().split("T")[0],
+    quotaCompetenceMonth: new Date().toISOString().slice(5, 7),
+    quotaCompetenceYear: `${new Date().getFullYear()}`,
+    generalObservation: "",
+    regulatorDoctorId: "",
+  });
+
+  const [formPessoa, setFormPessoa] = useState({
+    cpf: "",
+    nomeCompleto: "",
+    dataNascimento: "",
+    nomeMae: "",
+    telefone: "",
+    logradouro: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    cidade: "Muriaé",
+    uf: "MG",
+    cep: "",
+  });
+  const [formMedico, setFormMedico] = useState({
+    nome: "",
+    crm: "",
+    ufCrm: "MG",
+    especialidade: "",
+    tipo: "Solicitante",
+  });
+  const [formUbs, setFormUbs] = useState({ nome: "", cnes: "" });
+  const [formProcedimento, setFormProcedimento] = useState({
+    nome: "",
+    valor: "",
+    tipoExameId: "",
+  });
+
+  const [newRequest, setNewRequest] = useState({
+    patientSearch: "",
+    patientName: "",
+    motherName: "",
+    cpf: "",
+    susCard: "",
+    examTypeId: "",
+    procedureId: "",
+    procedureName: "",
+    estimatedCost: 0,
+    competence: `${new Date().toISOString().slice(5, 7)}/${new Date().getFullYear()}`,
+    requestDate: new Date().toISOString().split("T")[0],
+    classification: "Verde",
+    medicoSolicitanteId: "",
+    ubsResponsavelId: "",
+    justification: "",
+  });
+
+  const reloadData = async () => {
+    try {
+      setLoading(true);
+      const [pedidos, aux, cotas] = await Promise.all([
+        getPedidosExames(),
+        getAuxiliaryData(),
+        getCotasFinanceiras(),
+      ]);
+      setRequests(pedidos || []);
+      setAuxData(
+        aux || {
+          tiposExame: [],
+          procedimentos: [],
+          medicos: [],
+          ubsList: [],
+          pessoas: [],
+        }
+      );
+      setCotasFinanceiras(cotas || []);
+
+      if (aux?.tiposExame?.length > 0) {
+        if (!selectedQueueExam) setSelectedQueueExam(aux.tiposExame[0].nome);
+        if (!selectedReleasedExam)
+          setSelectedReleasedExam(aux.tiposExame[0].nome);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    reloadData();
+  }, []);
+
+  const handleDeleteOrder = async (item) => {
+    if (
+      !confirm(
+        `Tem certeza que deseja excluir o pedido de ${item.patientName}?`
+      )
+    )
+      return;
+    const res = await deletePedidoExame(item.dbId || item.id);
+    if (res.success) {
+      reloadData();
+    } else alert("Erro ao excluir: " + res.error);
+  };
+
+  const handleDeleteSelectedOrders = async (ids) => {
+    try {
+      for (const id of ids) await deletePedidoExame(id);
+      setSelectedIds([]);
+      reloadData();
+    } catch (error) {
+      alert("Erro ao excluir: " + error.message);
+    }
+  };
+
+  const handleEditOrder = (pedido) => {
+    setEditingItem(pedido);
+    setActiveTab("EDITAR_PEDIDO");
+  };
+
+  const handleEditStatusChange = (newStatus) => {
+    if (newStatus === "Aguardando") {
+      setEditingItem((prev) => ({
+        ...prev,
+        status: "Aguardando",
+        quota: "",
+        releaseDate: "",
+        regulatorDoctorId: "",
+        regulatorDoctor: "",
+      }));
+    } else setEditingItem((prev) => ({ ...prev, status: newStatus }));
+  };
+
+  const handleSaveEditedOrder = async (e) => {
+    if (e) e.preventDefault();
+    if (!editingItem) return;
+    const res = await updatePedidoExame(
+      editingItem.dbId || editingItem.id,
+      editingItem
+    );
+    if (res.success) {
+      await reloadData();
+    } else {
+      alert("Erro ao atualizar: " + res.error);
+    }
+  };
+
+  const handleOpenReleaseModal = (item) => {
+    const today = new Date().toISOString().split("T")[0];
+    setReleasingItem(item);
+    setRegulationForm({
+      status: "Liberado",
+      quota: item.quota || "",
+      releaseDate: today,
+      quotaCompetenceMonth: today.slice(5, 7),
+      quotaCompetenceYear: today.slice(0, 4),
+      generalObservation: item.generalObservation || "",
+      regulatorDoctorId: item.regulatorDoctorId || "",
+    });
+    setActiveTab("LIBERAR_PEDIDO");
+  };
+
+  const handleReleaseDateChange = (newReleaseDate) => {
+    if (!newReleaseDate)
+      return setRegulationForm((prev) => ({ ...prev, releaseDate: "" }));
+    setRegulationForm((prev) => ({
+      ...prev,
+      releaseDate: newReleaseDate,
+      quotaCompetenceMonth: newReleaseDate.slice(5, 7),
+      quotaCompetenceYear: newReleaseDate.slice(0, 4),
+    }));
+  };
+
+  const handleSelectQuotaType = (selectedQuota) => {
+    setRegulationForm((prev) => ({ ...prev, quota: selectedQuota }));
+    if (selectedQuota) {
+      setQuotaModalType(selectedQuota);
+      setQuotaModalYear(
+        regulationForm.quotaCompetenceYear || `${new Date().getFullYear()}`
+      );
+      setShowQuotaModal(true);
+    }
+  };
+
+  const handleSelectMonthFromModal = (monthValue) => {
+    setRegulationForm((prev) => ({
+      ...prev,
+      quota: quotaModalType,
+      quotaCompetenceMonth: monthValue,
+      quotaCompetenceYear: quotaModalYear,
+    }));
+    setShowQuotaModal(false);
+  };
+
+  const handleConfirmRelease = async (e) => {
+    if (e) e.preventDefault();
+    if (regulationForm.status !== "Liberado")
+      return alert('Selecione o status "Liberado".');
+    if (!regulationForm.quota) return alert("Selecione um Tipo de Cota.");
+
+    const res = await releasePaciente(releasingItem.id, regulationForm);
+    if (res.success) {
+      await reloadData();
+      setReleasingItem(null);
+      setActiveTab("LISTA_ESPERA");
+    } else alert("Erro ao atualizar a liberação.");
+  };
+
+  const handleSavePessoa = async (e) => {
+    if (e) e.preventDefault();
+    const res = await createPessoa(formPessoa);
+    if (res.success) {
+      setFormPessoa({
+        cpf: "",
+        nomeCompleto: "",
+        dataNascimento: "",
+        nomeMae: "",
+        telefone: "",
+        logradouro: "",
+        numero: "",
+        complemento: "",
+        bairro: "",
+        cidade: "Muriaé",
+        uf: "MG",
+        cep: "",
+      });
+      reloadData();
+    } else alert("Erro: " + res.error);
+  };
+
+  const handleUpdatePessoa = async (cpf, data) => {
+    const res = await updatePessoa(cpf, data);
+    if (res.success) {
+      reloadData();
+    } else alert("Erro: " + res.error);
+  };
+
+  const handleDeletePessoa = async (cpf) => {
+    const res = await deletePessoa(cpf);
+    if (res.success) {
+      reloadData();
+    } else alert("Erro: " + res.error);
+  };
+
+  const handleSaveMedico = async (e) => {
+    if (e) e.preventDefault();
+    const res = await createMedico(formMedico);
+    if (res.success) {
+      setFormMedico({
+        nome: "",
+        crm: "",
+        ufCrm: "MG",
+        especialidade: "",
+        tipo: "Solicitante",
+      });
+      reloadData();
+    } else alert("Erro: " + res.error);
+  };
+
+  const handleUpdateMedico = async (id, data) => {
+    const res = await updateMedico(id, data);
+    if (res.success) {
+      reloadData();
+    } else alert("Erro: " + res.error);
+  };
+
+  const handleDeleteMedico = async (id) => {
+    const res = await deleteMedico(id);
+    if (res.success) {
+      reloadData();
+    } else alert("Erro: " + res.error);
+  };
+
+  const handleSaveUbs = async (e) => {
+    if (e) e.preventDefault();
+    const res = await createUbs(formUbs);
+    if (res.success) {
+      setFormUbs({ nome: "", cnes: "" });
+      reloadData();
+    } else alert("Erro: " + res.error);
+  };
+
+  const handleUpdateUbs = async (id, data) => {
+    const res = await updateUbs(id, data);
+    if (res.success) {
+      reloadData();
+    } else alert("Erro: " + res.error);
+  };
+
+  const handleDeleteUbs = async (id) => {
+    const res = await deleteUbs(id);
+    if (res.success) {
+      reloadData();
+    } else alert("Erro: " + res.error);
+  };
+
+  const handleSaveProcedimento = async (e) => {
+    if (e) e.preventDefault();
+    const res = await createProcedimento(formProcedimento);
+    if (res.success) {
+      setFormProcedimento({ nome: "", valor: "", tipoExameId: "" });
+      reloadData();
+    } else alert("Erro: " + res.error);
+  };
+
+  const handleUpdateProcedimento = async (id, data) => {
+    const res = await updateProcedimento(id, data);
+    if (res.success) {
+      reloadData();
+    } else alert("Erro: " + res.error);
+  };
+
+  // ⚠️ FIX: Função para abrir o modal somente sob comando direto
+  const handleOpenDefineTetoModal = (tipoCota, valorAtual) => {
+    setEditCotaModal({ open: true, tipoCota, valor: valorAtual || "" });
+  };
+
+  const handleSaveTetoCota = async (e) => {
+    if (e) e.preventDefault();
+    if (!editCotaModal) return;
+
+    const res = await saveCotaFinanceira({
+      tipoCota: editCotaModal.tipoCota,
+      mes: finMonth,
+      ano: finYear,
+      valorTeto: editCotaModal.valor,
+    });
+    if (res.success) {
+      setEditCotaModal(null);
+      reloadData();
+    } else alert("Erro: " + res.error);
+  };
+
+  const calculateMonthQuotaDetails = (quotaType, year, monthValue) => {
+    const record = cotasFinanceiras.find(
+      (c) =>
+        c.tipoCota === quotaType && c.mes === monthValue && c.ano === year
+    );
+    const totalLimit = record ? record.valorTeto : 0;
+    const totalUsed = requests
+      .filter(
+        (r) =>
+          r.status === "Liberado" &&
+          r.quota === quotaType &&
+          r.quotaCompetenceMonth === monthValue &&
+          r.quotaCompetenceYear === year
+      )
+      .reduce((sum, r) => sum + (r.estimatedCost || 0), 0);
+    return { totalLimit, totalUsed, available: totalLimit - totalUsed };
+  };
+
+  const handleUpdateBillingDate = async (id, newDate) => {
+    setRequests((prev) =>
+      prev.map((req) => (req.id === id ? { ...req, billingDate: newDate } : req))
+    );
+    await updateBillingDate(id, newDate);
+  };
+
+  const handlePatientSearchChange = async (e) => {
+    const value = e.target.value;
+    isSelectedRef.current = false;
+    setNewRequest((prev) => ({ ...prev, patientSearch: value }));
+    if (value.trim().length >= 2) {
+      setIsSearchingPatient(true);
+      const suggestions = await searchPessoasAutocomplete(value);
+      setPatientSuggestions(suggestions || []);
+      if (!isSelectedRef.current) setShowSuggestions(true);
+      setIsSearchingPatient(false);
+    } else {
+      setPatientSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectPatientSuggestion = (pessoa) => {
+    isSelectedRef.current = true;
+    setShowSuggestions(false);
+    setPatientSuggestions([]);
+    setNewRequest((prev) => ({
+      ...prev,
+      patientSearch: pessoa.nomeCompleto,
+      patientName: pessoa.nomeCompleto,
+      motherName: pessoa.nomeMae || "",
+      cpf: pessoa.cpf,
+      susCard: "",
+    }));
+  };
+
+  const handleInputFocus = () => {
+    if (isSelectedRef.current) return;
+    if (newRequest.patientSearch.length >= 2 && patientSuggestions.length > 0)
+      setShowSuggestions(true);
+  };
+
+  const handleSearchPatientManual = async () => {
+    if (!newRequest.patientSearch) return;
+    const pessoa = await searchPessoa(newRequest.patientSearch.trim());
+    if (pessoa) {
+      isSelectedRef.current = true;
+      setNewRequest((prev) => ({
+        ...prev,
+        patientName: pessoa.nomeCompleto,
+        motherName: pessoa.nomeMae,
+        cpf: pessoa.cpf,
+        susCard: "",
+      }));
+      setPatientSuggestions([]);
+      setShowSuggestions(false);
+    } else alert("Pessoa não encontrada.");
+  };
+
+  const handleExamTypeChange = (e) => {
+    const selectedTypeId = e.target.value;
+    setNewRequest((prev) => ({
+      ...prev,
+      examTypeId: selectedTypeId,
+      procedureId: "",
+      procedureName: "",
+      estimatedCost: 0,
+    }));
+  };
+
+  const handleProcedureChange = (e) => {
+    const selectedProcId = Number(e.target.value);
+    const foundProc = auxData.procedimentos.find(
+      (p) => p.id === selectedProcId
+    );
+    if (foundProc) {
+      setNewRequest((prev) => ({
+        ...prev,
+        procedureId: foundProc.id,
+        procedureName: foundProc.nome,
+        estimatedCost: foundProc.valor,
+      }));
+    } else
+      setNewRequest((prev) => ({
+        ...prev,
+        procedureId: "",
+        procedureName: "",
+        estimatedCost: 0,
+      }));
+  };
+
+  const handleCreateRequest = async (e) => {
+    if (e) e.preventDefault();
+    if (
+      !newRequest.patientName ||
+      !newRequest.examTypeId ||
+      !newRequest.procedureId
+    )
+      return alert("Preencha os campos obrigatórios.");
+    const res = await createPedidoExame(newRequest);
+    if (res.success) {
+      reloadData();
+      setActiveTab("LISTA_ESPERA");
+      setNewRequest({
+        patientSearch: "",
+        patientName: "",
+        motherName: "",
+        cpf: "",
+        susCard: "",
+        examTypeId: "",
+        procedureId: "",
+        procedureName: "",
+        estimatedCost: 0,
+        competence: `${new Date().toISOString().slice(5, 7)}/${new Date().getFullYear()}`,
+        requestDate: new Date().toISOString().split("T")[0],
+        classification: "Verde",
+        medicoSolicitanteId: "",
+        ubsResponsavelId: "",
+        justification: "",
+      });
+    } else alert("Erro ao registrar.");
+  };
+
+  const handleUpdateCommunicationDate = async (id, newDate) => {
+    setRequests((prev) =>
+      prev.map((req) =>
+        req.id === id ? { ...req, communicationDate: newDate } : req
+      )
+    );
+    await updateCommunicationDate(id, newDate);
+  };
+
+  return {
+    loading,
+    auxData,
+    requests,
+    cotasFinanceiras,
+    selectedQueueExam,
+    setSelectedQueueExam,
+    selectedReleasedExam,
+    setSelectedReleasedExam,
+    selectedIds,
+    setSelectedIds,
+    selectedReleasedIds,
+    setSelectedReleasedIds,
+    editingItem,
+    setEditingItem,
+    releasingItem,
+    setReleasingItem,
+    regulationForm,
+    setRegulationForm,
+    newRequest,
+    setNewRequest,
+    formPessoa,
+    setFormPessoa,
+    formMedico,
+    setFormMedico,
+    formUbs,
+    setFormUbs,
+    formProcedimento,
+    setFormProcedimento,
+    patientSuggestions,
+    showSuggestions,
+    isSearchingPatient,
+    autocompleteRef,
+    finMonth,
+    setFinMonth,
+    finYear,
+    setFinYear,
+    editCotaModal,
+    setEditCotaModal,
+    showQuotaModal,
+    setShowQuotaModal,
+    quotaModalType,
+    setQuotaModalType,
+    quotaModalYear,
+    setQuotaModalYear,
+    cadSubTab,
+    setCadSubTab,
+    handleDeleteOrder,
+    handleDeleteSelectedOrders,
+    handleEditOrder,
+    handleEditStatusChange,
+    handleSaveEditedOrder,
+    handleOpenReleaseModal,
+    handleReleaseDateChange,
+    handleSelectQuotaType,
+    handleSelectMonthFromModal,
+    handleConfirmRelease,
+    handleSavePessoa,
+    handleUpdatePessoa,
+    handleDeletePessoa,
+    handleSaveMedico,
+    handleUpdateMedico,
+    handleDeleteMedico,
+    handleSaveUbs,
+    handleUpdateUbs,
+    handleDeleteUbs,
+    handleSaveProcedimento,
+    handleUpdateProcedimento,
+    handleOpenDefineTetoModal,
+    handleSaveTetoCota,
+    calculateMonthQuotaDetails,
+    handleUpdateBillingDate,
+    handlePatientSearchChange,
+    handleSelectPatientSuggestion,
+    handleInputFocus,
+    handleSearchPatientManual,
+    handleExamTypeChange,
+    handleProcedureChange,
+    handleCreateRequest,
+    handleUpdateCommunicationDate,
+  };
+}

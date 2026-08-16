@@ -1,0 +1,268 @@
+/* CARD PRINCIPAL CONTAINER DA TELA */
+.card {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 1rem;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+.patientFormContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* BLOCOS DAS SEÇÕES COM FUNDO CINZA */
+.formSection {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+}
+
+.formSectionHeader {
+  border-bottom: 1px solid #cbd5e1;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.formSectionHeader h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* ESTRUTURA DE GRID DE 12 COLUNAS */
+.formGridStrict {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.fieldGroup label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.fieldGroup input,
+.fieldGroup select,
+.fieldGroup textarea {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  color: #0f172a;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.fieldGroup input:focus,
+.fieldGroup select:focus,
+.fieldGroup textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* ESTILO PARA CAMPOS BLOQUEADOS / SOMENTE LEITURA */
+.fieldGroup input:disabled,
+.fieldGroup select:disabled,
+.fieldGroup textarea:disabled {
+  background-color: #e2e8f0 !important; /* Fundo cinza de destaque */
+  color: #475569 !important;            /* Texto legível em tom escuro */
+  border-color: #cbd5e1 !important;        /* Borda suave */
+  cursor: not-allowed;                     /* Indicador de bloqueio */
+  font-weight: 500;
+}
+
+/* MAPEAMENTO DE COLUNAS DA GRID */
+.colName { grid-column: span 6; }
+.colCpf { grid-column: span 3; }
+.colMother { grid-column: span 3; }
+.colSus { grid-column: span 3; }
+.colProcedure { grid-column: span 6; }
+.colStatus { grid-column: span 3; }
+.colRisk { grid-column: span 3; }
+.colDoctor { grid-column: span 3; }
+.colUbs { grid-column: span 3; }
+.fullWidth { grid-column: span 12; }
+
+/* BOTÕES DE AÇÃO */
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.updateBtn,
+.secondaryBtn {
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.updateBtn {
+  background-color: #16a34a;
+  color: #ffffff;
+}
+
+.updateBtn:hover {
+  background-color: #15803d;
+}
+
+.secondaryBtn {
+  background-color: #ffffff;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
+.secondaryBtn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+/* ESTILOS DO MODAL ELEGANTE DE SUCESSO */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modalCard {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 2rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modalIconWrapper {
+  width: 64px;
+  height: 64px;
+  background-color: #dcfce7;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.modalIcon {
+  font-size: 2rem;
+  color: #16a34a;
+  font-weight: bold;
+}
+
+.modalTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.5rem 0;
+}
+
+.modalDescription {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0 0 1.5rem 0;
+  line-height: 1.5;
+}
+
+.modalConfirmBtn {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #16a34a;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.modalConfirmBtn:hover {
+  background-color: #15803d;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* RESPONSIVIDADE PARA DISPOSITIVOS MÓVEIS */
+@media (max-width: 1024px) {
+  .colName, .colProcedure { grid-column: span 12; }
+  .colCpf, .colMother, .colSus, .colStatus, .colRisk, .colDoctor, .colUbs { grid-column: span 6; }
+}
+
+@media (max-width: 640px) {
+  .formGridStrict > div { grid-column: span 12 !important; }
+}

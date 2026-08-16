@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import styles from './FiltersBar.module.css';
 
 export default function FiltersBar({
@@ -8,61 +9,127 @@ export default function FiltersBar({
   clearFilters,
   showAdvancedFilters,
   setShowAdvancedFilters,
-  allProceduresList
+  allProceduresList = []
 }) {
+  // Estado local para armazenar os filtros temporariamente antes de clicar em "Filtrar"
+  const [draftFilters, setDraftFilters] = useState({ ...filters });
+
+  // Sincroniza o rascunho se os filtros externos forem limpos/resetados
+  useEffect(() => {
+    setDraftFilters({ ...filters });
+  }, [filters]);
+
+  const handleDraftChange = (field, value) => {
+    setDraftFilters((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // Aplica todos os filtros de uma vez ao clicar em "Filtrar"
+  const handleApplyFilters = () => {
+    Object.keys(draftFilters).forEach((key) => {
+      handleFilterChange(key, draftFilters[key]);
+    });
+  };
+
+  const handleClear = () => {
+    clearFilters();
+    setDraftFilters({});
+  };
+
   return (
     <div className={styles.filterCard}>
+      {/* BARRA SUPERIOR DE BUSCA E AÇÕES */}
       <div className={styles.filterBarTop}>
         <div className={styles.mainSearchBox}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input 
-            type="text" 
-            placeholder="Buscar por paciente, mãe, CPF ou Cartão SUS..." 
-            value={filters.search} 
-            onChange={(e) => handleFilterChange('search', e.target.value)} 
+          <div className={styles.lupaIconContainer}>
+            <img
+              src="/img/icon/lupa.png"
+              alt="Buscar"
+              className={styles.searchIconImg}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </div>
+          <input
+            type="text"
+            placeholder="Buscar por paciente, mãe, CPF ou Cartão SUS..."
+            value={draftFilters.search || draftFilters.searchName || ''}
+            onChange={(e) => {
+              handleDraftChange('search', e.target.value);
+              handleDraftChange('searchName', e.target.value);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleApplyFilters();
+              }
+            }}
           />
         </div>
 
         <div className={styles.filterActionsTop}>
-          <button 
+          <button
             type="button"
-            className={styles.toggleFilterBtn} 
+            className={`${styles.toggleFilterBtn} ${
+              showAdvancedFilters ? styles.activeToggle : ''
+            }`}
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
           >
-            🔍 {showAdvancedFilters ? 'Ocultar Filtros Avançados' : 'Filtros Avançados'}
+            {showAdvancedFilters ? 'Ocultar Filtros' : 'Filtros Avançados'}
           </button>
-          
-          <button 
+
+          <button
             type="button"
-            className={styles.clearFilterBtn} 
-            onClick={clearFilters}
+            className={styles.applyFilterBtnHeader}
+            onClick={handleApplyFilters}
+          >
+            Filtrar
+          </button>
+
+          <button
+            type="button"
+            className={styles.clearFilterBtn}
+            onClick={handleClear}
           >
             Limpar
           </button>
         </div>
       </div>
 
+      {/* PAINEL EXPANSÍVEL DE FILTROS AVANÇADOS */}
       {showAdvancedFilters && (
         <div className={styles.advancedFiltersWrapper}>
           <div className={styles.filterSection}>
             <span className={styles.sectionTitle}>Filtros Gerais</span>
-            <div className={styles.filterRow}>
+            <div className={styles.filterGrid}>
               <div className={styles.fieldItem}>
                 <label>Procedimento</label>
-                <select value={filters.procedure} onChange={(e) => handleFilterChange('procedure', e.target.value)}>
-                  <option value="">Todos</option>
+                <select
+                  value={draftFilters.procedure || draftFilters.searchProcedure || ''}
+                  onChange={(e) => {
+                    handleDraftChange('procedure', e.target.value);
+                    handleDraftChange('searchProcedure', e.target.value);
+                  }}
+                >
+                  <option value="">Todos os procedimentos</option>
                   {allProceduresList.map((p, idx) => (
-                    <option key={idx} value={p}>{p}</option>
+                    <option key={idx} value={p}>
+                      {p}
+                    </option>
                   ))}
                 </select>
               </div>
 
               <div className={styles.fieldItem}>
                 <label>Classificação de Risco</label>
-                <select value={filters.classification} onChange={(e) => handleFilterChange('classification', e.target.value)}>
+                <select
+                  value={draftFilters.classification || ''}
+                  onChange={(e) =>
+                    handleDraftChange('classification', e.target.value)
+                  }
+                >
                   <option value="">Todas</option>
                   <option value="Verde">Verde (Eletivo)</option>
                   <option value="Amarelo">Amarelo (Prioritário)</option>
@@ -72,17 +139,26 @@ export default function FiltersBar({
 
               <div className={styles.fieldItem}>
                 <label>Tipo de Cota</label>
-                <select value={filters.quotaType} onChange={(e) => handleFilterChange('quotaType', e.target.value)}>
+                <select
+                  value={draftFilters.quotaType || ''}
+                  onChange={(e) => handleDraftChange('quotaType', e.target.value)}
+                >
                   <option value="">Todas</option>
                   <option value="SUS">SUS</option>
                   <option value="OCI">OCI</option>
+                  <option value="PPI">PPI</option>
                   <option value="Credenciamento">Credenciamento</option>
                 </select>
               </div>
 
               <div className={styles.fieldItem}>
                 <label>Status da Comunicação</label>
-                <select value={filters.communicationStatus} onChange={(e) => handleFilterChange('communicationStatus', e.target.value)}>
+                <select
+                  value={draftFilters.communicationStatus || ''}
+                  onChange={(e) =>
+                    handleDraftChange('communicationStatus', e.target.value)
+                  }
+                >
                   <option value="">Todos</option>
                   <option value="FILLED">Comunicação Preenchida</option>
                   <option value="EMPTY">Comunicação Não Preenchida</option>
@@ -93,43 +169,104 @@ export default function FiltersBar({
 
           <div className={styles.filterSection}>
             <span className={styles.sectionTitle}>Filtros por Período / Datas</span>
-            <div className={styles.filterRow}>
+            <div className={styles.filterGridDates}>
               <div className={styles.fieldItem}>
                 <label>Data de Entrada</label>
                 <div className={styles.dateRangeBox}>
-                  <input type="date" value={filters.entryDateStart} onChange={(e) => handleFilterChange('entryDateStart', e.target.value)} />
+                  <input
+                    type="date"
+                    value={draftFilters.entryDateStart || draftFilters.startDate || ''}
+                    onChange={(e) => {
+                      handleDraftChange('entryDateStart', e.target.value);
+                      handleDraftChange('startDate', e.target.value);
+                    }}
+                  />
                   <span>até</span>
-                  <input type="date" value={filters.entryDateEnd} onChange={(e) => handleFilterChange('entryDateEnd', e.target.value)} />
+                  <input
+                    type="date"
+                    value={draftFilters.entryDateEnd || draftFilters.endDate || ''}
+                    onChange={(e) => {
+                      handleDraftChange('entryDateEnd', e.target.value);
+                      handleDraftChange('endDate', e.target.value);
+                    }}
+                  />
                 </div>
               </div>
 
               <div className={styles.fieldItem}>
                 <label>Data de Comunicação</label>
                 <div className={styles.dateRangeBox}>
-                  <input type="date" value={filters.communicationDateStart} onChange={(e) => handleFilterChange('communicationDateStart', e.target.value)} />
+                  <input
+                    type="date"
+                    value={draftFilters.communicationDateStart || ''}
+                    onChange={(e) =>
+                      handleDraftChange('communicationDateStart', e.target.value)
+                    }
+                  />
                   <span>até</span>
-                  <input type="date" value={filters.communicationDateEnd} onChange={(e) => handleFilterChange('communicationDateEnd', e.target.value)} />
+                  <input
+                    type="date"
+                    value={draftFilters.communicationDateEnd || ''}
+                    onChange={(e) =>
+                      handleDraftChange('communicationDateEnd', e.target.value)
+                    }
+                  />
                 </div>
               </div>
 
               <div className={styles.fieldItem}>
                 <label>Data de Liberação</label>
                 <div className={styles.dateRangeBox}>
-                  <input type="date" value={filters.releaseDateStart} onChange={(e) => handleFilterChange('releaseDateStart', e.target.value)} />
+                  <input
+                    type="date"
+                    value={draftFilters.releaseDateStart || ''}
+                    onChange={(e) =>
+                      handleDraftChange('releaseDateStart', e.target.value)
+                    }
+                  />
                   <span>até</span>
-                  <input type="date" value={filters.releaseDateEnd} onChange={(e) => handleFilterChange('releaseDateEnd', e.target.value)} />
+                  <input
+                    type="date"
+                    value={draftFilters.releaseDateEnd || ''}
+                    onChange={(e) =>
+                      handleDraftChange('releaseDateEnd', e.target.value)
+                    }
+                  />
                 </div>
               </div>
 
               <div className={styles.fieldItem}>
                 <label>Data Faturado</label>
                 <div className={styles.dateRangeBox}>
-                  <input type="date" value={filters.billingDateStart} onChange={(e) => handleFilterChange('billingDateStart', e.target.value)} />
+                  <input
+                    type="date"
+                    value={draftFilters.billingDateStart || ''}
+                    onChange={(e) =>
+                      handleDraftChange('billingDateStart', e.target.value)
+                    }
+                  />
                   <span>até</span>
-                  <input type="date" value={filters.billingDateEnd} onChange={(e) => handleFilterChange('billingDateEnd', e.target.value)} />
+                  <input
+                    type="date"
+                    value={draftFilters.billingDateEnd || ''}
+                    onChange={(e) =>
+                      handleDraftChange('billingDateEnd', e.target.value)
+                    }
+                  />
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* BOTÃO FILTRAR SEM ÍCONE NO RODAPÉ */}
+          <div className={styles.bottomFilterActions}>
+            <button
+              type="button"
+              className={styles.applyFilterBtn}
+              onClick={handleApplyFilters}
+            >
+              Filtrar
+            </button>
           </div>
         </div>
       )}
