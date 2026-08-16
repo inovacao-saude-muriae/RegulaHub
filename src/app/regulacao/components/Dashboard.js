@@ -65,67 +65,105 @@ export default function TabDashboard({ requests = [], auxData = {}, setActiveTab
           className={styles.newRequestBtn}
           onClick={() => setActiveTab("NOVO_PEDIDO")}
         >
-          Novo Pedido
+          + Novo Pedido
         </button>
       </div>
 
-      {/* MÉTROCAS PRINCIPAIS */}
+      {/* MÉTRICAS PRINCIPAIS (IGUAL AO PADRÃO FARMÁCIA) */}
       <div className={styles.metricsGrid}>
+        {/* CARD 1: FILA DE ESPERA */}
         <div
-          className={`${styles.metricCard} ${styles.clickable}`}
+          className={`${styles.kpiCard} ${styles.clickable}`}
           onClick={() => setActiveTab("LISTA_ESPERA")}
         >
-          <div className={styles.metricIconBox} style={{ backgroundColor: "#fef3c7", color: "#d97706" }}>
-            ⏳
+          <div className={styles.kpiHeader}>
+            <span className={styles.kpiTitle}>Fila de Espera</span>
+            <div className={`${styles.iconBox} ${styles.yellowIcon}`}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
           </div>
-          <div>
-            <span className={styles.metricLabel}>Fila de Espera</span>
-            <div className={styles.metricValue}>{totalAguardando}</div>
-            <small className={styles.metricSubText}>Pacientes aguardando</small>
+          <div className={styles.kpiValue}>
+            {totalAguardando}
+            <span className={styles.kpiUnit}>pacientes</span>
+          </div>
+          <div className={styles.kpiFooter}>
+            <span>Aguardando regulação na fila</span>
           </div>
         </div>
 
+        {/* CARD 2: EXAMES LIBERADOS */}
         <div
-          className={`${styles.metricCard} ${styles.clickable}`}
+          className={`${styles.kpiCard} ${styles.clickable}`}
           onClick={() => setActiveTab("LIBERADOS")}
         >
-          <div className={styles.metricIconBox} style={{ backgroundColor: "#dcfce7", color: "#16a34a" }}>
-            ✅
+          <div className={styles.kpiHeader}>
+            <span className={styles.kpiTitle}>Exames Liberados</span>
+            <div className={`${styles.iconBox} ${styles.greenIcon}`}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            </div>
           </div>
-          <div>
-            <span className={styles.metricLabel}>Exames Liberados</span>
-            <div className={styles.metricValue}>{totalLiberados}</div>
-            <small className={styles.metricSubText}>Procedimentos concluídos</small>
+          <div className={styles.kpiValue}>
+            {totalLiberados}
+            <span className={styles.kpiUnit}>procedimentos</span>
           </div>
-        </div>
-
-        <div className={styles.metricCard}>
-          <div className={styles.metricIconBox} style={{ backgroundColor: "#fee2e2", color: "#dc2626" }}>
-            🚨
-          </div>
-          <div>
-            <span className={styles.metricLabel}>Urgências na Fila</span>
-            <div className={styles.metricValue}>{urgentes}</div>
-            <small className={styles.metricSubText}>Classificação Vermelha</small>
+          <div className={styles.kpiFooter}>
+            <span>Autorizados e concluídos</span>
           </div>
         </div>
 
-        <div className={styles.metricCard}>
-          <div className={styles.metricIconBox} style={{ backgroundColor: "#e0e7ff", color: "#4f46e5" }}>
-            📋
+        {/* CARD 3: URGÊNCIAS NA FILA */}
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiHeader}>
+            <span className={styles.kpiTitle}>Urgências na Fila</span>
+            <div className={`${styles.iconBox} ${styles.redIcon}`}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
           </div>
-          <div>
-            <span className={styles.metricLabel}>Total Registrado</span>
-            <div className={styles.metricValue}>{totalGeral}</div>
-            <small className={styles.metricSubText}>Solicitações no sistema</small>
+          <div className={styles.kpiValue}>
+            {urgentes}
+            <span className={styles.kpiUnit}>casos graves</span>
+          </div>
+          <div className={styles.kpiFooter}>
+            <span>Classificação Vermelho (Urgente)</span>
+          </div>
+        </div>
+
+        {/* CARD 4: TOTAL REGISTRADO */}
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiHeader}>
+            <span className={styles.kpiTitle}>Total Registrado</span>
+            <div className={`${styles.iconBox} ${styles.indigoIcon}`}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
+          </div>
+          <div className={styles.kpiValue}>
+            {totalGeral}
+            <span className={styles.kpiUnit}>solicitações</span>
+          </div>
+          <div className={styles.kpiFooter}>
+            <span>Histórico geral do sistema</span>
           </div>
         </div>
       </div>
 
       {/* SEÇÃO 1: PAINEL DA FILA DE ESPERA */}
-      <h3 style={{ marginTop: "24px", marginBottom: "12px", color: "#1e293b", fontSize: "1.1rem" }}>
-        📊 Fila de Espera
-      </h3>
+      <h3 className={styles.sectionHeaderTitle}>Fila de Espera</h3>
       <div className={styles.dashboardGrid}>
         {/* CARD: FILA POR CLASSIFICAÇÃO DE RISCO */}
         <div className={styles.dashCard}>
@@ -196,9 +234,7 @@ export default function TabDashboard({ requests = [], auxData = {}, setActiveTab
       </div>
 
       {/* SEÇÃO 2: PAINEL DE PACIENTES LIBERADOS */}
-      <h3 style={{ marginTop: "32px", marginBottom: "12px", color: "#1e293b", fontSize: "1.1rem" }}>
-        ✅ Pacientes Liberados
-      </h3>
+      <h3 className={styles.sectionHeaderTitle}>Pacientes Liberados</h3>
       <div className={styles.dashboardGrid}>
         {/* CARD: LIBERADOS POR CLASSIFICAÇÃO DE RISCO */}
         <div className={styles.dashCard}>
@@ -261,7 +297,7 @@ export default function TabDashboard({ requests = [], auxData = {}, setActiveTab
             {examTypeCountsLiberados.map((item) => (
               <div key={item.nome} className={styles.examTypeRow}>
                 <span>{item.nome}</span>
-                <span className={styles.examCountBadge} style={{ backgroundColor: "#dcfce7", color: "#15803d" }}>
+                <span className={styles.examCountBadgeSuccess}>
                   {item.count}
                 </span>
               </div>

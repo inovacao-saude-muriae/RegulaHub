@@ -1,56 +1,56 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 
-// Custom Hooks
 import { useRegulacaoData } from "./hooks/useRegulacaoData";
 import { useRegulacaoFilters } from "./hooks/useRegulacaoFilters";
 
-// Componentes
 import FiltersBar from "./components/FiltersBar";
-import TabDashboard from "./components/Dashboard"; // Módulo do Dashboard
+import TabDashboard from "./components/Dashboard";
 import TabNovoPedido from "./components/TabNovoPedido";
 import TabListaEspera from "./components/TabListaEspera";
 import TabLiberados from "./components/TabLiberados";
 import TabFinanceiro from "./components/TabFinanceiro";
-import TabCadastros from "./components/TabCadastros";
 import TelaLiberarPedido from "./components/LiberarPedido";
 import TelaEditarPedido from "./components/EditarPedido";
 
-// Modais
+// 🎯 COMPONENTES DE CADASTRO DEDICADOS
+import TabCadastroPacientes from "./components/CadastroPacientes";
+import TabCadastroMedicos from "./components/CadastroMedicos";
+import TabCadastroUbs from "./components/CadastroUbs";
+import TabCadastroProcedimentos from "./components/CadastroProcedimentos";
+
 import ModalTetoFinanceiro from "./components/Modals/ModalTetoFinanceiro";
 import ModalSeletorCotas from "./components/Modals/ModalSeletorCotas";
 
 import styles from "./page.module.css";
 
 export default function RegulacaoPage() {
-  // 1. Persiste a aba ativa no sessionStorage para que no F5 não volte obrigatoriamente pro DASHBOARD
-  const [activeTab, setActiveTab] = useState(() => {
-    if (typeof window !== "undefined") {
-      return sessionStorage.getItem("activeTab") || "DASHBOARD";
-    }
-    return "DASHBOARD";
-  });
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("activeTab", activeTab);
-    }
-  }, [activeTab]);
+  const activeTab = searchParams.get("tab") || "DASHBOARD";
+  const activeSubTab = searchParams.get("subTab") || "PESSOAS";
 
-  const data = useRegulacaoData(setActiveTab);
+  const handleSetActiveTab = (tab, subTab) => {
+    if (subTab) {
+      router.push(`/regulacao?tab=${tab}&subTab=${subTab}`);
+    } else {
+      router.push(`/regulacao?tab=${tab}`);
+    }
+  };
+
+  const data = useRegulacaoData((tab) => handleSetActiveTab(tab));
   const { filters, handleFilterChange, clearFilters, applyFilters } = useRegulacaoFilters();
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  // Procedimentos disponíveis para o formulário de NOVO PEDIDO
   const availableProcedures = data.auxData.procedimentos.filter(
     (p) => String(p.tipoExameId) === String(data.newRequest.examTypeId)
   );
 
-  // ── LÓGICA DE CORREÇÃO DO FILTRO DE PROCEDIMENTOS ──
-  // Identifica o nome do exame ativo baseado na aba que o usuário está visualizando
   const activeExamName =
     activeTab === "LISTA_ESPERA"
       ? data.selectedQueueExam
@@ -58,71 +58,28 @@ export default function RegulacaoPage() {
       ? data.selectedReleasedExam
       : "";
 
-  // Busca o objeto do tipo de exame correspondente ao botão ativo (Tomografia, Ressonância, etc)
   const activeExamObj = data.auxData.tiposExame.find(
     (t) =>
       t.nome?.toLowerCase() === activeExamName?.toLowerCase() ||
       String(t.id) === String(activeExamName)
   );
 
-  // Filtra a lista enviada ao FiltersBar para conter APENAS procedimentos do exame da aba ativa
   const allProceduresList = data.auxData.procedimentos
     .filter((p) => {
-      if (!activeExamObj) return true; // Se não houver exame selecionado, exibe todos
+      if (!activeExamObj) return true;
       return String(p.tipoExameId) === String(activeExamObj.id);
     })
     .map((p) => p.nome);
 
   return (
     <div className={styles.container}>
-      {/* CABEÇALHO */}
       <header className={styles.header}>
         <div>
           <h1>Módulo de Regulação de Exames</h1>
           <p>Gerenciamento de solicitações, filas, liberações e custos</p>
         </div>
-
-        <div className={styles.tabNav}>
-          <button
-            className={`${styles.tabBtn} ${activeTab === "DASHBOARD" ? styles.activeTab : ""}`}
-            onClick={() => setActiveTab("DASHBOARD")}
-          >
-            📊 Dashboard
-          </button>
-          <button
-            className={`${styles.tabBtn} ${activeTab === "NOVO_PEDIDO" ? styles.activeTab : ""}`}
-            onClick={() => setActiveTab("NOVO_PEDIDO")}
-          >
-            Novo Pedido
-          </button>
-          <button
-            className={`${styles.tabBtn} ${activeTab === "LISTA_ESPERA" ? styles.activeTab : ""}`}
-            onClick={() => setActiveTab("LISTA_ESPERA")}
-          >
-            Lista de Espera
-          </button>
-          <button
-            className={`${styles.tabBtn} ${activeTab === "LIBERADOS" ? styles.activeTab : ""}`}
-            onClick={() => setActiveTab("LIBERADOS")}
-          >
-            Liberados
-          </button>
-          <button
-            className={`${styles.tabBtn} ${activeTab === "FINANCEIRO" ? styles.activeTab : ""}`}
-            onClick={() => setActiveTab("FINANCEIRO")}
-          >
-            💰 Financeiro
-          </button>
-          <button
-            className={`${styles.tabBtn} ${activeTab === "CADASTROS" ? styles.activeTab : ""}`}
-            onClick={() => setActiveTab("CADASTROS")}
-          >
-            ⚙ Cadastros
-          </button>
-        </div>
       </header>
 
-      {/* FILTROS AVANÇADOS */}
       {(activeTab === "LISTA_ESPERA" || activeTab === "LIBERADOS") && (
         <FiltersBar
           filters={filters}
@@ -134,12 +91,11 @@ export default function RegulacaoPage() {
         />
       )}
 
-      {/* RENDERIZAÇÃO DAS ABAS */}
       {activeTab === "DASHBOARD" && (
         <TabDashboard
           requests={data.requests}
           auxData={data.auxData}
-          setActiveTab={setActiveTab}
+          setActiveTab={(tab) => handleSetActiveTab(tab)}
         />
       )}
 
@@ -178,7 +134,6 @@ export default function RegulacaoPage() {
         />
       )}
 
-      {/* TELA CHEIA: EDIÇÃO DE PEDIDO */}
       {activeTab === "EDITAR_PEDIDO" && (
         <TelaEditarPedido
           editingItem={data.editingItem}
@@ -188,13 +143,12 @@ export default function RegulacaoPage() {
           handleSaveEditedOrder={data.handleSaveEditedOrder}
           onBack={() => {
             data.setEditingItem(null);
-            setActiveTab("LISTA_ESPERA");
+            handleSetActiveTab("LISTA_ESPERA");
           }}
           styles={styles}
         />
       )}
 
-      {/* TELA CHEIA: LIBERAÇÃO DE PACIENTE */}
       {activeTab === "LIBERAR_PEDIDO" && (
         <TelaLiberarPedido
           releasingItem={data.releasingItem}
@@ -206,7 +160,7 @@ export default function RegulacaoPage() {
           handleConfirmRelease={data.handleConfirmRelease}
           onBack={() => {
             data.setReleasingItem(null);
-            setActiveTab("LISTA_ESPERA");
+            handleSetActiveTab("LISTA_ESPERA");
           }}
           showQuotaModal={data.showQuotaModal}
           setShowQuotaModal={data.setShowQuotaModal}
@@ -274,16 +228,36 @@ export default function RegulacaoPage() {
         />
       )}
 
-      {activeTab === "CADASTROS" && (
-        <TabCadastros
-          cadSubTab={data.cadSubTab}
-          setCadSubTab={data.setCadSubTab}
+      {/* 🎯 CADASTROS CONTROLADOS PELA SUB-TAB VINDA DA URL */}
+      {activeTab === "CADASTROS" && activeSubTab === "PESSOAS" && (
+        <TabCadastroPacientes
           formPessoa={data.formPessoa}
           setFormPessoa={data.setFormPessoa}
+          auxData={data.auxData}
+          reloadData={data.reloadData}
+        />
+      )}
+
+      {activeTab === "CADASTROS" && activeSubTab === "MEDICOS" && (
+        <TabCadastroMedicos
           formMedico={data.formMedico}
           setFormMedico={data.setFormMedico}
+          auxData={data.auxData}
+          reloadData={data.reloadData}
+        />
+      )}
+
+      {activeTab === "CADASTROS" && activeSubTab === "UBS" && (
+        <TabCadastroUbs
           formUbs={data.formUbs}
           setFormUbs={data.setFormUbs}
+          auxData={data.auxData}
+          reloadData={data.reloadData}
+        />
+      )}
+
+      {activeTab === "CADASTROS" && activeSubTab === "PROCEDIMENTOS" && (
+        <TabCadastroProcedimentos
           formProcedimento={data.formProcedimento}
           setFormProcedimento={data.setFormProcedimento}
           auxData={data.auxData}
@@ -291,7 +265,6 @@ export default function RegulacaoPage() {
         />
       )}
 
-      {/* MODAIS */}
       <ModalTetoFinanceiro
         editCotaModal={data.editCotaModal}
         setEditCotaModal={data.setEditCotaModal}

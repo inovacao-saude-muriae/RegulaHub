@@ -1,187 +1,284 @@
-.dashboardContainer {
+.container {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   width: 100%;
 }
 
-.loadingBox {
-  padding: 3rem;
-  text-align: center;
-  color: #64748b;
-  font-weight: 600;
-  font-size: 1rem;
+/* TÍTULOS E SUBTÍTULOS DOS PAINÉIS */
+.cardTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
 }
 
-/* CARDS KPI DE INDICADORES */
+.cardSubtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 1.25rem;
+  display: block;
+}
+
+/* CARREGAMENTO / LOADING */
+.loadingContainer {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 3rem 1.5rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 0.9rem;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* SEÇÃO 1: GRID DE CARDS KPI (PADRÃO EXACTO DOS SEUS CARDS) */
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
 }
 
 .kpiCard {
   background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-
-.kpiIcon {
-  font-size: 2rem;
-  line-height: 1;
-}
-
-.kpiInfo {
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.kpiLabel {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+.kpiCard:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
-.kpiValue {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1.2;
-}
-
-.kpiInfo small {
-  font-size: 0.75rem;
-  color: #94a3b8;
-}
-
-/* ESTILOS DE DESTAQUE DOS CARDS */
-.blueCard { border-left: 4px solid #2563eb; }
-.emeraldCard { border-left: 4px solid #10b981; }
-.greenCard { border-left: 4px solid #059669; }
-.amberCard { border-left: 4px solid #f59e0b; }
-.slateCard { border-left: 4px solid #64748b; }
-
-/* CONTAINER DA TABELA DE MEDICAMENTOS */
-.tableSectionCard {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.tableHeaderBar {
+.kpiHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.75rem;
 }
 
-.tableHeaderBar h3 {
-  margin: 0;
-  font-size: 1.1rem;
+.kpiTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.iconBox {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.blueIcon { background-color: #eff6ff; color: #2563eb; }
+.greenIcon { background-color: #f0fdf4; color: #16a34a; }
+.indigoIcon { background-color: #eef2ff; color: #4f46e5; }
+.slateIcon { background-color: #f8fafc; color: #475569; }
+
+.kpiValue {
+  font-size: 1.75rem;
   font-weight: 700;
   color: #1e293b;
+  line-height: 1.2;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
 }
 
-.tableBadgeCount {
-  background-color: #f1f5f9;
-  color: #475569;
-  padding: 0.35rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.emptyState {
-  padding: 2.5rem;
-  text-align: center;
+.kpiUnit {
+  font-size: 0.825rem;
+  font-weight: 500;
   color: #64748b;
-  background-color: #f8fafc;
-  border-radius: 8px;
-  border: 1px dashed #cbd5e1;
 }
 
-.tableWrapper {
-  overflow-x: auto;
+.kpiFooter {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f1f5f9;
+  font-size: 0.775rem;
+  color: #64748b;
+}
+
+/* SEÇÃO 2: PAINÉIS SECUNDÁRIOS */
+.contentGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.panelCard {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* LISTA DE STATUS */
+.statusList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.statusRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
 }
 
-.medTable {
-  width: 100%;
-  border-collapse: collapse;
+.statusInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
 }
 
-.medTable th {
-  background-color: #f8fafc;
-  padding: 0.85rem 1rem;
-  text-align: left;
-  color: #475569;
+.statusDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.dotActive { background-color: #16a34a; }
+.dotInactive { background-color: #eab308; }
+.dotObito { background-color: #64748b; }
+
+.statusMetrics {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.statusCount {
+  font-size: 0.95rem;
   font-weight: 700;
-  border-bottom: 1px solid #e2e8f0;
-  white-space: nowrap;
-}
-
-.medTable td {
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
   color: #1e293b;
 }
 
-.medTable tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.medTable tbody tr:hover {
-  background-color: #f8fafc;
-}
-
-.medName {
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.medSubText {
-  display: block;
-  font-size: 0.75rem;
-  color: #64748b;
-}
-
-.stockQuantity {
-  font-weight: 700;
-  color: #0f172a;
-}
-
-/* BADGES DE STATUS DE ESTOQUE */
-.statusBadge {
-  display: inline-block;
-  padding: 0.3rem 0.65rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.successBadge {
+.statusBadgeSuccess {
   background-color: #dcfce7;
   color: #15803d;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
 }
 
-.warningBadge {
-  background-color: #fef3c7;
-  color: #b45309;
+.statusBadgeWarning {
+  background-color: #fef9c3;
+  color: #a16207;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
 }
 
-.dangerBadge {
-  background-color: #fee2e2;
-  color: #b91c1c;
+.statusBadgeNeutral {
+  background-color: #f1f5f9;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+}
+
+/* AÇÕES RÁPIDAS DO DASHBOARD */
+.actionsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+.actionBtn {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.85rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.actionBtn:hover {
+  border-color: #2563eb;
+  background-color: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.actionIcon {
+  color: #2563eb;
+  background-color: #eff6ff;
+  padding: 0.45rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.actionText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.actionText strong {
+  font-size: 0.85rem;
+  color: #1e293b;
+}
+
+.actionText span {
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.3;
+}
+
+/* RESPONSIVIDADE */
+@media (max-width: 900px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .actionsGrid {
+    grid-template-columns: 1fr;
+  }
 }

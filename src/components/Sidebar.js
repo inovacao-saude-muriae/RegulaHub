@@ -1,124 +1,297 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
 import styles from './Sidebar.module.css';
 
 const menuSections = [
-    {
-        title: 'Geral',
-        items: [
-            {
-                name: 'Início / Módulos',
-                path: '/',
-                icon: (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                    <polyline points="9 22 9 12 15 12 15 22"/>
-                </svg>
-                )
-            }
-        ]
-    },
-    {
-    title: 'Regulação de Exames',
+  {
+    title: 'Geral',
     items: [
       {
-        name: 'Regulação de Exames',
-        path: '/regulacao',
+        name: 'Início / Módulos',
+        path: '/',
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 2a7 7 0 1 0 10 7"/>
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
           </svg>
         )
       }
     ]
   },
-    {
-        title: 'Câmara Técnica',
-        items: [
-        {
-            name: 'Farmácia Judicial',
-            path: '/camara-tecnica/farmacia-judicial',
-            icon: (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/>
-                <path d="m8.5 8.5 7 7"/>
-            </svg>
-            )
-        },
-        {
-            name: 'Processos',
-            path: '/camara-tecnica/processos',
-            icon: (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-            </svg>
-            )
-        }
+  {
+    title: 'Regulação de Exames',
+    items: [
+      {
+        name: 'Regulação de Exames',
+        path: '/regulacao',
+        isDropdown: true,
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 2a7 7 0 1 0 10 7"/>
+          </svg>
+        ),
+        subItems: [
+          { name: 'Dashboard', tab: 'DASHBOARD' },
+          { name: 'Novo Pedido', tab: 'NOVO_PEDIDO' },
+          { name: 'Lista de Espera', tab: 'LISTA_ESPERA' },
+          { name: 'Liberados', tab: 'LIBERADOS' },
+          { name: 'Financeiro', tab: 'FINANCEIRO' },
+          { 
+            name: 'Cadastros', 
+            tab: 'CADASTROS',
+            isNestedDropdown: true,
+            nestedItems: [
+              { name: 'Pacientes', subTab: 'PESSOAS' },
+              { name: 'Médicos Solicitantes', subTab: 'MEDICOS' },
+              { name: 'Unidades / UBS', subTab: 'UBS' },
+              { name: 'Procedimentos', subTab: 'PROCEDIMENTOS' }
+            ]
+          }
         ]
-    },
-    {
-        title: 'Junta Reguladora',
-        items: [
-        {
-            name: 'Junta Reguladora',
-            path: '/junta-reguladora',
-            icon: (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            )
-        }
+      }
+    ]
+  },
+  {
+    title: 'Câmara Técnica',
+    items: [
+      {
+        name: 'Farmácia Judicial',
+        path: '/camara-tecnica/farmacia-judicial',
+        isDropdown: true,
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+            <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/>
+            <path d="m8.5 8.5 7 7"/>
+          </svg>
+        ),
+        subItems: [
+          { name: 'Dashboard', tab: 'DASHBOARD' },
+          { name: 'Pacientes', tab: 'PACIENTES' },
+          { name: 'Dispensação', tab: 'DISPENSACAO' },
+          { 
+            name: 'Estoque e Lotes', 
+            tab: 'ESTOQUE',
+            isNestedDropdown: true,
+            nestedItems: [
+              { name: 'Saldo do Estoque', subTab: 'SALDO' },
+              { name: 'Registrar Entrada', subTab: 'ENTRADA' },
+              { name: 'Cadastrar Medicamento', subTab: 'CADASTRAR' }
+            ]
+          },
+          { name: 'Relatórios', tab: 'RELATORIOS' }
         ]
-    },
-    {
-        title: 'Vigilância & Zoonoses',
-        items: [
-        {
-            name: 'CCZ - Zoonoses',
-            path: '/ccz',
-            icon: (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-            )
-        }
-        ]
-    }
+      },
+      {
+        name: 'Processos',
+        path: '/camara-tecnica/processos',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+        )
+      }
+    ]
+  },
+  {
+    title: 'Junta Reguladora',
+    items: [
+      {
+        name: 'Junta Reguladora',
+        path: '/junta-reguladora',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        )
+      }
+    ]
+  },
+  {
+    title: 'Vigilância & Zoonoses',
+    items: [
+      {
+        name: 'CCZ - Zoonoses',
+        path: '/ccz',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        )
+      }
+    ]
+  }
 ];
 
 export default function Sidebar() {
-    return (
-        <aside className={styles.sidebar}>
-            <div className={styles.logo}>
-                <div className={styles.logoIcon}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M12 6v12M6 12h12"/>
-                    </svg>
-                </div>
-                <span className={styles.logoText}>RegulaHub</span>
-            </div>
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get('tab') || 'DASHBOARD';
+  const currentSubTab = searchParams.get('subTab') || 'PESSOAS';
 
-            <nav className={styles.nav}>
-                {menuSections.map((section, idx) => (
-                <div key={idx} className={styles.sectionGroup}>
-                    <span className={styles.sectionTitle}>{section.title}</span>
-                    <ul className={styles.navList}>
-                        {section.items.map((item) => (
-                            <li key={item.path}>
-                            <Link href={item.path} className={styles.navLink}>
-                                <span className={styles.icon}>{item.icon}</span>
-                                <span className={styles.label}>{item.name}</span>
-                            </Link>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-                ))}
-            </nav>
-        </aside>
-    );
+  const [openRegulacao, setOpenRegulacao] = useState(false);
+  const [openFarmacia, setOpenFarmacia] = useState(false);
+  const [openNestedMenu, setOpenNestedMenu] = useState(false);
+
+  // Reseta todos os dropdowns quando o mouse sai da Sidebar
+  const handleMouseLeaveSidebar = () => {
+    setOpenRegulacao(false);
+    setOpenFarmacia(false);
+    setOpenNestedMenu(false);
+  };
+
+  return (
+    <aside className={styles.sidebar} onMouseLeave={handleMouseLeaveSidebar}>
+      <div className={styles.logo}>
+        <div className={styles.logoIcon}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M12 6v12M6 12h12"/>
+          </svg>
+        </div>
+        <span className={styles.logoText}>RegulaHub</span>
+      </div>
+
+      <nav className={styles.nav}>
+        {menuSections.map((section, idx) => (
+          <div key={idx} className={styles.sectionGroup}>
+            <span className={styles.sectionTitle}>{section.title}</span>
+            <ul className={styles.navList}>
+              {section.items.map((item) => {
+                if (item.isDropdown) {
+                  const isOpen = item.path === '/regulacao' ? openRegulacao : openFarmacia;
+                  const setIsOpen = item.path === '/regulacao' ? setOpenRegulacao : setOpenFarmacia;
+
+                  return (
+                    <li key={item.path} className={styles.dropdownContainer}>
+                      <button
+                        type="button"
+                        className={`${styles.navLink} ${styles.dropdownTrigger} ${
+                          pathname.includes(item.path) ? styles.activeParent : ''
+                        }`}
+                        onClick={() => setIsOpen(!isOpen)}
+                      >
+                        <span className={styles.icon}>{item.icon}</span>
+                        <span className={styles.label}>{item.name}</span>
+                        <svg
+                          className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      </button>
+
+                      {isOpen && (
+                        <ul className={styles.submenuList}>
+                          {item.subItems.map((sub) => {
+                            if (sub.isNestedDropdown) {
+                              const defaultSubTab = sub.nestedItems[0]?.subTab || '';
+
+                              return (
+                                <li key={sub.tab} className={styles.nestedContainer}>
+                                  {/* 🎯 HEADER LIMPO IGUAL AO DO CADASTROS (SEM CLASSE DE DESTAQUE NO PAI) */}
+                                  <div className={styles.nestedHeaderWrapper}>
+                                    <Link
+                                      href={`${item.path}?tab=${sub.tab}&subTab=${defaultSubTab}`}
+                                      className={styles.nestedTriggerBtn}
+                                    >
+                                      {sub.name}
+                                    </Link>
+
+                                    <button
+                                      type="button"
+                                      className={styles.chevronToggleBtn}
+                                      onClick={() => setOpenNestedMenu(!openNestedMenu)}
+                                    >
+                                      <svg
+                                        className={`${styles.chevron} ${openNestedMenu ? styles.chevronOpen : ''}`}
+                                        width="14"
+                                        height="14"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                      >
+                                        <polyline points="6 9 12 15 18 9"/>
+                                      </svg>
+                                    </button>
+                                  </div>
+
+                                  {openNestedMenu && (
+                                    <ul className={styles.nestedSubmenuList}>
+                                      {sub.nestedItems.map((nested) => {
+                                        const isNestedActive =
+                                          currentTab === sub.tab && currentSubTab === nested.subTab;
+
+                                        return (
+                                          <li key={nested.subTab}>
+                                            <Link
+                                              href={`${item.path}?tab=${sub.tab}&subTab=${nested.subTab}`}
+                                              className={`${styles.nestedSubmenuLink} ${
+                                                isNestedActive ? styles.activeNestedSubmenu : ''
+                                              }`}
+                                            >
+                                              {nested.name}
+                                            </Link>
+                                          </li>
+                                        );
+                                      })}
+                                    </ul>
+                                  )}
+                                </li>
+                              );
+                            }
+
+                            const isSubActive = pathname === item.path && currentTab === sub.tab;
+
+                            return (
+                              <li key={sub.tab}>
+                                <Link
+                                  href={`${item.path}?tab=${sub.tab}`}
+                                  className={`${styles.submenuLink} ${
+                                    isSubActive ? styles.activeSubmenu : ''
+                                  }`}
+                                >
+                                  {sub.name}
+                                </Link>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                }
+
+                return (
+                  <li key={item.path}>
+                    <Link
+                      href={item.path}
+                      className={`${styles.navLink} ${
+                        pathname === item.path ? styles.active : ''
+                      }`}
+                    >
+                      <span className={styles.icon}>{item.icon}</span>
+                      <span className={styles.label}>{item.name}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </nav>
+    </aside>
+  );
 }

@@ -10,17 +10,14 @@
   font-size: 1.25rem;
   font-weight: 700;
   color: #1e293b;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
-.formGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+.formContainer {
+  display: flex;
+  flex-direction: column;
   gap: 1.25rem;
-}
-
-.fullWidth {
-  grid-column: 1 / -1;
+  width: 100%;
 }
 
 .fieldGroup {
@@ -28,12 +25,32 @@
   flex-direction: column;
   gap: 0.4rem;
   position: relative;
+  width: 100%;
 }
 
 .fieldGroup label {
   font-size: 0.85rem;
   font-weight: 600;
   color: #475569;
+}
+
+/* CONTAINER DA LUPA NO CAMPO DE BUSCA */
+.searchInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.85rem;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.inputWithIcon {
+  padding-left: 2.5rem !important;
 }
 
 .fieldGroup input,
@@ -46,6 +63,7 @@
   color: #1e293b;
   outline: none;
   background-color: #ffffff;
+  height: 42px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -63,9 +81,9 @@
   background-color: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   margin-top: 0.25rem;
-  max-height: 200px;
+  max-height: 220px;
   overflow-y: auto;
   z-index: 50;
   list-style: none;
@@ -79,6 +97,9 @@
   font-size: 0.875rem;
   color: #334155;
   transition: background-color 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
 }
 
 .suggestionItem:last-child {
@@ -91,20 +112,54 @@
 }
 
 .patientSummaryBox {
-  background-color: #f8fafc;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 1rem;
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
+  gap: 0.75rem;
+}
+
+.patientBadgeGroup {
+  display: flex;
   gap: 0.5rem;
+}
+
+.badgePasta {
+  background-color: #0284c7;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+}
+
+.badgeCpf {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+}
+
+.patientDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
   font-size: 0.9rem;
-  color: #1e293b;
+  color: #0f172a;
+}
+
+.patientDetails p {
+  margin: 0;
 }
 
 .addMedSection {
-  background-color: #f1f5f9;
-  border-radius: 8px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
@@ -129,11 +184,11 @@
   background-color: #2563eb;
   color: #ffffff;
   border: none;
-  padding: 0.7rem 1.25rem;
+  padding: 0 1.25rem;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  height: 40px;
+  height: 42px;
   white-space: nowrap;
   transition: background-color 0.2s ease;
 }
@@ -159,20 +214,27 @@
   padding: 0.75rem 1rem;
   text-align: left;
   color: #475569;
-  font-weight: 600;
+  font-weight: 700;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .table td {
   padding: 0.75rem 1rem;
-  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
   color: #1e293b;
+}
+
+.emptyTableTd {
+  text-align: center;
+  color: #64748b;
+  padding: 2rem 1rem !important;
 }
 
 .removeBtn {
   background-color: #fee2e2;
   color: #dc2626;
   border: none;
-  padding: 0.35rem 0.75rem;
+  padding: 0.4rem 0.75rem;
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.8rem;
@@ -184,9 +246,17 @@
   background-color: #fca5a5;
 }
 
+.bottomFieldsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  width: 100%;
+}
+
 .formActions {
   display: flex;
   justify-content: flex-end;
+  margin-top: 0.5rem;
 }
 
 .primaryBtn {
@@ -199,13 +269,14 @@
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  height: 45px;
 }
 
 .primaryBtn:hover {
   background-color: #15803d;
 }
 
-/* POP-UP MODAL DE CONFIRMAÇÃO */
+/* MODAL DE CONFIRMAÇÃO */
 .modalOverlay {
   position: fixed;
   top: 0;
@@ -290,12 +361,20 @@
   background-color: #15803d;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .addMedGrid {
     grid-template-columns: 1fr;
   }
   
+  .bottomFieldsGrid {
+    grid-template-columns: 1fr;
+  }
+
   .addBtn {
+    width: 100%;
+  }
+
+  .primaryBtn {
     width: 100%;
   }
 }

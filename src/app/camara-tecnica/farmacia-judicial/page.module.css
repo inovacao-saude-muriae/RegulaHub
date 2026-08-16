@@ -8,14 +8,9 @@
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
   margin-bottom: 2rem;
   padding-bottom: 1.25rem;
   border-bottom: 1px solid #e2e8f0;
-  flex-wrap: wrap;
-  gap: 1.5rem;
 }
 
 .header h1 {
@@ -23,43 +18,11 @@
   font-weight: 800;
   color: #0f172a;
   letter-spacing: -0.025em;
-  margin-bottom: 0.25rem;
+  margin: 0 0 0.25rem 0;
 }
 
 .header p {
   font-size: 0.925rem;
   color: #64748b;
   margin: 0;
-}
-
-.tabNav {
-  display: flex;
-  gap: 0.5rem;
-  background-color: #f1f5f9;
-  padding: 0.35rem;
-  border-radius: 10px;
-  overflow-x: auto;
-}
-
-.tabBtn {
-  background: transparent;
-  border: none;
-  padding: 0.6rem 1.15rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #64748b;
-  border-radius: 8px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s ease;
-}
-
-.tabBtn:hover {
-  color: #0f172a;
-}
-
-.activeTab {
-  background-color: #ffffff !important;
-  color: #2563eb !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }

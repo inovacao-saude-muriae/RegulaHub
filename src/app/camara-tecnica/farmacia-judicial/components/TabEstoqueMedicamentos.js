@@ -1,82 +1,35 @@
-'use client';
+  'use client';
 
-import { useState } from 'react';
-import styles from './TabEstoqueMedicamentos.module.css';
+  import { useState, useEffect } from 'react';
+  import styles from './TabEstoqueMedicamentos.module.css';
 
-export default function TabEstoqueMedicamentos({
-  estoqueLotes,
-  catalogo,
-  onCreateMedicamento,
-  onCreateLote,
-  loading
-}) {
-  const [subTab, setSubTab] = useState('ESTOQUE_LOTE'); // ESTOQUE_LOTE, NOVO_LOTE, NOVO_MEDICAMENTO
+  export default function TabEstoqueMedicamentos({
+    estoqueLotes,
+    catalogo,
+    onCreateMedicamento,
+    onCreateLote,
+    loading,
+    subTab = 'SALDO' // Recebe da URL: 'SALDO', 'ENTRADA' ou 'CADASTRAR'
+  }) {
+    const [activeTabMode, setActiveTabMode] = useState('ESTOQUE_LOTE');
 
-  // Controle do filtro de busca por digitação no select de "Dar Entrada de Lote"
-  const [searchMedInput, setSearchMedInput] = useState('');
-  const [showMedDropdown, setShowMedDropdown] = useState(false);
-
-  // Controle de entrada de estoque opcional no cadastro do medicamento
-  const [darEntradaEstoque, setDarEntradaEstoque] = useState(false);
-
-  // Form Cadastro de Medicamento (Básico + Lote Opcional)
-  const [formMed, setFormMed] = useState({
-    nome: '',
-    tipo: 'Comprimido',
-    dosagem: '',
-    numeroLote: '',
-    fornecedor: '',
-    qtdInicial: '',
-    valorUnitario: '',
-    dataEntrada: new Date().toISOString().split('T')[0],
-    dataValidade: ''
-  });
-
-  // Form Novo Lote para Medicamento já existente
-  const [formLote, setFormLote] = useState({
-    medicamentoId: '',
-    numeroLote: '',
-    fornecedor: '',
-    qtdInicial: '',
-    valorUnitario: '',
-    dataEntrada: new Date().toISOString().split('T')[0],
-    dataValidade: ''
-  });
-
-  // Filtra os medicamentos do catálogo dinamicamente conforme digitação
-  const catalogoFiltrado = catalogo.filter((med) => {
-    const termo = searchMedInput.toLowerCase();
-    return (
-      med.nome.toLowerCase().includes(termo) ||
-      (med.dosagem && med.dosagem.toLowerCase().includes(termo)) ||
-      (med.tipo && med.tipo.toLowerCase().includes(termo))
-    );
-  });
-
-  const handleSelectMedicamentoLote = (med) => {
-    setFormLote((prev) => ({ ...prev, medicamentoId: med.id }));
-    setSearchMedInput(`${med.nome} (${med.dosagem}) - ${med.tipo}`);
-    setShowMedDropdown(false);
-  };
-
-  const handleSubmitMed = async (e) => {
-    e.preventDefault();
-    if (!formMed.nome || !formMed.dosagem) {
-      return alert('Preencha o nome e a dosagem do medicamento.');
-    }
-
-    if (darEntradaEstoque) {
-      if (!formMed.numeroLote || !formMed.fornecedor || !formMed.qtdInicial || !formMed.dataValidade) {
-        return alert('Preencha todos os campos do lote para dar entrada no estoque.');
+    // Mapeia a prop recebida da URL para o estado do componente
+    useEffect(() => {
+      if (subTab === 'ENTRADA') {
+        setActiveTabMode('NOVO_LOTE');
+      } else if (subTab === 'CADASTRAR') {
+        setActiveTabMode('NOVO_MEDICAMENTO');
+      } else {
+        setActiveTabMode('ESTOQUE_LOTE');
       }
-    }
+    }, [subTab]);
 
-    await onCreateMedicamento({
-      ...formMed,
-      darEntradaEstoque
-    });
+    // Controle de busca por digitação no lote
+    const [searchMedInput, setSearchMedInput] = useState('');
+    const [showMedDropdown, setShowMedDropdown] = useState(false);
+    const [darEntradaEstoque, setDarEntradaEstoque] = useState(false);
 
-    setFormMed({
+    const [formMed, setFormMed] = useState({
       nome: '',
       tipo: 'Comprimido',
       dosagem: '',
@@ -87,24 +40,8 @@ export default function TabEstoqueMedicamentos({
       dataEntrada: new Date().toISOString().split('T')[0],
       dataValidade: ''
     });
-    setDarEntradaEstoque(false);
-    setSubTab('ESTOQUE_LOTE');
-  };
 
-  const handleSubmitLote = async (e) => {
-    e.preventDefault();
-    if (
-      !formLote.medicamentoId ||
-      !formLote.numeroLote ||
-      !formLote.fornecedor ||
-      !formLote.qtdInicial ||
-      !formLote.dataValidade
-    ) {
-      return alert('Selecione o medicamento e preencha os campos obrigatórios da entrada de lote.');
-    }
-
-    await onCreateLote(formLote);
-    setFormLote({
+    const [formLote, setFormLote] = useState({
       medicamentoId: '',
       numeroLote: '',
       fornecedor: '',
@@ -113,333 +50,372 @@ export default function TabEstoqueMedicamentos({
       dataEntrada: new Date().toISOString().split('T')[0],
       dataValidade: ''
     });
-    setSearchMedInput('');
-    setSubTab('ESTOQUE_LOTE');
-  };
 
-  return (
-    <div className={styles.card}>
-      <div className={styles.subTabNav}>
-        <button
-          type="button"
-          className={`${styles.subTabBtn} ${subTab === 'ESTOQUE_LOTE' ? styles.activeSubTab : ''}`}
-          onClick={() => setSubTab('ESTOQUE_LOTE')}
-        >
-          📦 Saldo do Estoque por Lote
-        </button>
+    const catalogoFiltrado = catalogo.filter((med) => {
+      const termo = searchMedInput.toLowerCase();
+      return (
+        med.nome.toLowerCase().includes(termo) ||
+        (med.dosagem && med.dosagem.toLowerCase().includes(termo)) ||
+        (med.tipo && med.tipo.toLowerCase().includes(termo))
+      );
+    });
 
-        <button
-          type="button"
-          className={`${styles.subTabBtn} ${subTab === 'NOVO_LOTE' ? styles.activeSubTab : ''}`}
-          onClick={() => setSubTab('NOVO_LOTE')}
-        >
-          📥 Dar Entrada de Lote
-        </button>
+    const handleSelectMedicamentoLote = (med) => {
+      setFormLote((prev) => ({ ...prev, medicamentoId: med.id }));
+      setSearchMedInput(`${med.nome} (${med.dosagem}) - ${med.tipo}`);
+      setShowMedDropdown(false);
+    };
 
-        <button
-          type="button"
-          className={`${styles.subTabBtn} ${subTab === 'NOVO_MEDICAMENTO' ? styles.activeSubTab : ''}`}
-          onClick={() => setSubTab('NOVO_MEDICAMENTO')}
-        >
-          💊 Catálogo de Medicamentos ({catalogo.length})
-        </button>
-      </div>
+    const handleSubmitMed = async (e) => {
+      e.preventDefault();
+      if (!formMed.nome || !formMed.dosagem) {
+        return alert('Preencha o nome e a dosagem do medicamento.');
+      }
 
-      {/* SUB-ABA 1: VISUALIZAR ESTOQUE POR LOTE */}
-      {subTab === 'ESTOQUE_LOTE' && (
-        <div>
-          <h3 className={styles.sectionTitle}>Estoque Físico e Saldos Disponíveis</h3>
+      if (darEntradaEstoque) {
+        if (!formMed.numeroLote || !formMed.fornecedor || !formMed.qtdInicial || !formMed.dataValidade) {
+          return alert('Preencha todos os campos do lote para dar entrada no estoque.');
+        }
+      }
 
-          {loading ? (
-            <div className={styles.loadingBox}>Carregando estoque...</div>
-          ) : (
-            <div className={styles.tableWrapper}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Medicamento</th>
-                    <th>Tipo / Dosagem</th>
-                    <th>Nº Lote</th>
-                    <th>Fornecedor</th>
-                    <th>Data Validade</th>
-                    <th>Qtd Inicial</th>
-                    <th>Saldo Atual</th>
-                    <th>Valor Unit. (R$)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {estoqueLotes.length === 0 ? (
+      await onCreateMedicamento({
+        ...formMed,
+        darEntradaEstoque
+      });
+
+      setFormMed({
+        nome: '',
+        tipo: 'Comprimido',
+        dosagem: '',
+        numeroLote: '',
+        fornecedor: '',
+        qtdInicial: '',
+        valorUnitario: '',
+        dataEntrada: new Date().toISOString().split('T')[0],
+        dataValidade: ''
+      });
+      setDarEntradaEstoque(false);
+    };
+
+    const handleSubmitLote = async (e) => {
+      e.preventDefault();
+      if (
+        !formLote.medicamentoId ||
+        !formLote.numeroLote ||
+        !formLote.fornecedor ||
+        !formLote.qtdInicial ||
+        !formLote.dataValidade
+      ) {
+        return alert('Selecione o medicamento e preencha os campos obrigatórios da entrada de lote.');
+      }
+
+      await onCreateLote(formLote);
+      setFormLote({
+        medicamentoId: '',
+        numeroLote: '',
+        fornecedor: '',
+        qtdInicial: '',
+        valorUnitario: '',
+        dataEntrada: new Date().toISOString().split('T')[0],
+        dataValidade: ''
+      });
+      setSearchMedInput('');
+    };
+
+    return (
+      <div className={styles.card}>
+        {/* 1. VISUALIZAR SALDO DE ESTOQUE */}
+        {activeTabMode === 'ESTOQUE_LOTE' && (
+          <div>
+            <h3 className={styles.sectionTitle}>Estoque Físico e Saldos Disponíveis</h3>
+
+            {loading ? (
+              <div className={styles.loadingBox}>Carregando estoque...</div>
+            ) : (
+              <div className={styles.tableWrapper}>
+                <table className={styles.table}>
+                  <thead>
                     <tr>
-                      <td colSpan="8" style={{ textAlign: 'center', color: '#64748b' }}>
-                        Nenhum lote em estoque. Dê entrada em um novo lote para iniciar.
-                      </td>
+                      <th>Medicamento</th>
+                      <th>Tipo / Dosagem</th>
+                      <th>Nº Lote</th>
+                      <th>Fornecedor</th>
+                      <th>Data Validade</th>
+                      <th>Qtd Inicial</th>
+                      <th>Saldo Atual</th>
+                      <th>Valor Unit. (R$)</th>
                     </tr>
-                  ) : (
-                    estoqueLotes.map((item) => (
-                      <tr key={item.loteId}>
-                        <td><strong>{item.medicamentoNome}</strong></td>
-                        <td>{item.tipo} - {item.dosagem}</td>
-                        <td>{item.numeroLote}</td>
-                        <td>{item.fornecedor}</td>
-                        <td>{item.dataValidade}</td>
-                        <td>{item.qtdInicial}</td>
-                        <td>
-                          <strong className={item.qtdAtual > 0 ? styles.positiveQty : styles.zeroQty}>
-                            {item.qtdAtual}
-                          </strong>
+                  </thead>
+                  <tbody>
+                    {estoqueLotes.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" style={{ textAlign: 'center', color: '#64748b' }}>
+                          Nenhum lote em estoque. Dê entrada em um novo lote para iniciar.
                         </td>
-                        <td>R$ {Number(item.valorUnitario || 0).toFixed(2)}</td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* SUB-ABA 2: ENTRADA DE LOTE COM CAMPO DE BUSCA EDITÁVEL */}
-      {subTab === 'NOVO_LOTE' && (
-        <div>
-          <h3 className={styles.sectionTitle}>Entrada de Novo Lote no Estoque</h3>
-
-          <form onSubmit={handleSubmitLote} className={styles.formGrid}>
-            {/* CAMPO DE PESQUISA COM DROPDOWN PARA SELECIONAR MEDICAMENTO DO CATÁLOGO */}
-            <div className={styles.fieldGroup} style={{ position: 'relative' }}>
-              <label>Medicamento do Catálogo *</label>
-              <input
-                type="text"
-                placeholder="Digite para pesquisar medicamento no catálogo..."
-                value={searchMedInput}
-                onChange={(e) => {
-                  setSearchMedInput(e.target.value);
-                  setFormLote((prev) => ({ ...prev, medicamentoId: '' }));
-                  setShowMedDropdown(true);
-                }}
-                onFocus={() => setShowMedDropdown(true)}
-                required
-              />
-
-              {showMedDropdown && catalogoFiltrado.length > 0 && (
-                <ul className={styles.suggestionsList}>
-                  {catalogoFiltrado.map((med) => (
-                    <li
-                      key={med.id}
-                      className={styles.suggestionItem}
-                      onClick={() => handleSelectMedicamentoLote(med)}
-                    >
-                      <strong>{med.nome}</strong> ({med.dosagem}) - {med.tipo}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>Número do Lote *</label>
-              <input
-                type="text"
-                placeholder="Ex: LOTE-2026-X"
-                value={formLote.numeroLote}
-                onChange={(e) => setFormLote({ ...formLote, numeroLote: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>Fornecedor / Fabricante *</label>
-              <input
-                type="text"
-                placeholder="Ex: Eurofarma Laboratórios"
-                value={formLote.fornecedor}
-                onChange={(e) => setFormLote({ ...formLote, fornecedor: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>Quantidade Inicial Adquirida *</label>
-              <input
-                type="number"
-                min="1"
-                placeholder="Ex: 500"
-                value={formLote.qtdInicial}
-                onChange={(e) => setFormLote({ ...formLote, qtdInicial: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>Valor Unitário (R$)</label>
-              <input
-                type="number"
-                step="0.01"
-                placeholder="Ex: 12.50"
-                value={formLote.valorUnitario}
-                onChange={(e) => setFormLote({ ...formLote, valorUnitario: e.target.value })}
-              />
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>Data de Entrada *</label>
-              <input
-                type="date"
-                value={formLote.dataEntrada}
-                onChange={(e) => setFormLote({ ...formLote, dataEntrada: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>Data de Validade *</label>
-              <input
-                type="date"
-                value={formLote.dataValidade}
-                onChange={(e) => setFormLote({ ...formLote, dataValidade: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className={`${styles.fullWidth} ${styles.formActions}`}>
-              <button type="submit" className={styles.primaryBtn}>
-                Confirmar Entrada do Lote
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* SUB-ABA 3: CADASTRAR MEDICAMENTO NO CATÁLOGO (SEM A TABELA DO CATÁLOGO NO FINAL) */}
-      {subTab === 'NOVO_MEDICAMENTO' && (
-        <div>
-          <h3 className={styles.sectionTitle}>Cadastrar Novo Medicamento no Catálogo</h3>
-
-          <form onSubmit={handleSubmitMed} className={styles.formGrid}>
-            <div className={styles.fieldGroup}>
-              <label>Nome do Medicamento *</label>
-              <input
-                type="text"
-                placeholder="Ex: Insulina Glargina"
-                value={formMed.nome}
-                onChange={(e) => setFormMed({ ...formMed, nome: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>Tipo / Forma Farmacêutica *</label>
-              <select value={formMed.tipo} onChange={(e) => setFormMed({ ...formMed, tipo: e.target.value })}>
-                <option value="Comprimido">Comprimido / Drágea</option>
-                <option value="Injetável / Caneta">Injetável / Caneta</option>
-                <option value="Xarope / Solução">Xarope / Solução Oral</option>
-                <option value="Pomada / Creme">Pomada / Creme</option>
-                <option value="Frasco / Gotas">Frasco / Gotas</option>
-              </select>
-            </div>
-
-            <div className={styles.fieldGroup}>
-              <label>Dosagem / Concentração *</label>
-              <input
-                type="text"
-                placeholder="Ex: 100 UI/ml ou 500mg"
-                value={formMed.dosagem}
-                onChange={(e) => setFormMed({ ...formMed, dosagem: e.target.value })}
-                required
-              />
-            </div>
-
-            {/* CAMPO SELECIONÁVEL PARA ENTRADA EM ESTOQUE NO MOMENTO DO CADASTRO */}
-            <div className={`${styles.fullWidth}`} style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 600, color: '#1e293b' }}>
-                <input
-                  type="checkbox"
-                  checked={darEntradaEstoque}
-                  onChange={(e) => setDarEntradaEstoque(e.target.checked)}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                />
-                Deseja dar entrada no estoque (lote) deste medicamento agora?
-              </label>
-            </div>
-
-            {/* CAMPOS DO LOTE (EXIBIDOS APENAS QUANDO A OPÇÃO ESTIVER MARCADA) */}
-            {darEntradaEstoque && (
-              <>
-                <div className={styles.fieldGroup}>
-                  <label>Número do Lote *</label>
-                  <input
-                    type="text"
-                    placeholder="Ex: LOTE-2026-X"
-                    value={formMed.numeroLote}
-                    onChange={(e) => setFormMed({ ...formMed, numeroLote: e.target.value })}
-                    required={darEntradaEstoque}
-                  />
-                </div>
-
-                <div className={styles.fieldGroup}>
-                  <label>Fornecedor / Fabricante *</label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Eurofarma Laboratórios"
-                    value={formMed.fornecedor}
-                    onChange={(e) => setFormMed({ ...formMed, fornecedor: e.target.value })}
-                    required={darEntradaEstoque}
-                  />
-                </div>
-
-                <div className={styles.fieldGroup}>
-                  <label>Quantidade Inicial Adquirida *</label>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="Ex: 500"
-                    value={formMed.qtdInicial}
-                    onChange={(e) => setFormMed({ ...formMed, qtdInicial: e.target.value })}
-                    required={darEntradaEstoque}
-                  />
-                </div>
-
-                <div className={styles.fieldGroup}>
-                  <label>Valor Unitário (R$)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Ex: 12.50"
-                    value={formMed.valorUnitario}
-                    onChange={(e) => setFormMed({ ...formMed, valorUnitario: e.target.value })}
-                  />
-                </div>
-
-                <div className={styles.fieldGroup}>
-                  <label>Data de Entrada *</label>
-                  <input
-                    type="date"
-                    value={formMed.dataEntrada}
-                    onChange={(e) => setFormMed({ ...formMed, dataEntrada: e.target.value })}
-                    required={darEntradaEstoque}
-                  />
-                </div>
-
-                <div className={styles.fieldGroup}>
-                  <label>Data de Validade *</label>
-                  <input
-                    type="date"
-                    value={formMed.dataValidade}
-                    onChange={(e) => setFormMed({ ...formMed, dataValidade: e.target.value })}
-                    required={darEntradaEstoque}
-                  />
-                </div>
-              </>
+                    ) : (
+                      estoqueLotes.map((item) => (
+                        <tr key={item.loteId}>
+                          <td><strong>{item.medicamentoNome}</strong></td>
+                          <td>{item.tipo} - {item.dosagem}</td>
+                          <td>{item.numeroLote}</td>
+                          <td>{item.fornecedor}</td>
+                          <td>{item.dataValidade}</td>
+                          <td>{item.qtdInicial}</td>
+                          <td>
+                            <strong className={item.qtdAtual > 0 ? styles.positiveQty : styles.zeroQty}>
+                              {item.qtdAtual}
+                            </strong>
+                          </td>
+                          <td>R$ {Number(item.valorUnitario || 0).toFixed(2)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             )}
+          </div>
+        )}
 
-            <div className={`${styles.fullWidth} ${styles.formActions}`}>
-              <button type="submit" className={styles.primaryBtn}>
-                {darEntradaEstoque ? 'Salvar no Catálogo e Dar Entrada no Estoque' : 'Salvar no Catálogo'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-    </div>
-  );
-}
+        {/* 2. REGISTRAR ENTRADA DE LOTE */}
+        {activeTabMode === 'NOVO_LOTE' && (
+          <div>
+            <h3 className={styles.sectionTitle}>Entrada de Novo Lote no Estoque</h3>
+
+            <form onSubmit={handleSubmitLote} className={styles.formGrid}>
+              <div className={styles.fieldGroup} style={{ position: 'relative' }}>
+                <label>Medicamento do Catálogo *</label>
+                <input
+                  type="text"
+                  placeholder="Digite para pesquisar medicamento no catálogo..."
+                  value={searchMedInput}
+                  onChange={(e) => {
+                    setSearchMedInput(e.target.value);
+                    setFormLote((prev) => ({ ...prev, medicamentoId: '' }));
+                    setShowMedDropdown(true);
+                  }}
+                  onFocus={() => setShowMedDropdown(true)}
+                  required
+                />
+
+                {showMedDropdown && catalogoFiltrado.length > 0 && (
+                  <ul className={styles.suggestionsList}>
+                    {catalogoFiltrado.map((med) => (
+                      <li
+                        key={med.id}
+                        className={styles.suggestionItem}
+                        onClick={() => handleSelectMedicamentoLote(med)}
+                      >
+                        <strong>{med.nome}</strong> ({med.dosagem}) - {med.tipo}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label>Número do Lote *</label>
+                <input
+                  type="text"
+                  placeholder="Ex: LOTE-2026-X"
+                  value={formLote.numeroLote}
+                  onChange={(e) => setFormLote({ ...formLote, numeroLote: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label>Fornecedor / Fabricante *</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Eurofarma Laboratórios"
+                  value={formLote.fornecedor}
+                  onChange={(e) => setFormLote({ ...formLote, fornecedor: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label>Quantidade Inicial Adquirida *</label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Ex: 500"
+                  value={formLote.qtdInicial}
+                  onChange={(e) => setFormLote({ ...formLote, qtdInicial: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label>Valor Unitário (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Ex: 12.50"
+                  value={formLote.valorUnitario}
+                  onChange={(e) => setFormLote({ ...formLote, valorUnitario: e.target.value })}
+                />
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label>Data de Entrada *</label>
+                <input
+                  type="date"
+                  value={formLote.dataEntrada}
+                  onChange={(e) => setFormLote({ ...formLote, dataEntrada: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label>Data de Validade *</label>
+                <input
+                  type="date"
+                  value={formLote.dataValidade}
+                  onChange={(e) => setFormLote({ ...formLote, dataValidade: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className={`${styles.fullWidth} ${styles.formActions}`}>
+                <button type="submit" className={styles.primaryBtn}>
+                  Confirmar Entrada do Lote
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* 3. CADASTRAR NOVO MEDICAMENTO */}
+        {activeTabMode === 'NOVO_MEDICAMENTO' && (
+          <div>
+            <h3 className={styles.sectionTitle}>Cadastrar Novo Medicamento no Catálogo</h3>
+
+            <form onSubmit={handleSubmitMed} className={styles.formGrid}>
+              <div className={styles.fieldGroup}>
+                <label>Nome do Medicamento *</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Insulina Glargina"
+                  value={formMed.nome}
+                  onChange={(e) => setFormMed({ ...formMed, nome: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label>Tipo / Forma Farmacêutica *</label>
+                <select value={formMed.tipo} onChange={(e) => setFormMed({ ...formMed, tipo: e.target.value })}>
+                  <option value="Comprimido">Comprimido / Drágea</option>
+                  <option value="Injetável / Caneta">Injetável / Caneta</option>
+                  <option value="Xarope / Solução">Xarope / Solução Oral</option>
+                  <option value="Pomada / Creme">Pomada / Creme</option>
+                  <option value="Frasco / Gotas">Frasco / Gotas</option>
+                </select>
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label>Dosagem / Concentração *</label>
+                <input
+                  type="text"
+                  placeholder="Ex: 100 UI/ml ou 500mg"
+                  value={formMed.dosagem}
+                  onChange={(e) => setFormMed({ ...formMed, dosagem: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className={`${styles.fullWidth}`} style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 600, color: '#1e293b' }}>
+                  <input
+                    type="checkbox"
+                    checked={darEntradaEstoque}
+                    onChange={(e) => setDarEntradaEstoque(e.target.checked)}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  Deseja dar entrada no estoque (lote) deste medicamento agora?
+                </label>
+              </div>
+
+              {darEntradaEstoque && (
+                <>
+                  <div className={styles.fieldGroup}>
+                    <label>Número do Lote *</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: LOTE-2026-X"
+                      value={formMed.numeroLote}
+                      onChange={(e) => setFormMed({ ...formMed, numeroLote: e.target.value })}
+                      required={darEntradaEstoque}
+                    />
+                  </div>
+
+                  <div className={styles.fieldGroup}>
+                    <label>Fornecedor / Fabricante *</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Eurofarma Laboratórios"
+                      value={formMed.fornecedor}
+                      onChange={(e) => setFormMed({ ...formMed, fornecedor: e.target.value })}
+                      required={darEntradaEstoque}
+                    />
+                  </div>
+
+                  <div className={styles.fieldGroup}>
+                    <label>Quantidade Inicial Adquirida *</label>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Ex: 500"
+                      value={formMed.qtdInicial}
+                      onChange={(e) => setFormMed({ ...formMed, qtdInicial: e.target.value })}
+                      required={darEntradaEstoque}
+                    />
+                  </div>
+
+                  <div className={styles.fieldGroup}>
+                    <label>Valor Unitário (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Ex: 12.50"
+                      value={formMed.valorUnitario}
+                      onChange={(e) => setFormMed({ ...formMed, valorUnitario: e.target.value })}
+                    />
+                  </div>
+
+                  <div className={styles.fieldGroup}>
+                    <label>Data de Entrada *</label>
+                    <input
+                      type="date"
+                      value={formMed.dataEntrada}
+                      onChange={(e) => setFormMed({ ...formMed, dataEntrada: e.target.value })}
+                      required={darEntradaEstoque}
+                    />
+                  </div>
+
+                  <div className={styles.fieldGroup}>
+                    <label>Data de Validade *</label>
+                    <input
+                      type="date"
+                      value={formMed.dataValidade}
+                      onChange={(e) => setFormMed({ ...formMed, dataValidade: e.target.value })}
+                      required={darEntradaEstoque}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className={`${styles.fullWidth} ${styles.formActions}`}>
+                <button type="submit" className={styles.primaryBtn}>
+                  {darEntradaEstoque ? 'Salvar no Catálogo e Dar Entrada no Estoque' : 'Salvar no Catálogo'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
+    );
+  }

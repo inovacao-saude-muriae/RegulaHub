@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   getPacientesJudiciais, 
   createPacienteJudicial, 
@@ -9,83 +10,78 @@ import {
   createMedicamento, 
   createLoteMedicamento, 
   registrarDispensacao,
-  getDashboardMetrics
+  getDashboardMetrics,
+  getRelatorioEntradas,
+  getRelatorioSaidas
 } from './actions';
 
 import TabDashboard from './components/TabDashboard';
 import TabPacientesJudiciais from './components/TabPacientesJudiciais';
-import TabEstoqueMedicamentos from './components/TabEstoqueMedicamentos';
 import TabDispensacao from './components/TabDispensacao';
 import TabRelatorios from './components/TabRelatorios';
+
+// 🎯 COMPONENTES DE ESTOQUE SEPARADOS E INDEPENDENTES
+import TabSaldoEstoque from './components/SaldoEstoque';
+import TabRegistrarEntrada from './components/RegistrarEntrada';
+import TabCadastrarMedicamento from './components/CadastrarMedicamentos';
 
 import styles from './page.module.css';
 
 export default function FarmaciaJudicialPage() {
-  const [activeTab, setActiveTab] = useState('DASHBOARD');
-  const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
+  const activeTab = searchParams.get('tab') || 'DASHBOARD';
+  const activeSubTab = searchParams.get('subTab') || 'SALDO';
+
+  const [loading, setLoading] = useState(true);
   const [pacientes, setPacientes] = useState([]);
   const [estoqueLotes, setEstoqueLotes] = useState([]);
+  const [relatorioEntradas, setRelatorioEntradas] = useState([]);
+  const [relatorioSaidas, setRelatorioSaidas] = useState([]);
   const [catalogo, setCatalogo] = useState([]);
-  const [metrics, setMetrics] = useState({
-    totalMedicamentosCadastrados: 0,
-    totalEstoqueUnidades: 0,
-    pacientesAtivos: 0,
-    pacientesInativos: 0,
-    pacientesObito: 0
-  });
+  const [metrics, setMetrics] = useState({});
 
   const reloadData = async () => {
     setLoading(true);
     try {
-      const [pacData, estData, catData, metData] = await Promise.all([
+      const [pacData, estData, catData, metData, entData, saiData] = await Promise.all([
         getPacientesJudiciais(),
         getMedicamentosEEstoque(),
         getCatalogoMedicamentos(),
-        getDashboardMetrics()
+        getDashboardMetrics(),
+        getRelatorioEntradas(),
+        getRelatorioSaidas()
       ]);
       setPacientes(pacData || []);
       setEstoqueLotes(estData || []);
       setCatalogo(catData || []);
       setMetrics(metData || {});
+      setRelatorioEntradas(entData || []);
+      setRelatorioSaidas(saiData || []);
     } catch (error) {
-      console.error('Erro ao carregar dados da farmácia:', error);
+      console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    async function initData() {
-      setLoading(true);
-      try {
-        const [pacData, estData, catData, metData] = await Promise.all([
-          getPacientesJudiciais(),
-          getMedicamentosEEstoque(),
-          getCatalogoMedicamentos(),
-          getDashboardMetrics()
-        ]);
-        setPacientes(pacData || []);
-        setEstoqueLotes(estData || []);
-        setCatalogo(catData || []);
-        setMetrics(metData || {});
-      } catch (error) {
-        console.error('Erro ao carregar dados da farmácia:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    initData();
+    reloadData();
   }, []);
+
+  const handleNavigate = (tab, subTab) => {
+    if (subTab) {
+      router.push(`/camara-tecnica/farmacia-judicial?tab=${tab}&subTab=${subTab}`);
+    } else {
+      router.push(`/camara-tecnica/farmacia-judicial?tab=${tab}`);
+    }
+  };
 
   const handleCreatePaciente = async (formData) => {
     const res = await createPacienteJudicial(formData);
-    if (res.success) {
-      await reloadData();
-    } else {
-      alert('Erro ao cadastrar paciente: ' + res.error);
-    }
+    if (res.success) await reloadData();
+    else alert('Erro: ' + res.error);
   };
 
   const handleCreateMedicamento = async (formData) => {
@@ -103,28 +99,22 @@ export default function FarmaciaJudicialPage() {
         });
       }
       await reloadData();
-    } else {
-      alert('Erro ao cadastrar medicamento: ' + res.error);
-    }
+      handleNavigate('ESTOQUE', 'SALDO');
+    } else alert('Erro: ' + res.error);
   };
 
   const handleCreateLote = async (formData) => {
     const res = await createLoteMedicamento(formData);
     if (res.success) {
       await reloadData();
-    } else {
-      alert('Erro ao dar entrada no lote: ' + res.error);
-    }
+      handleNavigate('ESTOQUE', 'SALDO');
+    } else alert('Erro: ' + res.error);
   };
 
   const handleConfirmarDispensacao = async (dispensacaoData) => {
     const res = await registrarDispensacao(dispensacaoData);
-    if (res.success) {
-      // 🎯 REMOVIDO O ALERT NATIVO DO NAVEGADOR PARA NÃO BLOQUEAR A IMPRESSÃO E A TELA
-      await reloadData();
-    } else {
-      alert('Erro ao registrar dispensação: ' + res.error);
-    }
+    if (res.success) await reloadData();
+    else alert('Erro: ' + res.error);
   };
 
   return (
@@ -134,57 +124,15 @@ export default function FarmaciaJudicialPage() {
           <h1>Farmácia Judicial</h1>
           <p>Visão geral, processos judiciais, estoque e dispensação</p>
         </div>
-
-        <div className={styles.tabNav}>
-          <button 
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'DASHBOARD' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('DASHBOARD')}
-          >
-            📊 Dashboard
-          </button>
-
-          <button 
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'PACIENTES' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('PACIENTES')}
-          >
-            Pacientes ({pacientes.length})
-          </button>
-
-          <button 
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'DISPENSACAO' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('DISPENSACAO')}
-          >
-            💊 Dispensação de Medicamentos
-          </button>
-
-          <button 
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'ESTOQUE' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('ESTOQUE')}
-          >
-            📦 Estoque e Lotes
-          </button>
-
-          <button 
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'RELATORIOS' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('RELATORIOS')}
-          >
-            📄 Relatórios
-          </button>
-        </div>
       </header>
 
-      {/* RENDERIZAÇÃO DAS ABAS */}
+      {/* ROUTING DIRETO POR COMPONENTE */}
       {activeTab === 'DASHBOARD' && (
         <TabDashboard 
           metrics={metrics}
-          onNavigate={(tab) => setActiveTab(tab)}
+          onNavigate={handleNavigate}
           loading={loading}
-          medicamentosList={catalogo}
+          medicamentosList={estoqueLotes}
         />
       )}
 
@@ -205,18 +153,21 @@ export default function FarmaciaJudicialPage() {
         />
       )}
 
-      {activeTab === 'ESTOQUE' && (
-        <TabEstoqueMedicamentos 
-          estoqueLotes={estoqueLotes}
-          catalogo={catalogo}
-          onCreateMedicamento={handleCreateMedicamento}
-          onCreateLote={handleCreateLote}
-          loading={loading}
-        />
+      {/* ROTEAMENTO DE ESTOQUE DEDICADO */}
+      {activeTab === 'ESTOQUE' && activeSubTab === 'SALDO' && (
+        <TabSaldoEstoque estoqueLotes={estoqueLotes} loading={loading} />
+      )}
+
+      {activeTab === 'ESTOQUE' && activeSubTab === 'ENTRADA' && (
+        <TabRegistrarEntrada catalogo={catalogo} onCreateLote={handleCreateLote} />
+      )}
+
+      {activeTab === 'ESTOQUE' && activeSubTab === 'CADASTRAR' && (
+        <TabCadastrarMedicamento onCreateMedicamento={handleCreateMedicamento} />
       )}
 
       {activeTab === 'RELATORIOS' && (
-        <TabRelatorios />
+        <TabRelatorios entradas={relatorioEntradas} saidas={relatorioSaidas} />
       )}
     </div>
   );

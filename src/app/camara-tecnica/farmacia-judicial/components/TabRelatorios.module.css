@@ -139,4 +139,174 @@
   text-align: center;
   color: #64748b;
   padding: 2rem !important;
+}.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.filterCard {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.filterTitle {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.filterGrid {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 180px;
+  flex: 1;
+}
+
+.fieldGroup label {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.fieldGroup select {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #1e293b;
+  outline: none;
+  background-color: #ffffff;
+  height: 42px;
+}
+
+.btnGroup {
+  display: flex;
+  align-items: flex-end;
+}
+
+.gerarBtn {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  height: 42px;
+  white-space: nowrap;
+}
+
+.gerarBtn:hover {
+  background-color: #1d4ed8;
+}
+
+.tableCard {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.tableHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.tableHeader h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.tableHeader small {
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.actionsGroup {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.excelBtn,
+.printBtn {
+  border: none;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.excelBtn {
+  background-color: #16a34a;
+  color: #ffffff;
+}
+
+.printBtn {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.excelBtn:hover,
+.printBtn:hover {
+  opacity: 0.9;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.table th {
+  background-color: #f8fafc;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  color: #475569;
+  font-weight: 700;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+.emptyTd {
+  text-align: center;
+  color: #64748b;
+  padding: 2.5rem 1rem !important;
+  font-size: 0.9rem;
+  line-height: 1.5;
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import styles from './TabDispensacao.module.css';
 
 export default function TabDispensacao({
@@ -14,6 +15,9 @@ export default function TabDispensacao({
   const [observacao, setObservacao] = useState('');
 
   const [carrinhoDispensacao, setCarrinhoDispensacao] = useState([]);
+  
+  // 🎯 ESTADOS PARA BUSCA DIGITÁVEL E MENU SUSPENSO
+  const [searchMed, setSearchMed] = useState('');
   const [selectedLoteId, setSelectedLoteId] = useState('');
   const [qtdEntregue, setQtdEntregue] = useState('');
 
@@ -21,15 +25,49 @@ export default function TabDispensacao({
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // FILTRO DE PACIENTES
   const filteredPacientes = pacientes.filter(p => 
     p.patientName?.toLowerCase().includes(search.toLowerCase()) ||
     p.numeroPasta?.toLowerCase().includes(search.toLowerCase()) ||
     p.cpf?.includes(search)
   );
 
+  // FILTRO DE LOTES DISPONÍVEIS
+  const lotesComEstoque = estoqueLotes.filter(l => l.qtdAtual > 0);
+
+  const filteredLotes = lotesComEstoque.filter(l => {
+    const termo = searchMed.toLowerCase();
+    const medNome = (l.medicamentoNome || '').toLowerCase();
+    const loteNum = (l.numeroLote || '').toLowerCase();
+    const dosagem = (l.dosagem || '').toLowerCase();
+    return medNome.includes(termo) || loteNum.includes(termo) || dosagem.includes(termo);
+  });
+
   const handleSelectPaciente = (p) => {
     setSelectedPaciente(p);
     setSearch(`${p.numeroPasta} - ${p.patientName}`);
+  };
+
+  // 🎯 SELEÇÃO PELA BUSCA DIGITÁVEL
+  const handleSelectLoteDigitavel = (lote) => {
+    setSelectedLoteId(String(lote.loteId));
+    setSearchMed(`${lote.medicamentoNome} (${lote.dosagem}) - Lote: ${lote.numeroLote}`);
+  };
+
+  // 🎯 SELEÇÃO PELO MENU SUSPENSO (SELECT)
+  const handleSelectLoteDropdown = (e) => {
+    const loteId = e.target.value;
+    setSelectedLoteId(loteId);
+
+    if (!loteId) {
+      setSearchMed('');
+      return;
+    }
+
+    const lote = lotesComEstoque.find(l => String(l.loteId) === String(loteId));
+    if (lote) {
+      setSearchMed(`${lote.medicamentoNome} (${lote.dosagem}) - Lote: ${lote.numeroLote}`);
+    }
   };
 
   const handleAddItem = (e) => {
@@ -38,7 +76,7 @@ export default function TabDispensacao({
       return alert('Selecione um lote e informe uma quantidade válida.');
     }
 
-    const lote = estoqueLotes.find(l => String(l.loteId) === String(selectedLoteId));
+    const lote = lotesComEstoque.find(l => String(l.loteId) === String(selectedLoteId));
     if (!lote) return;
 
     if (Number(qtdEntregue) > lote.qtdAtual) {
@@ -57,6 +95,7 @@ export default function TabDispensacao({
     ]);
 
     setSelectedLoteId('');
+    setSearchMed('');
     setQtdEntregue('');
   };
 
@@ -64,7 +103,6 @@ export default function TabDispensacao({
     setCarrinhoDispensacao(prev => prev.filter((_, i) => i !== index));
   };
 
-  // 🎯 GERADOR DO TERMO DE DISPENSAÇÃO VIA IFRAME OCULTO (SEM POP-UP DO NAVEGADOR)
   const gerarTermoDispensacaoImpressao = (dados) => {
     const dataHoraAtual = new Date().toLocaleString('pt-BR');
 
@@ -81,13 +119,11 @@ export default function TabDispensacao({
       )
       .join('');
 
-    // Remove qualquer iframe de impressão antigo se existir
     const iframeAntigo = document.getElementById('iframe-impressao-termo');
     if (iframeAntigo) {
       iframeAntigo.remove();
     }
 
-    // Cria um iframe invisível no documento
     const iframe = document.createElement('iframe');
     iframe.id = 'iframe-impressao-termo';
     iframe.style.position = 'fixed';
@@ -117,7 +153,6 @@ export default function TabDispensacao({
           th { background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px; text-align: left; font-size: 11px; text-transform: uppercase; }
           .obs-box { margin-bottom: 30px; padding: 10px; background-color: #fffbe3; border: 1px solid #fef08a; border-radius: 6px; font-size: 12px; }
           
-          /* SEÇÃO DE ASSINATURAS */
           .signatures-container { margin-top: 80px; display: flex; justify-content: space-between; gap: 40px; page-break-inside: avoid; }
           .signature-box { flex: 1; text-align: center; }
           .signature-line { border-top: 1px solid #000000; margin-bottom: 6px; width: 100%; }
@@ -179,14 +214,12 @@ export default function TabDispensacao({
 
     doc.close();
 
-    // Aguarda carregar o documento interno do iframe para disparar a caixa de diálogo de impressão nativa
     setTimeout(() => {
       iframe.contentWindow.focus();
       iframe.contentWindow.print();
     }, 400);
   };
 
-  // 1. ABRE O MODAL DE CONFIRMAÇÃO
   const handleOpenModal = (e) => {
     e.preventDefault();
     if (!selectedPaciente) return alert('Selecione o paciente.');
@@ -196,7 +229,6 @@ export default function TabDispensacao({
     setShowModal(true);
   };
 
-  // 2. CONFIRMA A DISPENSAÇÃO E DISPARA A IMPRESSÃO
   const handleConfirmarFinal = async () => {
     setIsSubmitting(true);
 
@@ -215,10 +247,8 @@ export default function TabDispensacao({
 
       setShowModal(false);
 
-      // Dispara a impressão silenciosa via iframe oculto
       gerarTermoDispensacaoImpressao(dadosDispensacao);
 
-      // Limpa os campos após finalizar
       setSelectedPaciente(null);
       setSearch('');
       setCarrinhoDispensacao([]);
@@ -236,47 +266,110 @@ export default function TabDispensacao({
     <div className={styles.card}>
       <h2 className={styles.cardTitle}>Dispensação de Medicamentos Judiciais</h2>
 
-      <div className={styles.formGrid}>
-        <div className={`${styles.fieldGroup} ${styles.fullWidth}`}>
+      <div className={styles.formContainer}>
+        {/* BUSCA DE PACIENTE */}
+        <div className={styles.fieldGroup}>
           <label>Buscar Paciente Judicial (Pasta, Nome ou CPF) *</label>
-          <input 
-            type="text" 
-            placeholder="Digite para buscar..." 
-            value={search} 
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setSelectedPaciente(null);
-            }} 
-          />
+          <div className={styles.searchInputWrapper}>
+            <Image 
+              src="/lupa.png" 
+              alt="Buscar" 
+              width={18} 
+              height={18} 
+              className={styles.searchIcon}
+            />
+            <input 
+              type="text" 
+              className={styles.inputWithIcon}
+              placeholder="Digite para buscar paciente..." 
+              value={search} 
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setSelectedPaciente(null);
+              }} 
+            />
+          </div>
 
           {search && !selectedPaciente && filteredPacientes.length > 0 && (
             <ul className={styles.suggestionsList}>
               {filteredPacientes.map((p) => (
                 <li key={p.numeroPasta} onClick={() => handleSelectPaciente(p)} className={styles.suggestionItem}>
-                  <strong>Pasta {p.numeroPasta}</strong> - {p.patientName} (CPF: {p.cpf}) | Proc: {p.numeroProcesso}
+                  <div><strong>Pasta #{p.numeroPasta}</strong> - {p.patientName}</div>
+                  <small style={{ color: '#64748b' }}>CPF: {p.cpf} | Processo: {p.numeroProcesso}</small>
                 </li>
               ))}
             </ul>
           )}
         </div>
 
+        {/* CARD RESUMO DO PACIENTE */}
         {selectedPaciente && (
-          <div className={`${styles.patientSummaryBox} ${styles.fullWidth}`}>
-            <div><strong>Paciente:</strong> {selectedPaciente.patientName}</div>
-            <div><strong>Nº Pasta:</strong> {selectedPaciente.numeroPasta}</div>
-            <div><strong>Processo:</strong> {selectedPaciente.numeroProcesso}</div>
-            <div><strong>Medicamentos em Tratamento:</strong> {selectedPaciente.medicamentosTratamento || 'Nenhum medicamento pré-cadastrado'}</div>
+          <div className={styles.patientSummaryBox}>
+            <div className={styles.patientBadgeGroup}>
+              <span className={styles.badgePasta}>Pasta #{selectedPaciente.numeroPasta}</span>
+              <span className={styles.badgeCpf}>CPF: {selectedPaciente.cpf}</span>
+            </div>
+            <div className={styles.patientDetails}>
+              <p><strong>Paciente:</strong> {selectedPaciente.patientName}</p>
+              <p><strong>Nº Processo:</strong> {selectedPaciente.numeroProcesso}</p>
+              <p><strong>Medicamentos em Tratamento:</strong> {selectedPaciente.medicamentosTratamento || 'Nenhum medicamento pré-cadastrado'}</p>
+            </div>
           </div>
         )}
 
-        <div className={`${styles.addMedSection} ${styles.fullWidth}`}>
+        {/* ADICIONAR MEDICAMENTO (BUSCA DIGITÁVEL + MENU SUSPENSO) */}
+        <div className={styles.addMedSection}>
           <h4>Adicionar Medicamento para Entrega</h4>
+          
           <div className={styles.addMedGrid}>
+            
+            {/* 1. BUSCA DIGITÁVEL POR TEXTO */}
             <div className={styles.fieldGroup}>
-              <label>Selecione o Medicamento / Lote Disponível *</label>
-              <select value={selectedLoteId} onChange={(e) => setSelectedLoteId(e.target.value)}>
+              <label>Filtrar / Digitar Medicamento ou Lote</label>
+              <div className={styles.searchInputWrapper}>
+                <Image 
+                  src="/lupa.png" 
+                  alt="Buscar" 
+                  width={18} 
+                  height={18} 
+                  className={styles.searchIcon}
+                />
+                <input 
+                  type="text"
+                  className={styles.inputWithIcon}
+                  placeholder="Digite nome, dosagem ou lote..."
+                  value={searchMed}
+                  onChange={(e) => {
+                    setSearchMed(e.target.value);
+                    if (!e.target.value) setSelectedLoteId('');
+                  }}
+                />
+              </div>
+
+              {searchMed && !selectedLoteId && filteredLotes.length > 0 && (
+                <ul className={styles.suggestionsList}>
+                  {filteredLotes.map((lote) => (
+                    <li 
+                      key={lote.loteId} 
+                      onClick={() => handleSelectLoteDigitavel(lote)} 
+                      className={styles.suggestionItem}
+                    >
+                      <div><strong>{lote.medicamentoNome}</strong> ({lote.dosagem})</div>
+                      <small style={{ color: '#64748b' }}>
+                        Lote: {lote.numeroLote} | Saldo: <strong>{lote.qtdAtual}</strong> un | Val: {lote.dataValidade}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* 2. MENU SUSPENSO (SELECT) */}
+            <div className={styles.fieldGroup}>
+              <label>Ou Escolha no Menu Suspenso *</label>
+              <select value={selectedLoteId} onChange={handleSelectLoteDropdown}>
                 <option value="">-- Selecione o Lote do Estoque --</option>
-                {estoqueLotes.filter(l => l.qtdAtual > 0).map(l => (
+                {lotesComEstoque.map(l => (
                   <option key={l.loteId} value={l.loteId}>
                     {l.medicamentoNome} ({l.dosagem}) - Lote: {l.numeroLote} | Disp: {l.qtdAtual} | Val: {l.dataValidade}
                   </option>
@@ -284,6 +377,7 @@ export default function TabDispensacao({
               </select>
             </div>
 
+            {/* 3. QTD ENTREGUE */}
             <div className={styles.fieldGroup}>
               <label>Qtd Entregue *</label>
               <input 
@@ -295,13 +389,15 @@ export default function TabDispensacao({
               />
             </div>
 
+            {/* 4. BOTÃO ADICIONAR ITEM */}
             <button type="button" onClick={handleAddItem} className={styles.addBtn}>
               + Adicionar Item
             </button>
           </div>
         </div>
 
-        <div className={`${styles.fullWidth} ${styles.tableWrapper}`}>
+        {/* TABELA DE ITENS ADICIONADOS */}
+        <div className={styles.tableWrapper}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -309,13 +405,13 @@ export default function TabDispensacao({
                 <th>Dosagem</th>
                 <th>Lote</th>
                 <th>Qtd a Entregar</th>
-                <th>Ação</th>
+                <th style={{ textAlign: 'right' }}>Ação</th>
               </tr>
             </thead>
             <tbody>
               {carrinhoDispensacao.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', color: '#64748b' }}>
+                  <td colSpan="5" className={styles.emptyTableTd}>
                     Nenhum medicamento inserido na lista de entrega.
                   </td>
                 </tr>
@@ -326,7 +422,7 @@ export default function TabDispensacao({
                     <td>{item.dosagem}</td>
                     <td>{item.numeroLote}</td>
                     <td><strong>{item.qtdEntregue}</strong></td>
-                    <td>
+                    <td style={{ textAlign: 'right' }}>
                       <button type="button" onClick={() => handleRemoveItem(idx)} className={styles.removeBtn}>
                         🗑 Remover
                       </button>
@@ -338,28 +434,32 @@ export default function TabDispensacao({
           </table>
         </div>
 
-        <div className={styles.fieldGroup}>
-          <label>Responsável pela Entrega / Servidor *</label>
-          <input 
-            type="text" 
-            placeholder="Ex: Farmacêutico João Pedro" 
-            value={responsavelEntrega} 
-            onChange={(e) => setResponsavelEntrega(e.target.value)} 
-            required 
-          />
+        {/* GRID INFERIOR (RESPONSÁVEL + OBSERVAÇÃO) */}
+        <div className={styles.bottomFieldsGrid}>
+          <div className={styles.fieldGroup}>
+            <label>Responsável pela Entrega / Servidor *</label>
+            <input 
+              type="text" 
+              placeholder="Ex: Farmacêutico João Pedro" 
+              value={responsavelEntrega} 
+              onChange={(e) => setResponsavelEntrega(e.target.value)} 
+              required 
+            />
+          </div>
+
+          <div className={styles.fieldGroup}>
+            <label>Observação da Dispensação</label>
+            <input 
+              type="text" 
+              placeholder="Ex: Entrega referente ao mês de Agosto" 
+              value={observacao} 
+              onChange={(e) => setObservacao(e.target.value)} 
+            />
+          </div>
         </div>
 
-        <div className={styles.fieldGroup}>
-          <label>Observação da Dispensação</label>
-          <input 
-            type="text" 
-            placeholder="Ex: Entrega referente ao mês de Agosto" 
-            value={observacao} 
-            onChange={(e) => setObservacao(e.target.value)} 
-          />
-        </div>
-
-        <div className={`${styles.fullWidth} ${styles.formActions}`}>
+        {/* BOTÃO FINALIZAR */}
+        <div className={styles.formActions}>
           <button type="button" onClick={handleOpenModal} className={styles.primaryBtn}>
             Confirmar e Registrar Dispensação
           </button>

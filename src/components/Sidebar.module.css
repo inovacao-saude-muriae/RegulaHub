@@ -19,10 +19,10 @@
   width: var(--sidebar-width-expanded);
 }
 
-/* Ocultar barra de rolagem mas manter funcionalidade */
 .sidebar::-webkit-scrollbar {
   width: 4px;
 }
+
 .sidebar::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 4px;
@@ -47,6 +47,7 @@
   align-items: center;
   justify-content: center;
   font-size: 1.3rem;
+  color: #ffffff;
 }
 
 .logoText {
@@ -93,6 +94,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  padding: 0;
+  margin: 0;
 }
 
 .navLink {
@@ -107,6 +110,9 @@
   white-space: nowrap;
   transition: all 0.2s ease;
   position: relative;
+  text-decoration: none;
+  height: 42px;
+  box-sizing: border-box;
 }
 
 .navLink:hover {
@@ -117,9 +123,11 @@
 .icon {
   font-size: 1.15rem;
   min-width: 32px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .label {
@@ -129,4 +137,161 @@
 
 .sidebar:hover .label {
   opacity: 1;
+}
+
+/* DROPDOWN NÍVEL 1 */
+.dropdownContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.dropdownTrigger {
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  text-align: left;
+}
+
+.chevron {
+  margin-left: auto;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  color: rgba(255, 255, 255, 0.6);
+  opacity: 0;
+  flex-shrink: 0;
+}
+
+.sidebar:hover .chevron {
+  opacity: 1;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.activeParent {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #ffffff !important;
+}
+
+.submenuList {
+  list-style: none;
+  padding: 0.2rem 0 0.2rem 0;
+  margin: 0.3rem 0 0.3rem 1.1rem;
+  display: none;
+  flex-direction: column;
+  gap: 0.2rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.18);
+}
+
+.sidebar:hover .submenuList {
+  display: flex;
+}
+
+.submenuLink {
+  display: block;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.submenuLink:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.activeSubmenu {
+  color: #ffffff !important;
+  font-weight: 700;
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* DROPDOWN NÍVEL 2 (ESTADO INICIAL LIMPO IGUAL AO CADASTROS) */
+.nestedContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.nestedHeaderWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.nestedHeaderWrapper:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nestedTriggerBtn {
+  flex-grow: 1;
+  display: block;
+  padding: 0.45rem 0.5rem 0.45rem 0.75rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+}
+
+.chevronToggleBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.45rem 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nestedHeaderWrapper:hover .nestedTriggerBtn,
+.nestedHeaderWrapper:hover .chevronToggleBtn .chevron {
+  color: #ffffff;
+}
+
+.nestedSubmenuList {
+  list-style: none;
+  padding: 0.2rem 0 0.2rem 0;
+  margin: 0.2rem 0 0.2rem 0.6rem;
+  display: none;
+  flex-direction: column;
+  gap: 0.15rem;
+  border-left: 1px dashed rgba(255, 255, 255, 0.25);
+}
+
+.sidebar:hover .nestedSubmenuList {
+  display: flex;
+}
+
+.nestedSubmenuLink {
+  display: block;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.775rem;
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.nestedSubmenuLink:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.activeNestedSubmenu {
+  color: #ffffff !important;
+  font-weight: 700;
+  background-color: rgba(255, 255, 255, 0.25) !important;
 }
