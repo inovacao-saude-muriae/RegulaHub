@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 
 // Custom Hooks
@@ -25,18 +25,53 @@ import ModalSeletorCotas from "./components/Modals/ModalSeletorCotas";
 import styles from "./page.module.css";
 
 export default function RegulacaoPage() {
-  // Aba padrão agora é DASHBOARD
-  const [activeTab, setActiveTab] = useState("DASHBOARD");
+  // 1. Persiste a aba ativa no sessionStorage para que no F5 não volte obrigatoriamente pro DASHBOARD
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("activeTab") || "DASHBOARD";
+    }
+    return "DASHBOARD";
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("activeTab", activeTab);
+    }
+  }, [activeTab]);
 
   const data = useRegulacaoData(setActiveTab);
   const { filters, handleFilterChange, clearFilters, applyFilters } = useRegulacaoFilters();
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
+  // Procedimentos disponíveis para o formulário de NOVO PEDIDO
   const availableProcedures = data.auxData.procedimentos.filter(
     (p) => String(p.tipoExameId) === String(data.newRequest.examTypeId)
   );
-  const allProceduresList = data.auxData.procedimentos.map((p) => p.nome);
+
+  // ── LÓGICA DE CORREÇÃO DO FILTRO DE PROCEDIMENTOS ──
+  // Identifica o nome do exame ativo baseado na aba que o usuário está visualizando
+  const activeExamName =
+    activeTab === "LISTA_ESPERA"
+      ? data.selectedQueueExam
+      : activeTab === "LIBERADOS"
+      ? data.selectedReleasedExam
+      : "";
+
+  // Busca o objeto do tipo de exame correspondente ao botão ativo (Tomografia, Ressonância, etc)
+  const activeExamObj = data.auxData.tiposExame.find(
+    (t) =>
+      t.nome?.toLowerCase() === activeExamName?.toLowerCase() ||
+      String(t.id) === String(activeExamName)
+  );
+
+  // Filtra a lista enviada ao FiltersBar para conter APENAS procedimentos do exame da aba ativa
+  const allProceduresList = data.auxData.procedimentos
+    .filter((p) => {
+      if (!activeExamObj) return true; // Se não houver exame selecionado, exibe todos
+      return String(p.tipoExameId) === String(activeExamObj.id);
+    })
+    .map((p) => p.nome);
 
   return (
     <div className={styles.container}>
@@ -179,6 +214,7 @@ export default function RegulacaoPage() {
           quotaModalYear={data.quotaModalYear}
           setQuotaModalYear={data.setQuotaModalYear}
           handleSelectMonthFromModal={data.handleSelectMonthFromModal}
+          calculateMonthQuotaDetails={data.calculateMonthQuotaDetails}
           styles={styles}
         />
       )}

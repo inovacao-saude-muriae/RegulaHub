@@ -8,7 +8,7 @@ export default function TabDashboard({ requests = [], auxData = {}, setActiveTab
   const totalLiberados = requests.filter((r) => r.status === "Liberado").length;
   const totalGeral = requests.length;
 
-  // Riscos
+  // Riscos (Aguardando - Fila)
   const urgentes = requests.filter(
     (r) => r.status === "Aguardando" && r.classification === "Vermelho"
   ).length;
@@ -19,10 +19,35 @@ export default function TabDashboard({ requests = [], auxData = {}, setActiveTab
     (r) => r.status === "Aguardando" && r.classification === "Verde"
   ).length;
 
-  // Agrupamento por Tipo de Exame (Aguardando)
-  const examTypeCounts = (auxData.tiposExame || []).map((tipo) => {
+  // Riscos (Liberados)
+  const liberadosUrgentes = requests.filter(
+    (r) => r.status === "Liberado" && r.classification === "Vermelho"
+  ).length;
+  const liberadosPrioritarios = requests.filter(
+    (r) => r.status === "Liberado" && r.classification === "Amarelo"
+  ).length;
+  const liberadosEletivos = requests.filter(
+    (r) => r.status === "Liberado" && r.classification === "Verde"
+  ).length;
+
+  // Agrupamento por Tipo de Exame (Aguardando - Fila)
+  const examTypeCountsFila = (auxData.tiposExame || []).map((tipo) => {
     const count = requests.filter(
-      (r) => r.status === "Aguardando" && r.examType === tipo.nome
+      (r) =>
+        r.status === "Aguardando" &&
+        (r.examType?.toLowerCase().trim() === tipo.nome?.toLowerCase().trim() ||
+          String(r.examTypeId) === String(tipo.id))
+    ).length;
+    return { nome: tipo.nome, count };
+  });
+
+  // Agrupamento por Tipo de Exame (Liberados)
+  const examTypeCountsLiberados = (auxData.tiposExame || []).map((tipo) => {
+    const count = requests.filter(
+      (r) =>
+        r.status === "Liberado" &&
+        (r.examType?.toLowerCase().trim() === tipo.nome?.toLowerCase().trim() ||
+          String(r.examTypeId) === String(tipo.id))
     ).length;
     return { nome: tipo.nome, count };
   });
@@ -44,7 +69,7 @@ export default function TabDashboard({ requests = [], auxData = {}, setActiveTab
         </button>
       </div>
 
-      {/* METRICAS PRINCIPAIS */}
+      {/* MÉTROCAS PRINCIPAIS */}
       <div className={styles.metricsGrid}>
         <div
           className={`${styles.metricCard} ${styles.clickable}`}
@@ -79,9 +104,9 @@ export default function TabDashboard({ requests = [], auxData = {}, setActiveTab
             🚨
           </div>
           <div>
-            <span className={styles.metricLabel}>Urgências (Vermelho)</span>
+            <span className={styles.metricLabel}>Urgências na Fila</span>
             <div className={styles.metricValue}>{urgentes}</div>
-            <small className={styles.metricSubText}>Aguardando liberação imediata</small>
+            <small className={styles.metricSubText}>Classificação Vermelha</small>
           </div>
         </div>
 
@@ -97,11 +122,14 @@ export default function TabDashboard({ requests = [], auxData = {}, setActiveTab
         </div>
       </div>
 
-      {/* SEÇÃO INFERIOR COM DETALHAMENTO */}
+      {/* SEÇÃO 1: PAINEL DA FILA DE ESPERA */}
+      <h3 style={{ marginTop: "24px", marginBottom: "12px", color: "#1e293b", fontSize: "1.1rem" }}>
+        📊 Fila de Espera
+      </h3>
       <div className={styles.dashboardGrid}>
         {/* CARD: FILA POR CLASSIFICAÇÃO DE RISCO */}
         <div className={styles.dashCard}>
-          <h3 className={styles.cardTitle}>Classificação de Risco (Fila)</h3>
+          <h3 className={styles.cardTitle}>Fila por Classificação de Risco</h3>
           <div className={styles.riskProgressList}>
             <div className={styles.riskItem}>
               <div className={styles.riskHeader}>
@@ -155,12 +183,87 @@ export default function TabDashboard({ requests = [], auxData = {}, setActiveTab
 
         {/* CARD: FILA POR TIPO DE EXAME */}
         <div className={styles.dashCard}>
-          <h3 className={styles.cardTitle}>Aguardando por Tipo de Exame</h3>
+          <h3 className={styles.cardTitle}>Fila por Tipo de Exame</h3>
           <div className={styles.examTypeList}>
-            {examTypeCounts.map((item) => (
+            {examTypeCountsFila.map((item) => (
               <div key={item.nome} className={styles.examTypeRow}>
                 <span>{item.nome}</span>
                 <span className={styles.examCountBadge}>{item.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* SEÇÃO 2: PAINEL DE PACIENTES LIBERADOS */}
+      <h3 style={{ marginTop: "32px", marginBottom: "12px", color: "#1e293b", fontSize: "1.1rem" }}>
+        ✅ Pacientes Liberados
+      </h3>
+      <div className={styles.dashboardGrid}>
+        {/* CARD: LIBERADOS POR CLASSIFICAÇÃO DE RISCO */}
+        <div className={styles.dashCard}>
+          <h3 className={styles.cardTitle}>Liberados por Classificação de Risco</h3>
+          <div className={styles.riskProgressList}>
+            <div className={styles.riskItem}>
+              <div className={styles.riskHeader}>
+                <span className={`${styles.riskBadge} ${styles.redBadge}`}>Vermelho (Urgente)</span>
+                <strong>{liberadosUrgentes} pacientes</strong>
+              </div>
+              <div className={styles.progressBarBg}>
+                <div
+                  className={styles.progressBarFill}
+                  style={{
+                    width: `${totalLiberados ? (liberadosUrgentes / totalLiberados) * 100 : 0}%`,
+                    backgroundColor: "#dc2626",
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className={styles.riskItem}>
+              <div className={styles.riskHeader}>
+                <span className={`${styles.riskBadge} ${styles.yellowBadge}`}>Amarelo (Prioritário)</span>
+                <strong>{liberadosPrioritarios} pacientes</strong>
+              </div>
+              <div className={styles.progressBarBg}>
+                <div
+                  className={styles.progressBarFill}
+                  style={{
+                    width: `${totalLiberados ? (liberadosPrioritarios / totalLiberados) * 100 : 0}%`,
+                    backgroundColor: "#d97706",
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className={styles.riskItem}>
+              <div className={styles.riskHeader}>
+                <span className={`${styles.riskBadge} ${styles.greenBadge}`}>Verde (Eletivo)</span>
+                <strong>{liberadosEletivos} pacientes</strong>
+              </div>
+              <div className={styles.progressBarBg}>
+                <div
+                  className={styles.progressBarFill}
+                  style={{
+                    width: `${totalLiberados ? (liberadosEletivos / totalLiberados) * 100 : 0}%`,
+                    backgroundColor: "#16a34a",
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CARD: LIBERADOS POR TIPO DE EXAME */}
+        <div className={styles.dashCard}>
+          <h3 className={styles.cardTitle}>Liberados por Tipo de Exame</h3>
+          <div className={styles.examTypeList}>
+            {examTypeCountsLiberados.map((item) => (
+              <div key={item.nome} className={styles.examTypeRow}>
+                <span>{item.nome}</span>
+                <span className={styles.examCountBadge} style={{ backgroundColor: "#dcfce7", color: "#15803d" }}>
+                  {item.count}
+                </span>
               </div>
             ))}
           </div>

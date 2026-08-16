@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import styles from "./EditarPedido.module.css";
+import { useUnsavedChanges } from "../hooks/useUnsavedChanges";
 
 export default function EditarPedido({
   editingItem,
@@ -12,21 +13,32 @@ export default function EditarPedido({
   onBack,
 }) {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Protege a navegação e recarregamento da página (F5) caso haja alterações pendentes
+  useUnsavedChanges(isDirty);
 
   if (!editingItem) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsDirty(false); // Desativa a proteção para permitir o envio normal do formulário
     if (handleSaveEditedOrder) {
       await handleSaveEditedOrder(e);
     }
-    // Exibe o modal elegante de sucesso
     setShowSuccessModal(true);
   };
 
   const handleCloseSuccessModal = () => {
     setShowSuccessModal(false);
-    onBack(); // Retorna automaticamente para a fila
+    onBack();
+  };
+
+  const handleCancel = () => {
+    if (isDirty && !confirm("Existem alterações não salvas. Deseja realmente voltar para a fila?")) {
+      return;
+    }
+    onBack();
   };
 
   return (
@@ -70,7 +82,7 @@ export default function EditarPedido({
         <button
           type="button"
           className={styles.secondaryBtn}
-          onClick={onBack}
+          onClick={handleCancel}
         >
           ← Voltar para a Fila
         </button>
@@ -137,7 +149,10 @@ export default function EditarPedido({
               <label>Status do Pedido *</label>
               <select
                 value={editingItem.status || "Aguardando"}
-                onChange={(e) => handleEditStatusChange(e.target.value)}
+                onChange={(e) => {
+                  setIsDirty(true);
+                  handleEditStatusChange(e.target.value);
+                }}
                 required
               >
                 <option value="Aguardando">Aguardando (Volta para Fila)</option>
@@ -152,6 +167,7 @@ export default function EditarPedido({
               <select
                 value={editingItem.procedureId || ""}
                 onChange={(e) => {
+                  setIsDirty(true);
                   const procId = Number(e.target.value);
                   const foundProc = auxData.procedimentos?.find((p) => p.id === procId);
                   setEditingItem({
@@ -176,7 +192,10 @@ export default function EditarPedido({
               <label>Classificação de Risco *</label>
               <select
                 value={editingItem.classification || "Verde"}
-                onChange={(e) => setEditingItem({ ...editingItem, classification: e.target.value })}
+                onChange={(e) => {
+                  setIsDirty(true);
+                  setEditingItem({ ...editingItem, classification: e.target.value });
+                }}
                 required
               >
                 <option value="Verde">Verde (Eletivo)</option>
@@ -189,9 +208,10 @@ export default function EditarPedido({
               <label>Médico Solicitante</label>
               <select
                 value={editingItem.medicoSolicitanteId || ""}
-                onChange={(e) =>
-                  setEditingItem({ ...editingItem, medicoSolicitanteId: e.target.value })
-                }
+                onChange={(e) => {
+                  setIsDirty(true);
+                  setEditingItem({ ...editingItem, medicoSolicitanteId: e.target.value });
+                }}
               >
                 <option value="">-- Selecione o Médico Solicitante --</option>
                 {auxData.medicos
@@ -208,7 +228,10 @@ export default function EditarPedido({
               <label>UBS Solicitante</label>
               <select
                 value={editingItem.ubsResponsavelId || ""}
-                onChange={(e) => setEditingItem({ ...editingItem, ubsResponsavelId: e.target.value })}
+                onChange={(e) => {
+                  setIsDirty(true);
+                  setEditingItem({ ...editingItem, ubsResponsavelId: e.target.value });
+                }}
               >
                 <option value="">-- Selecione a UBS --</option>
                 {auxData.ubsList?.map((u) => (
@@ -220,25 +243,27 @@ export default function EditarPedido({
             </div>
 
             <div className={`${styles.fieldGroup} ${styles.fullWidth}`}>
-              <label>Observação / Justificativa Clínica</label>
+              <label htmlFor="justification">Justificativa do Pedido (Quadro Clínico)</label>
               <textarea
+                id="justification"
                 rows={3}
                 value={editingItem.justification || editingItem.observacao || ""}
-                onChange={(e) =>
+                onChange={(e) => {
+                  setIsDirty(true);
                   setEditingItem({
                     ...editingItem,
                     justification: e.target.value,
                     observacao: e.target.value,
-                  })
-                }
-                placeholder="Descreva o motivo da alteração..."
+                  });
+                }}
+                placeholder="Descreva a justificativa médica e o quadro clínico do paciente..."
               />
             </div>
           </div>
         </div>
 
         <div className={styles.formActions}>
-          <button type="button" className={styles.secondaryBtn} onClick={onBack}>
+          <button type="button" className={styles.secondaryBtn} onClick={handleCancel}>
             Cancelar
           </button>
           <button type="submit" className={styles.updateBtn}>

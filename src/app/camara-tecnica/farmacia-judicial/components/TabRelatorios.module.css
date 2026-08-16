@@ -1,80 +1,111 @@
-.card {
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.filterCard {
   background-color: #ffffff;
-  border-radius: 12px;
-  padding: 1.5rem;
   border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.headerRow {
+.filterTitle {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fieldGroup label {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.fieldGroup select {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #1e293b;
+  outline: none;
+  background-color: #ffffff;
+}
+
+.tableCard {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.tableHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   flex-wrap: wrap;
   gap: 1rem;
 }
 
-.headerRow h2 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 0.25rem;
-}
-
-.headerRow p {
-  font-size: 0.875rem;
-  color: #64748b;
+.tableHeader h4 {
   margin: 0;
+  font-size: 1.05rem;
+  color: #0f172a;
 }
 
-.exportBtn {
-  background-color: #107c41;
-  color: #ffffff;
-  border: none;
-  padding: 0.65rem 1.25rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
+.tableHeader small {
+  color: #64748b;
+  font-size: 0.8rem;
 }
 
-.exportBtn:hover {
-  background-color: #0e6b37;
-}
-
-.tabSubNav {
+.actionsGroup {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1.25rem;
 }
 
-.subTabBtn {
-  background-color: #f1f5f9;
+.excelBtn,
+.printBtn {
   border: none;
-  padding: 0.6rem 1.25rem;
+  padding: 0.55rem 1rem;
   border-radius: 8px;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: #64748b;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease;
 }
 
-.subTabBtn:hover {
-  background-color: #e2e8f0;
-  color: #1e293b;
+.excelBtn {
+  background-color: #16a34a;
+  color: #ffffff;
 }
 
-.activeSubTab {
-  background-color: #2563eb !important;
-  color: #ffffff !important;
+.printBtn {
+  background-color: #2563eb;
+  color: #ffffff;
 }
 
-.loadingBox {
-  padding: 3rem;
-  text-align: center;
-  color: #64748b;
-  font-weight: 500;
+.excelBtn:hover,
+.printBtn:hover {
+  opacity: 0.9;
 }
 
 .tableWrapper {
@@ -94,17 +125,18 @@
   padding: 0.75rem 1rem;
   text-align: left;
   color: #475569;
-  font-weight: 600;
+  font-weight: 700;
   border-bottom: 1px solid #e2e8f0;
 }
 
 .table td {
   padding: 0.75rem 1rem;
-  border-top: 1px solid #f1f5f9;
-  color: #334155;
-  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
 }
 
-.table tbody tr:hover {
-  background-color: #f8fafc;
+.emptyTd {
+  text-align: center;
+  color: #64748b;
+  padding: 2rem !important;
 }

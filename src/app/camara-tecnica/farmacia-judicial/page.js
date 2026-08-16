@@ -82,33 +82,49 @@ export default function FarmaciaJudicialPage() {
   const handleCreatePaciente = async (formData) => {
     const res = await createPacienteJudicial(formData);
     if (res.success) {
-      alert('Paciente judicial cadastrado com sucesso!');
       await reloadData();
-    } else alert('Erro ao cadastrar paciente: ' + res.error);
+    } else {
+      alert('Erro ao cadastrar paciente: ' + res.error);
+    }
   };
 
   const handleCreateMedicamento = async (formData) => {
     const res = await createMedicamento(formData);
     if (res.success) {
-      alert('Medicamento cadastrado no catálogo!');
+      if (formData.darEntradaEstoque) {
+        await createLoteMedicamento({
+          medicamentoId: res.id || res.medicamentoId,
+          numeroLote: formData.numeroLote,
+          fornecedor: formData.fornecedor,
+          qtdInicial: formData.qtdInicial,
+          valorUnitario: formData.valorUnitario,
+          dataEntrada: formData.dataEntrada,
+          dataValidade: formData.dataValidade
+        });
+      }
       await reloadData();
-    } else alert('Erro ao cadastrar medicamento: ' + res.error);
+    } else {
+      alert('Erro ao cadastrar medicamento: ' + res.error);
+    }
   };
 
   const handleCreateLote = async (formData) => {
     const res = await createLoteMedicamento(formData);
     if (res.success) {
-      alert('Entrada de lote realizada no estoque!');
       await reloadData();
-    } else alert('Erro ao dar entrada no lote: ' + res.error);
+    } else {
+      alert('Erro ao dar entrada no lote: ' + res.error);
+    }
   };
 
   const handleConfirmarDispensacao = async (dispensacaoData) => {
     const res = await registrarDispensacao(dispensacaoData);
     if (res.success) {
-      alert('Dispensação realizada e estoque atualizado com sucesso!');
+      // 🎯 REMOVIDO O ALERT NATIVO DO NAVEGADOR PARA NÃO BLOQUEAR A IMPRESSÃO E A TELA
       await reloadData();
-    } else alert('Erro ao registrar dispensação: ' + res.error);
+    } else {
+      alert('Erro ao registrar dispensação: ' + res.error);
+    }
   };
 
   return (
@@ -133,7 +149,7 @@ export default function FarmaciaJudicialPage() {
             className={`${styles.tabBtn} ${activeTab === 'PACIENTES' ? styles.activeTab : ''}`}
             onClick={() => setActiveTab('PACIENTES')}
           >
-            📋 Pacientes e Processos ({pacientes.length})
+            Pacientes ({pacientes.length})
           </button>
 
           <button 
@@ -168,6 +184,7 @@ export default function FarmaciaJudicialPage() {
           metrics={metrics}
           onNavigate={(tab) => setActiveTab(tab)}
           loading={loading}
+          medicamentosList={catalogo}
         />
       )}
 

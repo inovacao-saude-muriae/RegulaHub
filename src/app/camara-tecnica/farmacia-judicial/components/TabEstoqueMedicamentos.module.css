@@ -72,6 +72,48 @@
   outline: none;
 }
 
+.fieldGroup input:focus,
+.fieldGroup select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+/* ESTILOS PARA A LISTA DE SUGESTÕES DO CAMPO DE BUSCA DE MEDICAMENTO */
+.suggestionsList {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  margin-top: 0.35rem;
+  max-height: 220px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0;
+}
+
+.suggestionItem {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.875rem;
+  color: #334155;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.suggestionItem:last-child {
+  border-bottom: none;
+}
+
+.suggestionItem:hover {
+  background-color: #f8fafc;
+  color: #1d4ed8;
+}
+
 .formActions {
   display: flex;
   justify-content: flex-end;
@@ -87,6 +129,11 @@
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.primaryBtn:hover {
+  background-color: #1d4ed8;
 }
 
 .loadingBox {

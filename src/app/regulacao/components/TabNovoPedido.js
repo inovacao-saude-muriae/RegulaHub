@@ -1,6 +1,7 @@
 'use client';
 
 import styles from './TabNovoPedido.module.css';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 
 export default function TabNovoPedido({
   newRequest = {
@@ -31,11 +32,30 @@ export default function TabNovoPedido({
   handleExamTypeChange = () => {},
   handleProcedureChange = () => {},
 }) {
+  // Identifica se qualquer dado relevante foi preenchido no formulário
+  const isDirty = Boolean(
+    newRequest.patientName ||
+    newRequest.cpf ||
+    newRequest.examTypeId ||
+    newRequest.procedureId ||
+    newRequest.justification
+  );
+
+  // Ativa o alerta de dados não salvos ao recarregar a página (F5) ou fechar a aba
+  useUnsavedChanges(isDirty);
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    if (handleCreateRequest) {
+      await handleCreateRequest(e);
+    }
+  };
+
   return (
     <div className={styles.card}>
       <h2 className={styles.cardTitle}>Nova Solicitação de Exame</h2>
 
-      <form onSubmit={handleCreateRequest} className={styles.patientFormContainer}>
+      <form onSubmit={onSubmit} className={styles.patientFormContainer}>
         
         {/* SEÇÃO 1: BUSCA E IDENTIFICAÇÃO DO PACIENTE */}
         <div className={styles.formSection}>
@@ -244,10 +264,11 @@ export default function TabNovoPedido({
             </div>
 
             <div className={`${styles.fieldGroup} ${styles.fullWidth}`}>
-              <label>Justificativa do Pedido (Quadro Clínico)</label>
+              <label htmlFor="justification">Justificativa do Pedido (Quadro Clínico)</label>
               <textarea
+                id="justification"
                 rows="3"
-                placeholder="Descreva o histórico clínico do paciente..."
+                placeholder="Descreva a justificativa médica e o quadro clínico do paciente..."
                 value={newRequest.justification || ''}
                 onChange={(e) => setNewRequest({ ...newRequest, justification: e.target.value })}
               />

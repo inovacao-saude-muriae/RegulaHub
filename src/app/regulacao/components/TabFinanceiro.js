@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import styles from './TabFinanceiro.module.css';
 
-// Lista de meses definida no próprio componente
+// Lista de meses
 const DEFAULT_MONTHS_LIST = [
   { value: "01", name: "Jan" },
   { value: "02", name: "Fev" },
@@ -19,39 +19,62 @@ const DEFAULT_MONTHS_LIST = [
   { value: "12", name: "Dez" },
 ];
 
-// Tipos de cotas oficiais atualizados do sistema
-const LISTA_COTAS_OFICIAIS = ['OCI', 'SUS', 'PPI'];
+// Tipos de cotas oficiais para os cards
+const LISTA_COTAS_OFICIAIS = ['SUS', 'Credenciamento', 'OCI'];
+
+// Cidades para a tabela de Planejamento Mensal
+const LISTA_CIDADES = [
+  'ALÉM PARAÍBA',
+  'LEOPOLDINA-CATAGUASES',
+  'MANHUAÇU',
+];
 
 export default function TabFinanceiro({
-  finMonth = "08",
+  finMonth,
   setFinMonth = () => {},
-  finYear = "2026",
+  finYear,
   setFinYear = () => {},
   MONTHS_LIST = DEFAULT_MONTHS_LIST,
   calculateMonthQuotaDetails = () => ({ totalLimit: 0, totalUsed: 0, available: 0 }),
   handleOpenDefineTetoModal = () => {}
 }) {
-  // Estado local para gerenciar os valores editáveis da tabela (3 cotas x 12 meses)
+  // Inicialização dinâmica baseada na data atual do sistema
+  const currentDate = new Date();
+  const currentMonthStr = String(currentDate.getMonth() + 1).padStart(2, '0');
+  const currentYearStr = String(currentDate.getFullYear());
+
+  const activeMonth = finMonth || currentMonthStr;
+  const activeYear = finYear || currentYearStr;
+
+  // Estado local com as cidades para a tabela de planejamento
   const [tableData, setTableData] = useState({
-    OCI: Array(12).fill(0),
-    SUS: Array(12).fill(0),
-    PPI: Array(12).fill(0),
+    'ALÉM PARAÍBA': Array(12).fill(0),
+    'LEOPOLDINA-CATAGUASES': Array(12).fill(0),
+    'MANHUAÇU': Array(12).fill(0),
   });
 
-  // Atualiza a célula correspondente
-  const handleCellChange = (cota, monthIndex, value) => {
+  // Atualiza a célula da cidade
+  const handleCellChange = (cidade, monthIndex, value) => {
     const numericValue = parseFloat(value) || 0;
     setTableData((prev) => {
-      const updatedRow = [...prev[cota]];
+      const updatedRow = [...(prev[cidade] || Array(12).fill(0))];
       updatedRow[monthIndex] = numericValue;
-      return { ...prev, [cota]: updatedRow };
+      return { ...prev, [cidade]: updatedRow };
     });
   };
 
-  // Calcula o total da linha de cada cota
-  const calculateRowTotal = (cota) => {
-    return tableData[cota].reduce((sum, val) => sum + (val || 0), 0);
+  // Calcula o total da linha de cada cidade
+  const calculateRowTotal = (cidade) => {
+    return (tableData[cidade] || []).reduce((sum, val) => sum + (val || 0), 0);
   };
+
+  // Anos para o select (ano atual + 2 próximos)
+  const currentYearNum = currentDate.getFullYear();
+  const availableYears = [
+    String(currentYearNum),
+    String(currentYearNum + 1),
+    String(currentYearNum + 2),
+  ];
 
   return (
     <div className={styles.financeContainer}>
@@ -63,7 +86,7 @@ export default function TabFinanceiro({
         <div className={styles.financeFiltersRow}>
           <div className={styles.fieldGroup}>
             <label>Mês de Competência:</label>
-            <select value={finMonth} onChange={(e) => setFinMonth(e.target.value)}>
+            <select value={activeMonth} onChange={(e) => setFinMonth(e.target.value)}>
               {MONTHS_LIST.map((m) => (
                 <option key={m.value} value={m.value}>
                   {m.name} ({m.value})
@@ -74,10 +97,12 @@ export default function TabFinanceiro({
 
           <div className={styles.fieldGroup}>
             <label>Ano de Competência:</label>
-            <select value={finYear} onChange={(e) => setFinYear(e.target.value)}>
-              <option value="2026">2026</option>
-              <option value="2027">2027</option>
-              <option value="2028">2028</option>
+            <select value={activeYear} onChange={(e) => setFinYear(e.target.value)}>
+              {availableYears.map((yr) => (
+                <option key={yr} value={yr}>
+                  {yr}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -86,7 +111,7 @@ export default function TabFinanceiro({
       {/* GRID DE CARDS COM AS COTAS DO SISTEMA */}
       <div className={styles.financeCardsGrid}>
         {LISTA_COTAS_OFICIAIS.map((tipoCota) => {
-          const details = calculateMonthQuotaDetails(tipoCota, finYear, finMonth) || {
+          const details = calculateMonthQuotaDetails(tipoCota, activeYear, activeMonth) || {
             totalLimit: 0,
             totalUsed: 0,
             available: 0,
@@ -115,7 +140,7 @@ export default function TabFinanceiro({
               <div className={styles.financeCardBody}>
                 <div>
                   <small className={styles.mutedText}>
-                    Teto Disponível para {finMonth}/{finYear}:
+                    Teto Disponível para {activeMonth}/{activeYear}:
                   </small>
                   <div className={styles.amountTotal}>
                     R$ {(details.totalLimit || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -141,16 +166,16 @@ export default function TabFinanceiro({
         })}
       </div>
 
-      {/* TABELA DE ACOMPANHAMENTO MENSAL DAS COTAS */}
+      {/* TABELA DE ACOMPANHAMENTO MENSAL POR CIDADE */}
       <div className={`${styles.card} ${styles.tableCard}`}>
-        <h3 className={styles.tableTitle}>Planejamento Mensal de Cotas ({finYear})</h3>
-        <p className={styles.tableSubtitle}>Preencha os valores de cada mês para acompanhar o total anual das cotas:</p>
+        <h3 className={styles.tableTitle}>Planejamento Mensal por Cidade ({activeYear})</h3>
+        <p className={styles.tableSubtitle}>Preencha os valores de cada mês para acompanhar o total anual das cidades:</p>
 
         <div className={styles.tableResponsive}>
           <table className={styles.cotasTable}>
             <thead>
               <tr>
-                <th>Cota</th>
+                <th>Cidade</th>
                 {DEFAULT_MONTHS_LIST.map((m) => (
                   <th key={m.value}>{m.name}</th>
                 ))}
@@ -158,15 +183,15 @@ export default function TabFinanceiro({
               </tr>
             </thead>
             <tbody>
-              {LISTA_COTAS_OFICIAIS.map((cota) => {
-                const totalRow = calculateRowTotal(cota);
+              {LISTA_CIDADES.map((cidade) => {
+                const totalRow = calculateRowTotal(cidade);
 
                 return (
-                  <tr key={cota}>
+                  <tr key={cidade}>
                     <td className={styles.cotaNameCell}>
-                      <strong>{cota}</strong>
+                      <strong>{cidade}</strong>
                     </td>
-                    {tableData[cota].map((val, idx) => (
+                    {(tableData[cidade] || Array(12).fill(0)).map((val, idx) => (
                       <td key={idx}>
                         <input
                           type="number"
@@ -174,7 +199,7 @@ export default function TabFinanceiro({
                           className={styles.cellInput}
                           value={val === 0 ? '' : val}
                           placeholder="0,00"
-                          onChange={(e) => handleCellChange(cota, idx, e.target.value)}
+                          onChange={(e) => handleCellChange(cidade, idx, e.target.value)}
                         />
                       </td>
                     ))}

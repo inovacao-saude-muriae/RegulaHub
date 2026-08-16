@@ -42,8 +42,15 @@ export async function getPedidosExames() {
         ? item.dataSolicitacao.toISOString().split("T")[0]
         : "";
 
+      // Extrai o nome do exame ou define um padrão
+      const examName = item.procedimento?.tipoExame?.nome || "EXA";
+      // Pega as 3 primeiras letras em maiúsculo (ex: TOM, RES, CIN)
+      const prefix = examName.trim().substring(0, 3).toUpperCase();
+      // Código personalizado combinando o prefixo + ID do banco de dados
+      const customCode = `${prefix}${item.id}`;
+
       return {
-        id: `REG-${item.id}`,
+        id: customCode,
         dbId: item.id,
         examType: item.procedimento?.tipoExame?.nome || "",
         examTypeId: item.procedimento?.tipoExameId || null,
@@ -242,7 +249,7 @@ export async function createPedidoExame(data) {
 // 6. Atualizar Data da Comunicação
 export async function updateCommunicationDate(idStr, dateStr) {
   try {
-    const numericId = Number(String(idStr).replace("REG-", ""));
+    const numericId = Number(String(idStr).replace(/\D/g, ""));
     await prisma.pedidoExame.update({
       where: { id: numericId },
       data: {
@@ -262,7 +269,7 @@ export async function updateCommunicationDate(idStr, dateStr) {
 // 7. Liberar Paciente
 export async function releasePaciente(idStr, releaseData) {
   try {
-    const numericId = Number(String(idStr).replace("REG-", ""));
+    const numericId = Number(String(idStr).replace(/\D/g, ""));
     await prisma.pedidoExame.update({
       where: { id: numericId },
       data: {
@@ -452,7 +459,7 @@ export async function saveCotaFinanceira({ tipoCota, mes, ano, valorTeto }) {
 // 14. Atualizar Data de Faturamento
 export async function updateBillingDate(idStr, dateStr) {
   try {
-    const numericId = Number(String(idStr).replace("REG-", ""));
+    const numericId = Number(String(idStr).replace(/\D/g, ""));
     await prisma.pedidoExame.update({
       where: { id: numericId },
       data: {
@@ -471,7 +478,7 @@ export async function updateBillingDate(idStr, dateStr) {
 // 15. Atualizar Pedido
 export async function updatePedidoExame(idStr, updateData) {
   try {
-    const numericId = Number(String(idStr).replace("REG-", ""));
+    const numericId = Number(String(idStr).replace(/\D/g, ""));
     const isRevertingToWaiting = updateData.status === "Aguardando";
 
     const payload = {
@@ -522,7 +529,7 @@ export async function updatePedidoExame(idStr, updateData) {
 // 16. Excluir Pedido
 export async function deletePedidoExame(idStr) {
   try {
-    const numericId = Number(String(idStr).replace("REG-", ""));
+    const numericId = Number(String(idStr).replace(/\D/g, ""));
     await prisma.pedidoExame.delete({
       where: { id: numericId },
     });

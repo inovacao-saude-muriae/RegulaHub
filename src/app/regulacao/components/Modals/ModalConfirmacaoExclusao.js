@@ -13,23 +13,26 @@ export default function ModalConfirmacaoExclusao({
     PESSOA: "👤",
     MEDICO: "👨‍⚕️",
     UBS: "🏥",
+    PEDIDO: "📋",
   };
 
   const colorMap = {
     PESSOA: styles.tagPaciente,
     MEDICO: styles.tagMedico,
     UBS: styles.tagUbs,
+    PEDIDO: styles.tagPedido,
   };
 
   const labelMap = {
     PESSOA: "Paciente",
     MEDICO: "Médico",
     UBS: "Unidade de Saúde",
+    PEDIDO: "Pedido de Regulação",
   };
 
-  const icon = iconMap[config.tipo] ?? "🗑️";
+  const icon = iconMap[config.tipo] ?? "⚠️";
   const tagClass = colorMap[config.tipo] ?? "";
-  const label = labelMap[config.tipo] ?? "Registro";
+  const label = labelMap[config.tipo] ?? "Atenção";
 
   return (
     <div className={styles.overlay}>
@@ -45,19 +48,19 @@ export default function ModalConfirmacaoExclusao({
         </div>
 
         <p className={styles.warning}>
-          ⚠️ Esta ação <strong>não pode ser desfeita</strong>.
+          ⚠️ {config.mensagemWarning || "Esta ação não pode ser desfeita."}
         </p>
 
         <div className={styles.actions}>
           <button type="button" className={styles.cancelBtn} onClick={onCancel}>
-            Cancelar
+            {config.cancelText || "Cancelar"}
           </button>
           <button
             type="button"
             className={styles.confirmBtn}
             onClick={onConfirm}
           >
-            🗑️ Sim, Excluir
+            {config.confirmText || "Sim, Confirmar"}
           </button>
         </div>
       </div>

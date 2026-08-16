@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import styles from "./LiberarPedido.module.css";
 import ModalSeletorCotas from "./Modals/ModalSeletorCotas";
+import ModalConfirmacaoExclusao from "./Modals/ModalConfirmacaoExclusao";
 
 export default function LiberarPedido({
   releasingItem,
@@ -20,10 +22,74 @@ export default function LiberarPedido({
   handleSelectMonthFromModal,
   calculateMonthQuotaDetails,
 }) {
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Alerta nativo ao tentar fechar ou atualizar a aba (F5) com alterações pendentes
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "Existem informações não salvas. Deseja realmente sair?";
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
+  // Se a página for recarregada e perder o objeto do pedido em memória, volta para a Fila
+  useEffect(() => {
+    if (!releasingItem && typeof onBack === "function") {
+      onBack();
+    }
+  }, [releasingItem, onBack]);
+
   if (!releasingItem) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDirty(false);
+
+    if (handleConfirmRelease) {
+      await handleConfirmRelease(e);
+    }
+  };
+
+  const handleAttemptLeave = () => {
+    if (isDirty) {
+      setShowCancelModal(true);
+    } else {
+      onBack();
+    }
+  };
 
   return (
     <div className={styles.card}>
+      {/* MODAL CUSTOMIZADO DO SISTEMA */}
+      <ModalConfirmacaoExclusao
+        config={
+          showCancelModal
+            ? {
+                tipo: "PEDIDO",
+                nome: `Cancelar Liberação do Paciente ${releasingItem.patientName}`,
+                detalhe: `Pedido #${releasingItem.id} - ${releasingItem.procedure || ""}`,
+                mensagemWarning: "As alterações feitas nesta tela serão perdidas.",
+                confirmText: "Sim, Voltar para Fila",
+                cancelText: "Continuar Editando",
+              }
+            : null
+        }
+        onConfirm={() => {
+          setIsDirty(false);
+          setShowCancelModal(false);
+          onBack();
+        }}
+        onCancel={() => setShowCancelModal(false)}
+      />
+
       {/* MODAL SELETOR DE COMPETÊNCIA DA COTA */}
       {showQuotaModal && (
         <ModalSeletorCotas
@@ -53,14 +119,14 @@ export default function LiberarPedido({
         <button
           type="button"
           className={styles.secondaryBtn}
-          onClick={onBack}
+          onClick={handleAttemptLeave}
         >
           ← Voltar para a Fila
         </button>
       </div>
 
-      <form onSubmit={handleConfirmRelease} className={styles.patientFormContainer}>
-        {/* SEÇÃO 1: INFORMAÇÕES DO PEDIDO (SOMENTE LEITURA / CONSULTA) */}
+      <form onSubmit={handleSubmit} className={styles.patientFormContainer}>
+        {/* SEÇÃO 1: INFORMAÇÕES DO PEDIDO (CONSULTA) */}
         <div className={styles.formSection}>
           <div className={styles.formSectionHeader}>
             <h4>1. Informações do Pedido (Consulta)</h4>
@@ -134,7 +200,7 @@ export default function LiberarPedido({
           </div>
         </div>
 
-        {/* SEÇÃO 2: DADOS DA AUTORIZAÇÃO E COTA (EDITÁVEIS) */}
+        {/* SEÇÃO 2: DADOS DA AUTORIZAÇÃO E COTA */}
         <div className={styles.formSection}>
           <div className={styles.formSectionHeader}>
             <h4>2. Dados da Autorização e Cota</h4>
@@ -145,7 +211,10 @@ export default function LiberarPedido({
               <label>Status do Pedido *</label>
               <select
                 value={regulationForm.status}
-                onChange={(e) => setRegulationForm({ ...regulationForm, status: e.target.value })}
+                onChange={(e) => {
+                  setIsDirty(true);
+                  setRegulationForm({ ...regulationForm, status: e.target.value });
+                }}
                 required
               >
                 <option value="Liberado">Liberado</option>
@@ -159,13 +228,17 @@ export default function LiberarPedido({
               <label>Tipo de Cota *</label>
               <select
                 value={regulationForm.quota}
-                onChange={(e) => handleSelectQuotaType(e.target.value)}
+                onChange={(e) => {
+                  setIsDirty(true);
+                  handleSelectQuotaType(e.target.value);
+                }}
                 required
               >
                 <option value="">-- Selecione a Cota --</option>
+                <option value="CREDENCIAMENTO">CREDENCIAMENTO</option>
                 <option value="OCI">OCI</option>
                 <option value="SUS">SUS</option>
-                <option value="PPI">PPI</option>
+                <option value="PPI">PPI (Debita no SUS)</option>
               </select>
             </div>
 
@@ -174,7 +247,10 @@ export default function LiberarPedido({
               <input
                 type="date"
                 value={regulationForm.releaseDate}
-                onChange={(e) => handleReleaseDateChange(e.target.value)}
+                onChange={(e) => {
+                  setIsDirty(true);
+                  handleReleaseDateChange(e.target.value);
+                }}
                 required
               />
             </div>
@@ -183,9 +259,10 @@ export default function LiberarPedido({
               <label>Médico Regulador / Responsável</label>
               <select
                 value={regulationForm.regulatorDoctorId}
-                onChange={(e) =>
-                  setRegulationForm({ ...regulationForm, regulatorDoctorId: e.target.value })
-                }
+                onChange={(e) => {
+                  setIsDirty(true);
+                  setRegulationForm({ ...regulationForm, regulatorDoctorId: e.target.value });
+                }}
               >
                 <option value="">-- Selecione o Médico Regulador --</option>
                 {auxData.medicos?.map((m) => (
@@ -195,23 +272,79 @@ export default function LiberarPedido({
                 ))}
               </select>
             </div>
+          </div>
+        </div>
+
+        {/* SEÇÃO 3: COMUNICAÇÃO COM O PACIENTE */}
+        <div className={styles.formSection}>
+          <div className={styles.formSectionHeader}>
+            <h4>3. Comunicação com o Paciente</h4>
+          </div>
+
+          <div className={styles.formGridStrict}>
+            <div className={`${styles.fieldGroup} ${styles.colCpf}`}>
+              <label htmlFor="communicationDate">Data de Comunicação</label>
+              <input
+                type="date"
+                id="communicationDate"
+                value={regulationForm.communicationDate || ""}
+                onChange={(e) => {
+                  setIsDirty(true);
+                  setRegulationForm((prev) => ({
+                    ...prev,
+                    communicationDate: e.target.value,
+                  }));
+                }}
+              />
+            </div>
+
+            <div className={`${styles.fieldGroup} ${styles.colStatus}`}>
+              <label htmlFor="communicationStatus">Status da Comunicação *</label>
+              <select
+                id="communicationStatus"
+                value={regulationForm.communicationStatus || "Avisado"}
+                onChange={(e) => {
+                  setIsDirty(true);
+                  setRegulationForm((prev) => ({
+                    ...prev,
+                    communicationStatus: e.target.value,
+                  }));
+                }}
+                required
+              >
+                <option value="Avisado">Avisado</option>
+                <option value="Paciente não quer">Paciente não quer</option>
+                <option value="Já realizou">Já realizou</option>
+                <option value="Faleceu">Faleceu</option>
+                <option value="Mudou de endereço">Mudou de endereço</option>
+              </select>
+            </div>
 
             <div className={`${styles.fieldGroup} ${styles.fullWidth}`}>
-              <label>Observação Geral de Liberação</label>
+              <label htmlFor="generalObservation">Observação Geral da Regulação</label>
               <textarea
+                id="generalObservation"
                 rows={3}
-                value={regulationForm.generalObservation}
-                onChange={(e) =>
-                  setRegulationForm({ ...regulationForm, generalObservation: e.target.value })
-                }
-                placeholder="Digite observações sobre a autorização do exame..."
+                placeholder="Digite as observações específicas sobre esta liberação..."
+                value={regulationForm.generalObservation || ""}
+                onChange={(e) => {
+                  setIsDirty(true);
+                  setRegulationForm((prev) => ({
+                    ...prev,
+                    generalObservation: e.target.value,
+                  }));
+                }}
               />
             </div>
           </div>
         </div>
 
         <div className={styles.formActions}>
-          <button type="button" className={styles.secondaryBtn} onClick={onBack}>
+          <button
+            type="button"
+            className={styles.secondaryBtn}
+            onClick={handleAttemptLeave}
+          >
             Cancelar
           </button>
           <button type="submit" className={styles.updateBtn}>

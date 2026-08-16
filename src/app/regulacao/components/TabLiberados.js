@@ -16,19 +16,44 @@ export default function TabLiberados({
 }) {
   const [selectedIds, setSelectedIds] = useState([]);
 
-  // 1. Filtra primeiro por Status "Liberado" e pelo Tipo de Exame selecionado
+  // 1. Localiza o objeto exato do exame selecionado nas auxiliares
+  const selectedTypeObj = auxData?.tiposExame?.find(
+    (t) =>
+      t.nome?.toLowerCase().trim() === selectedReleasedExam?.toLowerCase().trim() ||
+      String(t.id) === String(selectedReleasedExam)
+  );
+
+  // 2. Filtra estritamente por Status "Liberado" E pelo Tipo de Exame ativo (sem vazamento por substring)
   const baseReleased = requests.filter((item) => {
     if (item.status !== "Liberado") return false;
-    if (selectedReleasedExam && item.examType !== selectedReleasedExam) {
-      return false;
+    if (!selectedReleasedExam) return true;
+
+    // A) Validação por ID do tipo de exame (Relacionamento Direto)
+    if (selectedTypeObj && item.examTypeId) {
+      return String(item.examTypeId) === String(selectedTypeObj.id);
     }
+
+    // B) Validação por Nome do tipo de exame (Fallback)
+    if (item.examType && selectedTypeObj) {
+      return item.examType.toLowerCase().trim() === selectedTypeObj.nome.toLowerCase().trim();
+    }
+
     return true;
   });
 
-  // 2. Aplica os filtros avançados passando o Array completo
+  // 3. Aplica os filtros avançados garantindo a trava do exame ativo
   const releasedList =
     typeof applyFilters === "function"
-      ? applyFilters(baseReleased)
+      ? applyFilters(baseReleased).filter((item) => {
+          if (!selectedTypeObj) return true;
+          if (item.examTypeId) {
+            return String(item.examTypeId) === String(selectedTypeObj.id);
+          }
+          return (
+            String(item.examType || "").toLowerCase().trim() ===
+            selectedTypeObj.nome.toLowerCase().trim()
+          );
+        })
       : baseReleased;
 
   const handleSelectAll = (e) => {
@@ -62,21 +87,27 @@ export default function TabLiberados({
     <div className={styles.container}>
       {/* ABAS SELETORAS DE TIPO DE EXAME */}
       <div className={styles.examTabs}>
-        {auxData?.tiposExame?.map((tipo) => (
-          <button
-            key={tipo.id}
-            type="button"
-            className={`${styles.examTabBtn} ${
-              selectedReleasedExam === tipo.nome ? styles.activeExamTab : ""
-            }`}
-            onClick={() => {
-              setSelectedReleasedExam(tipo.nome);
-              setSelectedIds([]);
-            }}
-          >
-            {tipo.nome}
-          </button>
-        ))}
+        {auxData?.tiposExame?.map((tipo) => {
+          const isActive =
+            selectedReleasedExam?.toLowerCase().trim() === tipo.nome?.toLowerCase().trim() ||
+            String(selectedReleasedExam) === String(tipo.id);
+
+          return (
+            <button
+              key={tipo.id}
+              type="button"
+              className={`${styles.examTabBtn} ${
+                isActive ? styles.activeExamTab : ""
+              }`}
+              onClick={() => {
+                setSelectedReleasedExam(tipo.nome);
+                setSelectedIds([]);
+              }}
+            >
+              {tipo.nome}
+            </button>
+          );
+        })}
       </div>
 
       {/* CABEÇALHO E AÇÃO DE EXPORTAR */}
@@ -105,7 +136,7 @@ export default function TabLiberados({
         <div className={styles.loadingState}>Carregando pacientes liberados...</div>
       ) : releasedList.length === 0 ? (
         <div className={styles.emptyState}>
-          Nenhum paciente liberado encontrado para os filtros selecionados.
+          Nenhum paciente liberado encontrado para <strong>{selectedReleasedExam}</strong>.
         </div>
       ) : (
         <div className={styles.tableContainer}>
@@ -154,7 +185,7 @@ export default function TabLiberados({
                       />
                     </td>
                     <td>
-                      <strong>#{item.id}</strong>
+                      <strong>{item.id}</strong>
                     </td>
                     <td>
                       <div className={styles.patientHeader}>
@@ -170,6 +201,13 @@ export default function TabLiberados({
                       <small className={styles.subText}>
                         Mãe: {item.motherName || "Não informada"}
                       </small>
+                      
+                      {/* EXIBIÇÃO DA OBSERVAÇÃO GERAL DA REGULAÇÃO */}
+                      {(item.generalObservation || item.justification) && (
+                        <div style={{ marginTop: "4px", fontSize: "0.8rem", color: "#475569" }}>
+                          <strong>Obs. Geral:</strong> {item.generalObservation || item.justification}
+                        </div>
+                      )}
                     </td>
                     <td>{item.cpf || "—"}</td>
                     <td>{item.procedure}</td>

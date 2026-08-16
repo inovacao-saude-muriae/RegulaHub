@@ -2,7 +2,12 @@
 
 import styles from './TabDashboard.module.css';
 
-export default function TabDashboard({ metrics, onNavigate, loading }) {
+export default function TabDashboard({ 
+  metrics = {}, 
+  onNavigate, 
+  loading, 
+  medicamentosList = [] 
+}) {
   if (loading) {
     return <div className={styles.loadingBox}>Carregando estatísticas do sistema...</div>;
   }
@@ -15,7 +20,9 @@ export default function TabDashboard({ metrics, onNavigate, loading }) {
           <div className={styles.kpiIcon}>💊</div>
           <div className={styles.kpiInfo}>
             <span className={styles.kpiLabel}>Medicamentos Cadastrados</span>
-            <strong className={styles.kpiValue}>{metrics.totalMedicamentosCadastrados}</strong>
+            <strong className={styles.kpiValue}>
+              {metrics.totalMedicamentosCadastrados ?? medicamentosList.length}
+            </strong>
             <small>No catálogo geral</small>
           </div>
         </div>
@@ -25,7 +32,7 @@ export default function TabDashboard({ metrics, onNavigate, loading }) {
           <div className={styles.kpiInfo}>
             <span className={styles.kpiLabel}>Itens em Estoque</span>
             <strong className={styles.kpiValue}>
-              {metrics.totalEstoqueUnidades.toLocaleString('pt-BR')}
+              {(metrics.totalEstoqueUnidades || 0).toLocaleString('pt-BR')}
             </strong>
             <small>Unidades físicas disp.</small>
           </div>
@@ -35,7 +42,7 @@ export default function TabDashboard({ metrics, onNavigate, loading }) {
           <div className={styles.kpiIcon}>👤</div>
           <div className={styles.kpiInfo}>
             <span className={styles.kpiLabel}>Pacientes Ativos</span>
-            <strong className={styles.kpiValue}>{metrics.pacientesAtivos}</strong>
+            <strong className={styles.kpiValue}>{metrics.pacientesAtivos || 0}</strong>
             <small>Em acompanhamento</small>
           </div>
         </div>
@@ -44,7 +51,7 @@ export default function TabDashboard({ metrics, onNavigate, loading }) {
           <div className={styles.kpiIcon}>⏸️</div>
           <div className={styles.kpiInfo}>
             <span className={styles.kpiLabel}>Pacientes Inativos</span>
-            <strong className={styles.kpiValue}>{metrics.pacientesInativos}</strong>
+            <strong className={styles.kpiValue}>{metrics.pacientesInativos || 0}</strong>
             <small>Processos suspensos</small>
           </div>
         </div>
@@ -53,29 +60,84 @@ export default function TabDashboard({ metrics, onNavigate, loading }) {
           <div className={styles.kpiIcon}>🕊️</div>
           <div className={styles.kpiInfo}>
             <span className={styles.kpiLabel}>Óbitos</span>
-            <strong className={styles.kpiValue}>{metrics.pacientesObito}</strong>
+            <strong className={styles.kpiValue}>{metrics.pacientesObito || 0}</strong>
             <small>Registrados</small>
           </div>
         </div>
       </div>
 
-      {/* SEÇÃO DE ATALHOS RÁPIDOS */}
-      <div className={styles.quickActionsCard}>
-        <h3>Atalhos e Ações Rápidas</h3>
-        <div className={styles.actionButtonsRow}>
-          <button type="button" onClick={() => onNavigate('DISPENSACAO')} className={styles.actionBtnPrimary}>
-            ➕ Nova Dispensação
-          </button>
-          <button type="button" onClick={() => onNavigate('PACIENTES')} className={styles.actionBtnSecondary}>
-            📋 Cadastrar Novo Paciente / Processo
-          </button>
-          <button type="button" onClick={() => onNavigate('ESTOQUE')} className={styles.actionBtnSecondary}>
-            📥 Dar Entrada de Lote
-          </button>
-          <button type="button" onClick={() => onNavigate('RELATORIOS')} className={styles.actionBtnSecondary}>
-            📊 Ver Relatório de Movimentação
-          </button>
+      {/* TABELA DE MEDICAMENTOS E QUANTIDADES EM ESTOQUE */}
+      <div className={styles.tableSectionCard}>
+        <div className={styles.tableHeaderBar}>
+          <h3>Catálogo de Medicamentos e Estoque Atual</h3>
+          <span className={styles.tableBadgeCount}>
+            Total: {medicamentosList.length} itens
+          </span>
         </div>
+
+        {medicamentosList.length === 0 ? (
+          <div className={styles.emptyState}>Nenhum medicamento cadastrado no momento.</div>
+        ) : (
+          <div className={styles.tableWrapper}>
+            <table className={styles.medTable}>
+              <thead>
+                <tr>
+                  <th>Código / ID</th>
+                  <th>Nome do Medicamento / Descrição</th>
+                  <th>Dosagem / Apresentação</th>
+                  <th style={{ textAlign: 'right' }}>Qtd. em Estoque</th>
+                  <th style={{ textAlign: 'center' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {medicamentosList.map((med, index) => {
+                  // Mapeamento abrangente de propriedades de estoque
+                  const estoqueAtual = 
+                    med.qtdAtual ?? 
+                    med.quantidadeEmEstoque ?? 
+                    med.qtdEstoque ?? 
+                    med.quantidade ?? 
+                    med.estoque ?? 
+                    0;
+
+                  const isLowStock = Number(estoqueAtual) <= (med.estoqueMinimo || 5);
+                  const keyId = med.id || med.codigo || `med-${index}`;
+
+                  return (
+                    <tr key={keyId}>
+                      <td>
+                        <strong>#{med.id || med.codigo || index + 1}</strong>
+                      </td>
+                      <td>
+                        <div className={styles.medName}>
+                          {med.nome || med.nomeMedicamento || med.descricao}
+                        </div>
+                        {med.principioAtivo && (
+                          <small className={styles.medSubText}>Princípio: {med.principioAtivo}</small>
+                        )}
+                      </td>
+                      <td>{med.dosagem || med.apresentacao || med.tipo || '—'}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span className={styles.stockQuantity}>
+                          {Number(estoqueAtual).toLocaleString('pt-BR')} {med.unidadeMedida || 'un'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        {Number(estoqueAtual) === 0 ? (
+                          <span className={`${styles.statusBadge} ${styles.dangerBadge}`}>Sem Estoque</span>
+                        ) : isLowStock ? (
+                          <span className={`${styles.statusBadge} ${styles.warningBadge}`}>Estoque Baixo</span>
+                        ) : (
+                          <span className={`${styles.statusBadge} ${styles.successBadge}`}>Em Dia</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

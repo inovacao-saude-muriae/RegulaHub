@@ -45,6 +45,14 @@
   font-size: 0.9rem;
   color: #1e293b;
   outline: none;
+  background-color: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fieldGroup input:focus,
+.fieldGroup select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
 .suggestionsList {
@@ -69,10 +77,17 @@
   cursor: pointer;
   border-bottom: 1px solid #f1f5f9;
   font-size: 0.875rem;
+  color: #334155;
+  transition: background-color 0.15s ease;
+}
+
+.suggestionItem:last-child {
+  border-bottom: none;
 }
 
 .suggestionItem:hover {
   background-color: #eff6ff;
+  color: #1d4ed8;
 }
 
 .patientSummaryBox {
@@ -84,6 +99,7 @@
   flex-direction: column;
   gap: 0.5rem;
   font-size: 0.9rem;
+  color: #1e293b;
 }
 
 .addMedSection {
@@ -93,6 +109,13 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.addMedSection h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #334155;
+  font-weight: 700;
 }
 
 .addMedGrid {
@@ -110,6 +133,13 @@
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
+  height: 40px;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
+}
+
+.addBtn:hover {
+  background-color: #1d4ed8;
 }
 
 .tableWrapper {
@@ -129,11 +159,13 @@
   padding: 0.75rem 1rem;
   text-align: left;
   color: #475569;
+  font-weight: 600;
 }
 
 .table td {
   padding: 0.75rem 1rem;
   border-top: 1px solid #f1f5f9;
+  color: #1e293b;
 }
 
 .removeBtn {
@@ -143,6 +175,13 @@
   padding: 0.35rem 0.75rem;
   border-radius: 6px;
   cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.removeBtn:hover {
+  background-color: #fca5a5;
 }
 
 .formActions {
@@ -159,4 +198,104 @@
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.primaryBtn:hover {
+  background-color: #15803d;
+}
+
+/* POP-UP MODAL DE CONFIRMAÇÃO */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modalCard {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 1.75rem;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modalTitle {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+  color: #0f172a;
+}
+
+.modalSub {
+  font-size: 0.875rem;
+  color: #475569;
+  margin-bottom: 1.25rem;
+}
+
+.modalDetails {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: #334155;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.modalCancelBtn {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.modalCancelBtn:hover {
+  background-color: #f1f5f9;
+}
+
+.modalConfirmBtn {
+  background-color: #16a34a;
+  border: none;
+  color: #ffffff;
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.modalConfirmBtn:hover {
+  background-color: #15803d;
+}
+
+@media (max-width: 640px) {
+  .addMedGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .addBtn {
+    width: 100%;
+  }
 }

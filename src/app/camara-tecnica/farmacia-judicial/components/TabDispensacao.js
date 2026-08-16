@@ -4,8 +4,8 @@ import { useState } from 'react';
 import styles from './TabDispensacao.module.css';
 
 export default function TabDispensacao({
-  pacientes,
-  estoqueLotes,
+  pacientes = [],
+  estoqueLotes = [],
   onConfirmarDispensacao
 }) {
   const [search, setSearch] = useState('');
@@ -17,10 +17,14 @@ export default function TabDispensacao({
   const [selectedLoteId, setSelectedLoteId] = useState('');
   const [qtdEntregue, setQtdEntregue] = useState('');
 
+  // ESTADO DO MODAL DE CONFIRMAÇÃO
+  const [showModal, setShowModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const filteredPacientes = pacientes.filter(p => 
-    p.patientName.toLowerCase().includes(search.toLowerCase()) ||
-    p.numeroPasta.toLowerCase().includes(search.toLowerCase()) ||
-    p.cpf.includes(search)
+    p.patientName?.toLowerCase().includes(search.toLowerCase()) ||
+    p.numeroPasta?.toLowerCase().includes(search.toLowerCase()) ||
+    p.cpf?.includes(search)
   );
 
   const handleSelectPaciente = (p) => {
@@ -60,24 +64,172 @@ export default function TabDispensacao({
     setCarrinhoDispensacao(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmitDispensacao = async (e) => {
+  // 🎯 GERADOR DO TERMO DE DISPENSAÇÃO VIA IFRAME OCULTO (SEM POP-UP DO NAVEGADOR)
+  const gerarTermoDispensacaoImpressao = (dados) => {
+    const dataHoraAtual = new Date().toLocaleString('pt-BR');
+
+    const linhasMedicamentos = dados.itens
+      .map(
+        (item, index) => `
+        <tr>
+          <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">${index + 1}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 8px;"><strong>${item.medicamentoNome}</strong> (${item.dosagem})</td>
+          <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;">${item.numeroLote}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 8px; text-align: center;"><strong>${item.qtdEntregue}</strong></td>
+        </tr>
+      `
+      )
+      .join('');
+
+    // Remove qualquer iframe de impressão antigo se existir
+    const iframeAntigo = document.getElementById('iframe-impressao-termo');
+    if (iframeAntigo) {
+      iframeAntigo.remove();
+    }
+
+    // Cria um iframe invisível no documento
+    const iframe = document.createElement('iframe');
+    iframe.id = 'iframe-impressao-termo';
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <title>Recibo de Dispensação - ${dados.paciente.patientName}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 30px; color: #0f172a; font-size: 13px; line-height: 1.4; }
+          .header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 15px; margin-bottom: 20px; }
+          .header h2 { margin: 0; font-size: 18px; text-transform: uppercase; }
+          .header p { margin: 4px 0 0 0; color: #475569; font-size: 12px; }
+          .info-block { background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+          th { background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px; text-align: left; font-size: 11px; text-transform: uppercase; }
+          .obs-box { margin-bottom: 30px; padding: 10px; background-color: #fffbe3; border: 1px solid #fef08a; border-radius: 6px; font-size: 12px; }
+          
+          /* SEÇÃO DE ASSINATURAS */
+          .signatures-container { margin-top: 80px; display: flex; justify-content: space-between; gap: 40px; page-break-inside: avoid; }
+          .signature-box { flex: 1; text-align: center; }
+          .signature-line { border-top: 1px solid #000000; margin-bottom: 6px; width: 100%; }
+          .signature-name { font-weight: bold; font-size: 12px; color: #0f172a; margin-bottom: 2px; }
+          .signature-title { font-size: 11px; color: #64748b; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h2>Recibo de Entrega de Medicamentos Judiciais</h2>
+          <p>Secretaria Municipal de Saúde / Farmácia Judicial | Muriaé - MG</p>
+        </div>
+
+        <div class="info-block">
+          <div class="info-grid">
+            <div><strong>Paciente:</strong> ${dados.paciente.patientName}</div>
+            <div><strong>CPF:</strong> ${dados.paciente.cpf}</div>
+            <div><strong>Nº da Pasta:</strong> ${dados.paciente.numeroPasta}</div>
+            <div><strong>Nº do Processo:</strong> ${dados.paciente.numeroProcesso}</div>
+            <div><strong>Data/Hora de Emissão:</strong> ${dataHoraAtual}</div>
+            <div><strong>Servidor Responsável:</strong> ${dados.responsavelEntrega}</div>
+          </div>
+        </div>
+
+        <h3 style="font-size: 13px; text-transform: uppercase; color: #334155; margin-bottom: 8px;">Medicamentos Entregues</h3>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 40px; text-align: center;">Item</th>
+              <th>Medicamento e Dosagem</th>
+              <th style="width: 120px; text-align: center;">Nº Lote</th>
+              <th style="width: 100px; text-align: center;">Qtd Entregue</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linhasMedicamentos}
+          </tbody>
+        </table>
+
+        ${dados.observacao ? `<div class="obs-box"><strong>Observações:</strong> ${dados.observacao}</div>` : ''}
+
+        <div class="signatures-container">
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-name">${dados.responsavelEntrega}</div>
+            <div class="signature-title">Servidor / Quem Fez a Entrega</div>
+          </div>
+
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-name">${dados.paciente.patientName}</div>
+            <div class="signature-title">Paciente / Representante (Quem Recebeu)</div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+
+    doc.close();
+
+    // Aguarda carregar o documento interno do iframe para disparar a caixa de diálogo de impressão nativa
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    }, 400);
+  };
+
+  // 1. ABRE O MODAL DE CONFIRMAÇÃO
+  const handleOpenModal = (e) => {
     e.preventDefault();
     if (!selectedPaciente) return alert('Selecione o paciente.');
     if (carrinhoDispensacao.length === 0) return alert('Adicione pelo menos um medicamento para dispensar.');
     if (!responsavelEntrega.trim()) return alert('Informe o nome do Responsável pela Entrega.');
 
-    await onConfirmarDispensacao({
+    setShowModal(true);
+  };
+
+  // 2. CONFIRMA A DISPENSAÇÃO E DISPARA A IMPRESSÃO
+  const handleConfirmarFinal = async () => {
+    setIsSubmitting(true);
+
+    const dadosDispensacao = {
       numeroPasta: selectedPaciente.numeroPasta,
       responsavelEntrega,
       observacao,
-      itens: carrinhoDispensacao
-    });
+      itens: carrinhoDispensacao,
+      paciente: selectedPaciente
+    };
 
-    setSelectedPaciente(null);
-    setSearch('');
-    setCarrinhoDispensacao([]);
-    setResponsavelEntrega('');
-    setObservacao('');
+    try {
+      if (onConfirmarDispensacao) {
+        await onConfirmarDispensacao(dadosDispensacao);
+      }
+
+      setShowModal(false);
+
+      // Dispara a impressão silenciosa via iframe oculto
+      gerarTermoDispensacaoImpressao(dadosDispensacao);
+
+      // Limpa os campos após finalizar
+      setSelectedPaciente(null);
+      setSearch('');
+      setCarrinhoDispensacao([]);
+      setResponsavelEntrega('');
+      setObservacao('');
+    } catch (error) {
+      console.error('Erro ao processar dispensação:', error);
+      alert('Ocorreu um erro ao registrar a dispensação.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -163,7 +315,9 @@ export default function TabDispensacao({
             <tbody>
               {carrinhoDispensacao.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', color: '#64748b' }}>Nenhum medicamento inserido na lista de entrega.</td>
+                  <td colSpan="5" style={{ textAlign: 'center', color: '#64748b' }}>
+                    Nenhum medicamento inserido na lista de entrega.
+                  </td>
                 </tr>
               ) : (
                 carrinhoDispensacao.map((item, idx) => (
@@ -206,11 +360,48 @@ export default function TabDispensacao({
         </div>
 
         <div className={`${styles.fullWidth} ${styles.formActions}`}>
-          <button type="button" onClick={handleSubmitDispensacao} className={styles.primaryBtn}>
+          <button type="button" onClick={handleOpenModal} className={styles.primaryBtn}>
             Confirmar e Registrar Dispensação
           </button>
         </div>
       </div>
+
+      {/* POP-UP MODAL DE CONFIRMAÇÃO */}
+      {showModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalCard}>
+            <h3 className={styles.modalTitle}>⚠️ Confirmar Dispensação</h3>
+            <p className={styles.modalSub}>
+              Confira os dados antes de prosseguir. Após a confirmação, o estoque será atualizado e o recibo de impressão será exibido.
+            </p>
+
+            <div className={styles.modalDetails}>
+              <p><strong>Paciente:</strong> {selectedPaciente?.patientName} (Pasta #{selectedPaciente?.numeroPasta})</p>
+              <p><strong>Servidor Responsável:</strong> {responsavelEntrega}</p>
+              <p><strong>Total de Itens:</strong> {carrinhoDispensacao.length} medicamento(s)</p>
+            </div>
+
+            <div className={styles.modalActions}>
+              <button 
+                type="button" 
+                onClick={() => setShowModal(false)} 
+                className={styles.modalCancelBtn}
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </button>
+              <button 
+                type="button" 
+                onClick={handleConfirmarFinal} 
+                className={styles.modalConfirmBtn}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Processando...' : 'Confirmar e Imprimir Recibo'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

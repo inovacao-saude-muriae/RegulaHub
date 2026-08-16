@@ -2,41 +2,38 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  width: 100%;
 }
 
+.loadingBox {
+  padding: 3rem;
+  text-align: center;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/* CARDS KPI DE INDICADORES */
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
 }
 
 .kpiCard {
   background-color: #ffffff;
-  border-radius: 12px;
-  padding: 1.25rem;
   border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.25rem;
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.kpiCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .kpiIcon {
   font-size: 2rem;
-  background-color: #f8fafc;
-  width: 52px;
-  height: 52px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  line-height: 1;
 }
 
 .kpiInfo {
@@ -46,14 +43,14 @@
 
 .kpiLabel {
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #64748b;
   text-transform: uppercase;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.02em;
 }
 
 .kpiValue {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 800;
   color: #0f172a;
   line-height: 1.2;
@@ -62,60 +59,129 @@
 .kpiInfo small {
   font-size: 0.75rem;
   color: #94a3b8;
-  margin-top: 0.15rem;
 }
 
-/* Variantes de cores */
+/* ESTILOS DE DESTAQUE DOS CARDS */
 .blueCard { border-left: 4px solid #2563eb; }
-.emeraldCard { border-left: 4px solid #059669; }
-.greenCard { border-left: 4px solid #16a34a; }
-.amberCard { border-left: 4px solid #d97706; }
+.emeraldCard { border-left: 4px solid #10b981; }
+.greenCard { border-left: 4px solid #059669; }
+.amberCard { border-left: 4px solid #f59e0b; }
 .slateCard { border-left: 4px solid #64748b; }
 
-.quickActionsCard {
+/* CONTAINER DA TABELA DE MEDICAMENTOS */
+.tableSectionCard {
   background-color: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 1.5rem;
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.quickActionsCard h3 {
+.tableHeaderBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.tableHeaderBar h3 {
+  margin: 0;
   font-size: 1.1rem;
   font-weight: 700;
   color: #1e293b;
-  margin-bottom: 1rem;
 }
 
-.actionButtonsRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.actionBtnPrimary {
-  background-color: #2563eb;
-  color: #ffffff;
-  border: none;
-  padding: 0.75rem 1.25rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.actionBtnSecondary {
+.tableBadgeCount {
   background-color: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
-  padding: 0.75rem 1.25rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
+  color: #475569;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
   font-weight: 600;
-  cursor: pointer;
 }
 
-.loadingBox {
-  padding: 3rem;
+.emptyState {
+  padding: 2.5rem;
   text-align: center;
   color: #64748b;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.medTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.medTable th {
+  background-color: #f8fafc;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  color: #475569;
+  font-weight: 700;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.medTable td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+.medTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.medTable tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.medName {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.medSubText {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.stockQuantity {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* BADGES DE STATUS DE ESTOQUE */
+.statusBadge {
+  display: inline-block;
+  padding: 0.3rem 0.65rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.successBadge {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.warningBadge {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.dangerBadge {
+  background-color: #fee2e2;
+  color: #b91c1c;
 }

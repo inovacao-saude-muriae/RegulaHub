@@ -16,19 +16,44 @@ export default function TabListaEspera({
 }) {
   const [selectedIds, setSelectedIds] = useState([]);
 
-  // 1. Filtra primeiro por Status "Aguardando" e pelo Tipo de Exame selecionado
+  // 1. Encontra o objeto do exame selecionado nas auxiliares para obter seu ID e Nome exatos
+  const selectedTypeObj = auxData?.tiposExame?.find(
+    (t) =>
+      t.nome?.toLowerCase().trim() === selectedQueueExam?.toLowerCase().trim() ||
+      String(t.id) === String(selectedQueueExam)
+  );
+
+  // 2. Filtra estritamente por Status "Aguardando" E pelo Tipo de Exame ativo
   const baseWaiting = requests.filter((item) => {
     if (item.status !== "Aguardando") return false;
-    if (selectedQueueExam && item.examType !== selectedQueueExam) {
-      return false;
+    if (!selectedQueueExam) return true;
+
+    // A) Validação por ID do tipo de exame (Relacionamento seguro)
+    if (selectedTypeObj && item.examTypeId) {
+      return String(item.examTypeId) === String(selectedTypeObj.id);
     }
+
+    // B) Validação por Nome do tipo de exame (Fallback)
+    if (item.examType && selectedTypeObj) {
+      return item.examType.toLowerCase().trim() === selectedTypeObj.nome.toLowerCase().trim();
+    }
+
     return true;
   });
 
-  // 2. Aplica os filtros avançados passando o Array completo
+  // 3. Aplica os filtros avançados da barra de filtros garantindo que o exame continue preso
   const waitingList =
     typeof applyFilters === "function"
-      ? applyFilters(baseWaiting)
+      ? applyFilters(baseWaiting).filter((item) => {
+          if (!selectedTypeObj) return true;
+          if (item.examTypeId) {
+            return String(item.examTypeId) === String(selectedTypeObj.id);
+          }
+          return (
+            String(item.examType || "").toLowerCase().trim() ===
+            selectedTypeObj.nome.toLowerCase().trim()
+          );
+        })
       : baseWaiting;
 
   const handleSelectAll = (e) => {
@@ -62,21 +87,27 @@ export default function TabListaEspera({
     <div className={styles.container}>
       {/* ABAS SELETORAS DE TIPO DE EXAME */}
       <div className={styles.examTabs}>
-        {auxData?.tiposExame?.map((tipo) => (
-          <button
-            key={tipo.id}
-            type="button"
-            className={`${styles.examTabBtn} ${
-              selectedQueueExam === tipo.nome ? styles.activeExamTab : ""
-            }`}
-            onClick={() => {
-              setSelectedQueueExam(tipo.nome);
-              setSelectedIds([]);
-            }}
-          >
-            {tipo.nome}
-          </button>
-        ))}
+        {auxData?.tiposExame?.map((tipo) => {
+          const isActive =
+            selectedQueueExam?.toLowerCase().trim() === tipo.nome?.toLowerCase().trim() ||
+            String(selectedQueueExam) === String(tipo.id);
+
+          return (
+            <button
+              key={tipo.id}
+              type="button"
+              className={`${styles.examTabBtn} ${
+                isActive ? styles.activeExamTab : ""
+              }`}
+              onClick={() => {
+                setSelectedQueueExam(tipo.nome);
+                setSelectedIds([]);
+              }}
+            >
+              {tipo.nome}
+            </button>
+          );
+        })}
       </div>
 
       {/* CABEÇALHO E RESUMO DA FILA */}
@@ -96,7 +127,7 @@ export default function TabListaEspera({
         <div className={styles.loadingState}>Carregando fila de espera...</div>
       ) : waitingList.length === 0 ? (
         <div className={styles.emptyState}>
-          Nenhum paciente aguardando na fila para os filtros selecionados.
+          Nenhum paciente aguardando na fila para <strong>{selectedQueueExam}</strong>.
         </div>
       ) : (
         <div className={styles.tableContainer}>
@@ -139,7 +170,7 @@ export default function TabListaEspera({
                       />
                     </td>
                     <td>
-                      <strong>#{item.id}</strong>
+                      <strong>{item.id}</strong>
                     </td>
                     <td>
                       <div className={styles.patientHeader}>

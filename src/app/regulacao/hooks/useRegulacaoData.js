@@ -56,7 +56,6 @@ export function useRegulacaoData(setActiveTab) {
   const [finMonth, setFinMonth] = useState("08");
   const [finYear, setFinYear] = useState("2026");
 
-  // ⚠️ FIX: Inicializa estritamente como NULL para evitar renderização involuntária no F5
   const [editCotaModal, setEditCotaModal] = useState(null);
 
   const [showQuotaModal, setShowQuotaModal] = useState(false);
@@ -65,6 +64,7 @@ export function useRegulacaoData(setActiveTab) {
 
   const [editingItem, setEditingItem] = useState(null);
   const [releasingItem, setReleasingItem] = useState(null);
+
   const [regulationForm, setRegulationForm] = useState({
     status: "Liberado",
     quota: "",
@@ -73,6 +73,8 @@ export function useRegulacaoData(setActiveTab) {
     quotaCompetenceYear: `${new Date().getFullYear()}`,
     generalObservation: "",
     regulatorDoctorId: "",
+    communicationDate: "",
+    communicationStatus: "Avisado",
   });
 
   const [formPessoa, setFormPessoa] = useState({
@@ -215,15 +217,19 @@ export function useRegulacaoData(setActiveTab) {
   const handleOpenReleaseModal = (item) => {
     const today = new Date().toISOString().split("T")[0];
     setReleasingItem(item);
+
     setRegulationForm({
       status: "Liberado",
       quota: item.quota || "",
       releaseDate: today,
       quotaCompetenceMonth: today.slice(5, 7),
       quotaCompetenceYear: today.slice(0, 4),
-      generalObservation: item.generalObservation || "",
+      generalObservation: "",
       regulatorDoctorId: item.regulatorDoctorId || "",
+      communicationDate: item.communicationDate || "",
+      communicationStatus: item.communicationStatus || "Avisado",
     });
+
     setActiveTab("LIBERAR_PEDIDO");
   };
 
@@ -241,7 +247,9 @@ export function useRegulacaoData(setActiveTab) {
   const handleSelectQuotaType = (selectedQuota) => {
     setRegulationForm((prev) => ({ ...prev, quota: selectedQuota }));
     if (selectedQuota) {
-      setQuotaModalType(selectedQuota);
+      // Se for PPI, valida a disponibilidade usando a cota SUS
+      const targetQuotaModal = selectedQuota === "PPI" ? "SUS" : selectedQuota;
+      setQuotaModalType(targetQuotaModal);
       setQuotaModalYear(
         regulationForm.quotaCompetenceYear || `${new Date().getFullYear()}`
       );
@@ -252,7 +260,6 @@ export function useRegulacaoData(setActiveTab) {
   const handleSelectMonthFromModal = (monthValue) => {
     setRegulationForm((prev) => ({
       ...prev,
-      quota: quotaModalType,
       quotaCompetenceMonth: monthValue,
       quotaCompetenceYear: quotaModalYear,
     }));
@@ -377,7 +384,6 @@ export function useRegulacaoData(setActiveTab) {
     } else alert("Erro: " + res.error);
   };
 
-  // ⚠️ FIX: Função para abrir o modal somente sob comando direto
   const handleOpenDefineTetoModal = (tipoCota, valorAtual) => {
     setEditCotaModal({ open: true, tipoCota, valor: valorAtual || "" });
   };
@@ -398,21 +404,28 @@ export function useRegulacaoData(setActiveTab) {
     } else alert("Erro: " + res.error);
   };
 
+  // 🎯 REGRA DE CÁLCULO MENSAL: SUS DEBITA PEDIDOS "SUS" E "PPI"
   const calculateMonthQuotaDetails = (quotaType, year, monthValue) => {
     const record = cotasFinanceiras.find(
       (c) =>
         c.tipoCota === quotaType && c.mes === monthValue && c.ano === year
     );
     const totalLimit = record ? record.valorTeto : 0;
+
     const totalUsed = requests
-      .filter(
-        (r) =>
-          r.status === "Liberado" &&
-          r.quota === quotaType &&
-          r.quotaCompetenceMonth === monthValue &&
-          r.quotaCompetenceYear === year
-      )
+      .filter((r) => {
+        if (r.status !== "Liberado") return false;
+        if (r.quotaCompetenceMonth !== monthValue || r.quotaCompetenceYear !== year) return false;
+
+        // Se a cota consultada for SUS, soma os débitos do SUS e do PPI
+        if (quotaType === "SUS") {
+          return r.quota === "SUS" || r.quota === "PPI";
+        }
+
+        return r.quota === quotaType;
+      })
       .reduce((sum, r) => sum + (r.estimatedCost || 0), 0);
+
     return { totalLimit, totalUsed, available: totalLimit - totalUsed };
   };
 

@@ -152,7 +152,7 @@ export default function FiltersBar({
               </div>
 
               <div className={styles.fieldItem}>
-                <label>Status da Comunicação</label>
+                <label>Data Comunicação</label>
                 <select
                   value={draftFilters.communicationStatus || ''}
                   onChange={(e) =>
@@ -171,7 +171,7 @@ export default function FiltersBar({
             <span className={styles.sectionTitle}>Filtros por Período / Datas</span>
             <div className={styles.filterGridDates}>
               <div className={styles.fieldItem}>
-                <label>Data de Entrada</label>
+                <label>Período Entrada</label>
                 <div className={styles.dateRangeBox}>
                   <input
                     type="date"
@@ -194,7 +194,7 @@ export default function FiltersBar({
               </div>
 
               <div className={styles.fieldItem}>
-                <label>Data de Comunicação</label>
+                <label>Período Comunicação</label>
                 <div className={styles.dateRangeBox}>
                   <input
                     type="date"
@@ -215,7 +215,7 @@ export default function FiltersBar({
               </div>
 
               <div className={styles.fieldItem}>
-                <label>Data de Liberação</label>
+                <label>Período Liberação</label>
                 <div className={styles.dateRangeBox}>
                   <input
                     type="date"
@@ -236,7 +236,7 @@ export default function FiltersBar({
               </div>
 
               <div className={styles.fieldItem}>
-                <label>Data Faturado</label>
+                <label>Período Faturamento</label>
                 <div className={styles.dateRangeBox}>
                   <input
                     type="date"
