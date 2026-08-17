@@ -103,6 +103,7 @@ const menuSections = [
       {
         name: 'Junta Reguladora',
         path: '/junta-reguladora',
+        isDropdown: true,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -110,7 +111,25 @@ const menuSections = [
             <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-        )
+        ),
+        subItems: [
+          { name: 'Cadastro de Paciente', tab: 'CADASTRO' },
+          { name: 'Prontuário e Relatório', tab: 'RELATORIO' },
+          { 
+            name: 'Serviços de Atendimento', 
+            tab: 'SERVICOS',
+            isNestedDropdown: true,
+            nestedItems: [
+              { name: 'CAEE', subTab: 'CAEE' },
+              { name: 'APAE', subTab: 'APAE' },
+              { name: 'Ambulatório', subTab: 'AMBULATORIO' },
+              { name: 'Educação', subTab: 'EDUCACAO' },
+              { name: 'Social', subTab: 'SOCIAL' },
+              { name: 'Centro de Especialidades', subTab: 'ESPECIALIDADES' },
+              { name: 'Centro de Reabilitação', subTab: 'REABILITACAO' }
+            ]
+          }
+        ]
       }
     ]
   },
@@ -138,13 +157,28 @@ export default function Sidebar() {
 
   const [openRegulacao, setOpenRegulacao] = useState(false);
   const [openFarmacia, setOpenFarmacia] = useState(false);
+  const [openJunta, setOpenJunta] = useState(false);
   const [openNestedMenu, setOpenNestedMenu] = useState(false);
 
   // Reseta todos os dropdowns quando o mouse sai da Sidebar
   const handleMouseLeaveSidebar = () => {
     setOpenRegulacao(false);
     setOpenFarmacia(false);
+    setOpenJunta(false);
     setOpenNestedMenu(false);
+  };
+
+  const getDropdownState = (path) => {
+    if (path === '/regulacao') return openRegulacao;
+    if (path === '/camara-tecnica/farmacia-judicial') return openFarmacia;
+    if (path === '/junta-reguladora') return openJunta;
+    return false;
+  };
+
+  const toggleDropdownState = (path) => {
+    if (path === '/regulacao') setOpenRegulacao(!openRegulacao);
+    if (path === '/camara-tecnica/farmacia-judicial') setOpenFarmacia(!openFarmacia);
+    if (path === '/junta-reguladora') setOpenJunta(!openJunta);
   };
 
   return (
@@ -165,8 +199,7 @@ export default function Sidebar() {
             <ul className={styles.navList}>
               {section.items.map((item) => {
                 if (item.isDropdown) {
-                  const isOpen = item.path === '/regulacao' ? openRegulacao : openFarmacia;
-                  const setIsOpen = item.path === '/regulacao' ? setOpenRegulacao : setOpenFarmacia;
+                  const isOpen = getDropdownState(item.path);
 
                   return (
                     <li key={item.path} className={styles.dropdownContainer}>
@@ -175,7 +208,7 @@ export default function Sidebar() {
                         className={`${styles.navLink} ${styles.dropdownTrigger} ${
                           pathname.includes(item.path) ? styles.activeParent : ''
                         }`}
-                        onClick={() => setIsOpen(!isOpen)}
+                        onClick={() => toggleDropdownState(item.path)}
                       >
                         <span className={styles.icon}>{item.icon}</span>
                         <span className={styles.label}>{item.name}</span>
@@ -200,7 +233,6 @@ export default function Sidebar() {
 
                               return (
                                 <li key={sub.tab} className={styles.nestedContainer}>
-                                  {/* 🎯 HEADER LIMPO IGUAL AO DO CADASTROS (SEM CLASSE DE DESTAQUE NO PAI) */}
                                   <div className={styles.nestedHeaderWrapper}>
                                     <Link
                                       href={`${item.path}?tab=${sub.tab}&subTab=${defaultSubTab}`}

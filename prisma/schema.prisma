@@ -3,17 +3,29 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
+// ------------------------------------------------------
+// GERAL & REGULAÇÃO DE EXAMES
+// ------------------------------------------------------
+
 model Pessoa {
-  cpf            String        @id @db.VarChar(11)
-  nomeCompleto   String        @map("nome_completo") @db.VarChar(150)
-  dataNascimento DateTime      @map("data_nascimento") @db.Date
-  nomeMae        String        @map("nome_mae") @db.VarChar(150)
-  telefone       String        @db.VarChar(20)
+  cpf            String                    @id @db.VarChar(11)
+  nomeCompleto   String                    @map("nome_completo") @db.VarChar(150)
+  dataNascimento DateTime                  @map("data_nascimento") @db.Date
+  nomeMae        String                    @map("nome_mae") @db.VarChar(150)
+  telefone       String                    @db.VarChar(20)
+
   enderecos      Endereco[]
   pedidos        PedidoExame[]
+  
+  // Relacionamentos com os módulos do RegulaHub
+  pacienteFarmacia PacienteFarmaciaJudicial?
+  pacienteJunta    PacienteJunta?
+  tutor            Tutor?
 
   @@index([nomeCompleto, dataNascimento], map: "idx_pessoa_nome")
   @@map("pessoa")
@@ -31,6 +43,7 @@ model Endereco {
   cep           String?  @db.VarChar(8)
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   enderecoAtual Boolean  @default(true) @map("endereco_atual")
+
   pessoa        Pessoa   @relation(fields: [pessoaCpf], references: [cpf], onDelete: NoAction, onUpdate: NoAction, map: "fk_endereco_pessoa")
 
   @@index([pessoaCpf], map: "pessoa_cpf_idx")
@@ -50,6 +63,7 @@ model Procedimento {
   tipoExameId Int           @map("tipo_exame_id")
   nome        String        @db.VarChar(150)
   valor       Decimal       @db.Decimal(10, 2)
+
   tipoExame   TipoExame     @relation(fields: [tipoExameId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_procedimentos_tipo_exames")
   pedidos     PedidoExame[]
 
@@ -65,6 +79,8 @@ model Medico {
   especialidade      String        @db.VarChar(100)
   ativo              Boolean       @default(true)
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  tipo               String?
+
   pedidosSolicitados PedidoExame[] @relation("medico_solicitante")
   pedidosResponsavel PedidoExame[] @relation("medico_responsavel")
 
@@ -78,34 +94,35 @@ model Ubs {
   nome      String        @db.VarChar(150)
   ativo     Boolean       @default(true)
   createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
   pedidos   PedidoExame[]
 
   @@map("ubs")
 }
 
 model PedidoExame {
-  id                  Int          @id @default(autoincrement())
-  pessoaCpf           String       @map("pessoa_cpf") @db.VarChar(11)
-  cnsPaciente         String?      @map("cns_paciente") @db.VarChar(15)
-  procedimentoId      Int          @map("procedimento_id")
-  ubsResponsavelId    Int?         @map("ubs_responsavel_id")
-  medicoSolicitanteId Int?         @map("medico_solicitante_id")
-  medicoResponsavelId Int?         @map("medico_responsavel_id")
-  classificacaoRisco  String?      @map("classificacao_risco") @db.VarChar(50)
-  tipoCota            String?      @map("tipo_cota") @db.VarChar(50)
-  status              String       @default("Aguardando") @db.VarChar(50)
-  statusComunicacao   String?      @default("PENDENTE") @map("status_comunicacao") @db.VarChar(50)
-  motivoLiberacao     String?      @map("motivo_liberacao")
+  id                  Int           @id @default(autoincrement())
+  pessoaCpf           String        @map("pessoa_cpf") @db.VarChar(11)
+  cnsPaciente         String?       @map("cns_paciente") @db.VarChar(15)
+  procedimentoId      Int           @map("procedimento_id")
+  ubsResponsavelId    Int?          @map("ubs_responsavel_id")
+  medicoSolicitanteId Int?          @map("medico_solicitante_id")
+  medicoResponsavelId Int?          @map("medico_responsavel_id")
+  classificacaoRisco  String?       @map("classificacao_risco") @db.VarChar(50)
+  tipoCota            String?       @map("tipo_cota") @db.VarChar(50)
+  status              String        @default("Aguardando") @db.VarChar(50)
+  statusComunicacao   String?       @default("PENDENTE") @map("status_comunicacao") @db.VarChar(50)
+  motivoLiberacao     String?       @map("motivo_liberacao")
   observacao          String?
-  dataSolicitacao     DateTime?    @default(now()) @map("data_solicitacao") @db.Timestamptz(6)
-  dataComunicacao     DateTime?    @map("data_comunicacao") @db.Timestamptz(6)
-  dataLiberacao       DateTime?    @map("data_liberacao") @db.Timestamptz(6)
+  dataSolicitacao     DateTime?     @default(now()) @map("data_solicitacao") @db.Timestamptz(6)
+  dataComunicacao     DateTime?     @map("data_comunicacao") @db.Timestamptz(6)
+  dataLiberacao       DateTime?     @map("data_liberacao") @db.Timestamptz(6)
 
-  pessoa            Pessoa       @relation(fields: [pessoaCpf], references: [cpf], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_pessoa")
-  procedimento      Procedimento @relation(fields: [procedimentoId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_procedimento")
-  medicoSolicitante Medico?      @relation("medico_solicitante", fields: [medicoSolicitanteId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_med_solic")
-  medicoResponsavel Medico?      @relation("medico_responsavel", fields: [medicoResponsavelId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_med_resp")
-  ubs               Ubs?         @relation(fields: [ubsResponsavelId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_ubs")
+  pessoa              Pessoa        @relation(fields: [pessoaCpf], references: [cpf], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_pessoa")
+  procedimento        Procedimento  @relation(fields: [procedimentoId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_procedimento")
+  medicoSolicitante   Medico?       @relation("medico_solicitante", fields: [medicoSolicitanteId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_med_solic")
+  medicoResponsavel   Medico?       @relation("medico_responsavel", fields: [medicoResponsavelId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_med_resp")
+  ubs                 Ubs?          @relation(fields: [ubsResponsavelId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_ubs")
 
   @@index([pessoaCpf], map: "fk_pedidos_pessoa_idx")
   @@index([status], map: "idx_pedidos_status")
@@ -118,13 +135,170 @@ model PedidoExame {
 }
 
 model CotaFinanceira {
-  id          Int      @id @default(autoincrement())
-  tipoCota    String   @map("tipo_cota") @db.VarChar(50) // "SUS", "Credenciamento", "OCI"
-  mes         String   @db.VarChar(2)                   // "01", "02", ..., "12"
-  ano         String   @db.VarChar(4)                   // "2026", "2027"
-  valorTeto   Decimal  @map("valor_teto") @db.Decimal(12, 2)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id        Int      @id @default(autoincrement())
+  tipoCota  String   @map("tipo_cota") @db.VarChar(50)
+  mes       String   @db.VarChar(2)
+  ano       String   @db.VarChar(4)
+  valorTeto Decimal  @map("valor_teto") @db.Decimal(12, 2)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@unique([tipoCota, mes, ano], map: "idx_cota_competencia_unica")
   @@map("cotas_financeiras")
+}
+
+// ------------------------------------------------------
+// CÂMARA TÉCNICA - FARMÁCIA JUDICIAL
+// ------------------------------------------------------
+
+model PacienteFarmaciaJudicial {
+  numeroPasta    String                   @id @map("numero_pasta") @db.VarChar(50)
+  pessoaCpf      String                   @unique @map("pessoa_cpf") @db.VarChar(11)
+  numeroProcesso String                   @map("numero_processo") @db.VarChar(100)
+  status         String                   @db.VarChar(50)
+  createdAt      DateTime?                @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  pessoa         Pessoa                   @relation(fields: [pessoaCpf], references: [cpf], onDelete: Cascade)
+  tratamentos    TratamentoPaciente[]
+  dispensacoes   DispensacaoMedicamento[]
+
+  @@map("paciente_farmacia_judicial")
+}
+
+model Medicamento {
+  id          Int                  @id @default(autoincrement())
+  nome        String               @db.VarChar(150)
+  tipo        String               @db.VarChar(50)
+  dosagem     String               @db.VarChar(50)
+  ativo       Boolean?             @default(true)
+  createdAt   DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  lotes       LoteMedicamento[]
+  tratamentos TratamentoPaciente[]
+
+  @@map("medicamento")
+}
+
+model LoteMedicamento {
+  id            Int                      @id @default(autoincrement())
+  medicamentoId Int                      @map("medicamento_id")
+  numeroLote    String                   @map("numero_lote") @db.VarChar(50)
+  fornecedor    String                   @db.VarChar(150)
+  qtdInicial    Int                      @map("qtd_inicial")
+  valorUnitario Decimal                  @map("valor_unitario") @db.Decimal(10, 2)
+  dataEntrada   DateTime                 @map("data_entrada") @db.Date
+  dataValidade  DateTime                 @map("data_validade") @db.Date
+  createdAt     DateTime?                @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  medicamento   Medicamento              @relation(fields: [medicamentoId], references: [id], onDelete: Cascade)
+  dispensacoes  DispensacaoMedicamento[]
+
+  @@map("lote_medicamento")
+}
+
+model TratamentoPaciente {
+  id                 Int                      @id @default(autoincrement())
+  pacientePasta      String                   @map("paciente_pasta") @db.VarChar(50)
+  medicamentoId      Int                      @map("medicamento_id")
+  qtdPrescritaMensal Int                      @map("qtd_prescrita_mensal")
+  ativo              Boolean?                 @default(true)
+  createdAt          DateTime?                @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  paciente           PacienteFarmaciaJudicial @relation(fields: [pacientePasta], references: [numeroPasta], onDelete: Cascade)
+  medicamento        Medicamento              @relation(fields: [medicamentoId], references: [id], onDelete: Cascade)
+
+  @@map("tratamento_paciente")
+}
+
+model DispensacaoMedicamento {
+  id                Int                      @id @default(autoincrement())
+  pacientePasta     String                   @map("paciente_pasta") @db.VarChar(50)
+  loteMedicamentoId Int                      @map("lote_medicamento_id")
+  qtdEntregue       Int                      @map("qtd_entregue")
+  dataDispensacao   DateTime?                @default(now()) @map("data_dispensacao") @db.Timestamptz(6)
+  observacao        String?                  @db.Text
+
+  paciente          PacienteFarmaciaJudicial @relation(fields: [pacientePasta], references: [numeroPasta], onDelete: Cascade)
+  lote              LoteMedicamento          @relation(fields: [loteMedicamentoId], references: [id], onDelete: Cascade)
+
+  @@map("dispensacao_medicamento")
+}
+
+// ------------------------------------------------------
+// JUNTA REGULADORA
+// ------------------------------------------------------
+
+model PacienteJunta {
+  id              Int                    @id @default(autoincrement())
+  pessoaCpf       String                 @unique @map("pessoa_cpf") @db.VarChar(11)
+  tipoDeficiencia String                 @map("tipo_deficiencia") @db.VarChar(255)
+  observacoes     String?                @db.Text
+  createdAt       DateTime?              @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  pessoa          Pessoa                 @relation(fields: [pessoaCpf], references: [cpf], onDelete: Cascade)
+  servicos        PacienteJuntaServico[]
+  atendimentos    JuntaAtendimento[]
+
+  @@map("paciente_junta")
+}
+
+model JuntaServico {
+  id           Int                    @id @default(autoincrement())
+  nome         String                 @unique @db.VarChar(100)
+  descricao    String?                @db.Text
+  ativo        Boolean?               @default(true)
+  createdAt    DateTime?              @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  pacientes    PacienteJuntaServico[]
+  atendimentos JuntaAtendimento[]
+
+  @@map("junta_servicos")
+}
+
+model PacienteJuntaServico {
+  pacienteJuntaId Int           @map("paciente_junta_id")
+  servicoId       Int           @map("servico_id")
+  dataVinculo     DateTime?     @default(now()) @map("data_vinculo") @db.Timestamptz(6)
+  ativo           Boolean?      @default(true)
+
+  pacienteJunta   PacienteJunta @relation(fields: [pacienteJuntaId], references: [id], onDelete: Cascade)
+  servico         JuntaServico  @relation(fields: [servicoId], references: [id], onDelete: Cascade)
+
+  @@id([pacienteJuntaId, servicoId])
+  @@map("paciente_junta_servicos")
+}
+
+model JuntaAtendimento {
+  id                      Int           @id @default(autoincrement())
+  pacienteJuntaId         Int           @map("paciente_junta_id")
+  servicoId               Int           @map("servico_id")
+  especialidade           String        @db.VarChar(100)
+  dataAtendimento         DateTime      @map("data_atendimento") @db.Date
+  status                  String        @db.VarChar(20)
+  observacao              String?       @db.Text
+  profissionalResponsavel String?       @map("profissional_responsavel") @db.VarChar(150)
+  createdAt               DateTime?     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  pacienteJunta           PacienteJunta @relation(fields: [pacienteJuntaId], references: [id], onDelete: Cascade)
+  servico                 JuntaServico  @relation(fields: [servicoId], references: [id], onDelete: Cascade)
+
+  @@map("junta_atendimentos")
+}
+
+// ------------------------------------------------------
+// VIGILÂNCIA & ZOONOSES (CCZ)
+// ------------------------------------------------------
+
+model Tutor {
+  pessoaCpf          String    @id @map("pessoa_cpf") @db.VarChar(11)
+  rg                 String?   @db.VarChar(20)
+  sexo               String?   @db.VarChar(20)
+  profissao          String?   @db.VarChar(100)
+  telefoneSecundario String?   @map("telefone_secundario") @db.VarChar(20)
+  pontoReferencia    String?   @map("ponto_referencia") @db.VarChar(150)
+  observacoes        String?   @db.Text
+  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  pessoa             Pessoa    @relation(fields: [pessoaCpf], references: [cpf], onDelete: Cascade)
+
+  @@map("tutor")
 }

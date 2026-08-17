@@ -1,7 +1,13 @@
-/** @type {import('next').NextConfig} */
+/** @type {import('next').NextStyle} */
 const nextConfig = {
-  /* config options here */
-  reactCompiler: true,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+  },
+  turbopack: {
+    root: process.cwd(),
+  },
 };
 
 export default nextConfig;
