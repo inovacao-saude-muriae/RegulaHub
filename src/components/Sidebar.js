@@ -139,11 +139,20 @@ const menuSections = [
       {
         name: 'CCZ - Zoonoses',
         path: '/ccz',
+        isDropdown: true,
         icon: (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
-        )
+        ),
+        subItems: [
+          { name: 'Dashboard',     tab: 'DASHBOARD' },
+          { name: 'Usuários',      tab: 'USUARIOS' },
+          { name: 'Cadastros',     tab: 'CADASTROS' },
+          { name: 'Animais',       tab: 'ANIMAIS' },
+          { name: 'Procedimentos', tab: 'PROCEDIMENTOS' },
+          { name: 'Denúncias',     tab: 'DENUNCIAS' },
+        ]
       }
     ]
   }
@@ -157,14 +166,22 @@ export default function Sidebar() {
 
   const [openRegulacao, setOpenRegulacao] = useState(false);
   const [openFarmacia, setOpenFarmacia] = useState(false);
+<<<<<<< HEAD
   const [openJunta, setOpenJunta] = useState(false);
+=======
+  const [openCCZ, setOpenCCZ] = useState(false);
+>>>>>>> a52eb104de373bbbf7404c79292a7aec72985da2
   const [openNestedMenu, setOpenNestedMenu] = useState(false);
 
   // Reseta todos os dropdowns quando o mouse sai da Sidebar
   const handleMouseLeaveSidebar = () => {
     setOpenRegulacao(false);
     setOpenFarmacia(false);
+<<<<<<< HEAD
     setOpenJunta(false);
+=======
+    setOpenCCZ(false);
+>>>>>>> a52eb104de373bbbf7404c79292a7aec72985da2
     setOpenNestedMenu(false);
   };
 
@@ -199,7 +216,12 @@ export default function Sidebar() {
             <ul className={styles.navList}>
               {section.items.map((item) => {
                 if (item.isDropdown) {
+<<<<<<< HEAD
                   const isOpen = getDropdownState(item.path);
+=======
+                  const isOpen = item.path === '/regulacao' ? openRegulacao : item.path === '/ccz' ? openCCZ : openFarmacia;
+                  const setIsOpen = item.path === '/regulacao' ? setOpenRegulacao : item.path === '/ccz' ? setOpenCCZ : setOpenFarmacia;
+>>>>>>> a52eb104de373bbbf7404c79292a7aec72985da2
 
                   return (
                     <li key={item.path} className={styles.dropdownContainer}>

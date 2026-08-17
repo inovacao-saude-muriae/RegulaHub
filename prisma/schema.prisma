@@ -146,6 +146,7 @@ model CotaFinanceira {
   @@map("cotas_financeiras")
 }
 
+<<<<<<< HEAD
 // ------------------------------------------------------
 // CÂMARA TÉCNICA - FARMÁCIA JUDICIAL
 // ------------------------------------------------------
@@ -301,4 +302,77 @@ model Tutor {
   pessoa             Pessoa    @relation(fields: [pessoaCpf], references: [cpf], onDelete: Cascade)
 
   @@map("tutor")
+=======
+// ─── CCZ ────────────────────────────────────────────────────────────────────
+
+model CczTutor {
+  id            Int          @id @default(autoincrement())
+  cpf           String?      @unique @db.VarChar(11)
+  nomeCompleto  String       @map("nome_completo") @db.VarChar(150)
+  telefone      String?      @db.VarChar(20)
+  email         String?      @db.VarChar(100)
+  logradouro    String?      @db.VarChar(150)
+  numero        String?      @db.VarChar(20)
+  complemento   String?      @db.VarChar(50)
+  bairro        String?      @db.VarChar(100)
+  cidade        String?      @default("Muriaé") @db.VarChar(100)
+  uf            String?      @default("MG") @db.Char(2)
+  cep           String?      @db.VarChar(8)
+  ativo         Boolean      @default(true)
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  animais       CczAnimal[]
+
+  @@map("ccz_tutores")
+}
+
+model CczAnimal {
+  id               Int           @id @default(autoincrement())
+  tutorId          Int           @map("tutor_id")
+  nome             String?       @db.VarChar(100)
+  especie          String        @db.VarChar(50)   // Cão, Gato, Bovino, etc.
+  raca             String?       @db.VarChar(80)
+  sexo             String?       @db.VarChar(20)
+  cor              String?       @db.VarChar(50)
+  dataNascimento   DateTime?     @map("data_nascimento") @db.Date
+  ativo            Boolean       @default(true)
+  observacao       String?
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  tutor            CczTutor      @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+
+  @@index([tutorId], map: "idx_ccz_animal_tutor")
+  @@map("ccz_animais")
+}
+
+model CczAtividade {
+  id                Int      @id @default(autoincrement())
+  tipo              String   @db.VarChar(100)
+  bairro            String   @db.VarChar(100)
+  logradouro        String?  @db.VarChar(150)
+  responsavel       String?  @db.VarChar(150)
+  dataAtividade     DateTime @map("data_atividade") @db.Date
+  quantidadeImoveis Int?     @map("quantidade_imoveis")
+  status            String   @default("Concluída") @db.VarChar(50)
+  observacao        String?
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("ccz_atividades")
+}
+
+model CczDenuncia {
+  id                   Int      @id @default(autoincrement())
+  tipo                 String   @db.VarChar(100)
+  descricao            String
+  bairro               String   @db.VarChar(100)
+  logradouro           String?  @db.VarChar(150)
+  numero               String?  @db.VarChar(20)
+  denuncianteNome      String?  @map("denunciante_nome") @db.VarChar(150)
+  denuncianteTelefone  String?  @map("denunciante_telefone") @db.VarChar(20)
+  status               String   @default("Pendente") @db.VarChar(50)
+  prioridade           String   @default("Normal") @db.VarChar(30)
+  observacao           String?
+  dataDenuncia         DateTime @default(now()) @map("data_denuncia") @db.Timestamptz(6)
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("ccz_denuncias")
+>>>>>>> a52eb104de373bbbf7404c79292a7aec72985da2
 }
