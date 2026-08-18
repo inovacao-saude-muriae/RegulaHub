@@ -77,31 +77,84 @@ export async function buscarPessoaPorNomeOuCpf(termo) {
 /* ── 2. CADASTRAR OU ATUALIZAR PACIENTE NA JUNTA REGULADORA ── */
 export async function cadastrarPacienteJunta(data) {
   try {
-    const { cpf, nomeCompleto, dataNascimento, telefone, tipoDeficiencia, locaisEncaminhados = [] } = data;
+    const {
+      cpf,
+      nomeCompleto,
+      dataNascimento,
+      nomeMae,
+      telefone,
+      tipoDeficiencia,
+      cep,
+      logradouro,
+      numero,
+      complemento,
+      bairro,
+      cidade,
+      uf,
+      locaisEncaminhados = [],
+    } = data;
+
     const cpfClean = (cpf || '').replace(/\D/g, '').slice(0, 11);
 
     if (!cpfClean || cpfClean.length !== 11) {
       return { success: false, error: 'CPF inválido. Deve conter 11 dígitos.' };
     }
 
-    // 1. Garante que a pessoa exista/seja atualizada na tabela pessoa
+    // 1. Cria ou atualiza a Pessoa
     await prisma.pessoa.upsert({
       where: { cpf: cpfClean },
       update: {
         nomeCompleto: nomeCompleto ? nomeCompleto.slice(0, 150) : undefined,
         dataNascimento: dataNascimento ? new Date(dataNascimento) : undefined,
+        nomeMae: nomeMae ? nomeMae.slice(0, 150) : undefined,
         telefone: telefone ? telefone.slice(0, 20) : undefined,
       },
       create: {
         cpf: cpfClean,
         nomeCompleto: (nomeCompleto || '').slice(0, 150),
         dataNascimento: dataNascimento ? new Date(dataNascimento) : new Date(),
-        nomeMae: 'NÃO INFORMADO',
+        nomeMae: (nomeMae || 'NÃO INFORMADO').slice(0, 150),
         telefone: telefone ? telefone.slice(0, 20) : '',
       },
     });
 
-    // 2. Insere/Atualiza paciente_junta
+    // 2. Cria ou atualiza o Endereço Residencial
+    if (logradouro || bairro || cep) {
+      const enderecoExistente = await prisma.endereco.findFirst({
+        where: { pessoaCpf: cpfClean, enderecoAtual: true },
+      });
+
+      if (enderecoExistente) {
+        await prisma.endereco.update({
+          where: { id: enderecoExistente.id },
+          data: {
+            cep: cep ? cep.replace(/\D/g, '').slice(0, 8) : null,
+            logradouro: logradouro ? logradouro.slice(0, 150) : '',
+            numero: numero ? numero.slice(0, 20) : '',
+            complemento: complemento ? complemento.slice(0, 50) : null,
+            bairro: bairro ? bairro.slice(0, 100) : '',
+            cidade: cidade ? cidade.slice(0, 100) : 'Muriaé',
+            uf: uf ? uf.slice(0, 2) : 'MG',
+          },
+        });
+      } else {
+        await prisma.endereco.create({
+          data: {
+            pessoaCpf: cpfClean,
+            cep: cep ? cep.replace(/\D/g, '').slice(0, 8) : null,
+            logradouro: logradouro ? logradouro.slice(0, 150) : '',
+            numero: numero ? numero.slice(0, 20) : '',
+            complemento: complemento ? complemento.slice(0, 50) : null,
+            bairro: bairro ? bairro.slice(0, 100) : '',
+            cidade: cidade ? cidade.slice(0, 100) : 'Muriaé',
+            uf: uf ? uf.slice(0, 2) : 'MG',
+            enderecoAtual: true,
+          },
+        });
+      }
+    }
+
+    // 3. Cria ou atualiza Paciente na Junta
     const pacienteJunta = await prisma.pacienteJunta.upsert({
       where: { pessoaCpf: cpfClean },
       update: { tipoDeficiencia },
@@ -111,27 +164,31 @@ export async function cadastrarPacienteJunta(data) {
       },
     });
 
-    // 3. Atualiza serviços vinculados
+    // 4. Atualiza os Serviços Vinculados
     await prisma.pacienteJuntaServico.deleteMany({
       where: { pacienteJuntaId: pacienteJunta.id },
     });
 
     if (locaisEncaminhados.length > 0) {
+      const servicoIds = [];
+
       for (const localNome of locaisEncaminhados) {
-        await prisma.juntaServico.upsert({
-          where: { nome: localNome },
-          update: {},
-          create: { nome: localNome },
+        let servico = await prisma.juntaServico.findFirst({
+          where: { nome: { equals: localNome.trim(), mode: 'insensitive' } },
         });
+
+        if (!servico) {
+          servico = await prisma.juntaServico.create({
+            data: { nome: localNome.trim(), ativo: true },
+          });
+        }
+
+        servicoIds.push(servico.id);
       }
 
-      const servicosEncontrados = await prisma.juntaServico.findMany({
-        where: { nome: { in: locaisEncaminhados } },
-      });
-
-      const novosVinculos = servicosEncontrados.map((servico) => ({
+      const novosVinculos = servicoIds.map((sId) => ({
         pacienteJuntaId: pacienteJunta.id,
-        servicoId: servico.id,
+        servicoId: sId,
         ativo: true,
       }));
 
@@ -150,17 +207,40 @@ export async function cadastrarPacienteJunta(data) {
 /* ── 3. LISTAR PACIENTES VINCULADOS A UM SERVIÇO (RECEPÇÃO) ── */
 export async function getPacientesPorServico(servicoNome) {
   try {
+    if (!servicoNome) return { success: true, data: [] };
+
+    const termo = String(servicoNome).trim();
+
+    // Encontra o serviço no banco com busca flexível
+    const servico = await prisma.juntaServico.findFirst({
+      where: {
+        OR: [
+          { nome: { equals: termo, mode: 'insensitive' } },
+          { nome: { contains: termo, mode: 'insensitive' } },
+        ],
+      },
+    });
+
+    if (!servico) {
+      return { success: true, data: [] };
+    }
+
     const vinculos = await prisma.pacienteJuntaServico.findMany({
       where: {
+        servicoId: servico.id,
         ativo: true,
-        servico: {
-          nome: { equals: servicoNome, mode: 'insensitive' },
-        },
       },
       include: {
         pacienteJunta: {
           include: {
-            pessoa: true,
+            pessoa: {
+              include: {
+                enderecos: {
+                  where: { enderecoAtual: true },
+                  take: 1,
+                },
+              },
+            },
           },
         },
       },
@@ -173,38 +253,84 @@ export async function getPacientesPorServico(servicoNome) {
       },
     });
 
-    const data = vinculos.map((v) => ({
-      paciente_junta_id: v.pacienteJunta.id,
-      cpf: v.pacienteJunta.pessoa.cpf,
-      nome: v.pacienteJunta.pessoa.nomeCompleto,
-      tipo_deficiencia: v.pacienteJunta.tipoDeficiencia,
-    }));
+    const data = vinculos.map((v) => {
+      const p = v.pacienteJunta;
+      const pessoa = p?.pessoa || {};
+      const end = pessoa?.enderecos?.[0] || {};
+
+      return {
+        id: p.id,
+        paciente_junta_id: p.id,
+        cpf: pessoa.cpf || '',
+        nome: pessoa.nomeCompleto || '',
+        nomeCompleto: pessoa.nomeCompleto || '',
+        nomeMae: pessoa.nomeMae || '',
+        telefone: pessoa.telefone || '',
+        tipo_deficiencia: p.tipoDeficiencia || '',
+        tipoDeficiencia: p.tipoDeficiencia || '',
+        logradouro: end.logradouro || '',
+        numero: end.numero || '',
+        bairro: end.bairro || '',
+        cidade: end.cidade || '',
+        uf: end.uf || '',
+        cep: end.cep || '',
+      };
+    });
 
     return { success: true, data };
   } catch (error) {
     console.error('Erro ao listar pacientes do serviço:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, data: [] };
   }
 }
 
 /* ── 4. REGISTRAR PRESENÇA / ATENDIMENTO NO SERVIÇO ── */
 export async function registrarAtendimentoServico(data) {
   try {
-    const { pacienteJuntaId, servicoNome, especialidade, dataAtendimento, status, observacao, profissional } = data;
+    const { 
+      pacienteJuntaId, 
+      pacienteId,
+      servico, 
+      servicoNome, 
+      especialidade, 
+      dataAtendimento, 
+      data: dataForm, 
+      status, 
+      observacao, 
+      profissional 
+    } = data;
 
-    const servico = await prisma.juntaServico.upsert({
-      where: { nome: servicoNome },
-      update: {},
-      create: { nome: servicoNome },
+    // Aceita tanto servicoNome quanto servico e evita erro de 'trim' em undefined
+    const nomeDoServico = (servicoNome || servico || '').trim();
+    const idDoPaciente = pacienteJuntaId || pacienteId;
+
+    if (!nomeDoServico) {
+      return { success: false, error: 'Nome do serviço não foi informado.' };
+    }
+
+    if (!idDoPaciente) {
+      return { success: false, error: 'Paciente não foi selecionado.' };
+    }
+
+    let juntaServico = await prisma.juntaServico.findFirst({
+      where: { nome: { equals: nomeDoServico, mode: 'insensitive' } },
     });
+
+    if (!juntaServico) {
+      juntaServico = await prisma.juntaServico.create({
+        data: { nome: nomeDoServico, ativo: true },
+      });
+    }
+
+    const dataFinal = dataAtendimento || dataForm ? new Date(dataAtendimento || dataForm) : new Date();
 
     await prisma.juntaAtendimento.create({
       data: {
-        pacienteJuntaId: Number(pacienteJuntaId),
-        servicoId: servico.id,
-        especialidade,
-        dataAtendimento: new Date(dataAtendimento),
-        status,
+        pacienteJuntaId: Number(idDoPaciente),
+        servicoId: juntaServico.id,
+        especialidade: especialidade || 'Geral',
+        dataAtendimento: dataFinal,
+        status: status || 'PRESENCA',
         observacao: observacao || null,
         profissionalResponsavel: profissional || null,
       },
@@ -231,7 +357,14 @@ export async function getProntuarioUnificado(termoBusca) {
         ],
       },
       include: {
-        pessoa: true,
+        pessoa: {
+          include: {
+            enderecos: {
+              where: { enderecoAtual: true },
+              take: 1,
+            },
+          },
+        },
         servicos: {
           where: { ativo: true },
           include: { servico: true },
@@ -247,13 +380,22 @@ export async function getProntuarioUnificado(termoBusca) {
       return { success: true, data: null };
     }
 
+    const end = pacienteJunta.pessoa?.enderecos?.[0] || {};
+
     const pacienteFormatted = {
       paciente_junta_id: pacienteJunta.id,
       cpf: pacienteJunta.pessoa.cpf,
       nome: pacienteJunta.pessoa.nomeCompleto,
+      nomeMae: pacienteJunta.pessoa.nomeMae,
       data_nascimento: pacienteJunta.pessoa.dataNascimento,
       telefone: pacienteJunta.pessoa.telefone,
       tipo_deficiencia: pacienteJunta.tipoDeficiencia,
+      logradouro: end.logradouro || '',
+      numero: end.numero || '',
+      bairro: end.bairro || '',
+      cidade: end.cidade || '',
+      uf: end.uf || '',
+      cep: end.cep || '',
       servicos_ativos: pacienteJunta.servicos.map((s) => s.servico.nome),
     };
 

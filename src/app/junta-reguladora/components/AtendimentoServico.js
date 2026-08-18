@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import styles from './AtendimentoServico.module.css';
 
-export default function AtendimentoServico({ servicoNome, pacientes, atendimentos, onRegistrar }) {
+export default function AtendimentoServico({ servicoNome, pacientes = [], atendimentos = [], onRegistrar }) {
   const [form, setForm] = useState({
     pacienteId: '',
     especialidade: '',
@@ -12,29 +12,50 @@ export default function AtendimentoServico({ servicoNome, pacientes, atendimento
     observacao: ''
   });
 
-  const pacientesDoServico = pacientes.filter((p) =>
-    p.locaisEncaminhados?.includes(servicoNome)
-  );
+  // Filtra pacientes vinculados ao serviço (testando de forma segura todas as propriedades possíveis)
+  const pacientesDoServico = Array.isArray(pacientes)
+    ? pacientes.filter((p) => {
+        const servicos = p.servicosAtivos || p.servicos_ativos || p.locaisEncaminhados;
+        // Se já for uma lista retornada do banco específica para esse serviço, mantém o paciente
+        if (!servicos) return true;
+        
+        return servicos.some(
+          (s) => String(s).trim().toLowerCase() === String(servicoNome).trim().toLowerCase()
+        );
+      })
+    : [];
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!form.pacienteId || !form.especialidade) return alert('Selecione o paciente e a especialidade.');
-    onRegistrar({ ...form, servico: servicoNome });
+    if (!form.pacienteId || !form.especialidade) {
+      return alert('Selecione o paciente e a especialidade.');
+    }
+    
+    if (onRegistrar) {
+      onRegistrar({ ...form, servico: servicoNome });
+    }
+    
     setForm({ ...form, pacienteId: '', observacao: '' });
   };
 
   return (
     <div className={styles.card}>
-      <h3 className={styles.title}>Recepção e Controle - Serviço: <span className={styles.badgeServico}>{servicoNome}</span></h3>
+      <h3 className={styles.title}>
+        Recepção e Controle - Serviço: <span className={styles.badgeServico}>{servicoNome}</span>
+      </h3>
 
       <form onSubmit={handleSubmit} className={styles.formGrid}>
         <div className={styles.fieldGroup}>
           <label>Paciente Vinculado ao Serviço *</label>
-          <select value={form.pacienteId} onChange={(e) => setForm({ ...form, pacienteId: e.target.value })} required>
-            <option value="">-- Selecione o Paciente --</option>
+          <select 
+            value={form.pacienteId} 
+            onChange={(e) => setForm({ ...form, pacienteId: e.target.value })} 
+            required
+          >
+            <option value="">-- Selecione o Paciente ({pacientesDoServico.length} disponíveis) --</option>
             {pacientesDoServico.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nome} (CPF: {p.cpf})
+              <option key={p.id || p.paciente_junta_id || p.cpf} value={p.id || p.paciente_junta_id}>
+                {p.nomeCompleto || p.nome} (CPF: {p.cpf})
               </option>
             ))}
           </select>
@@ -53,7 +74,12 @@ export default function AtendimentoServico({ servicoNome, pacientes, atendimento
 
         <div className={styles.fieldGroup}>
           <label>Data *</label>
-          <input type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} required />
+          <input 
+            type="date" 
+            value={form.data} 
+            onChange={(e) => setForm({ ...form, data: e.target.value })} 
+            required 
+          />
         </div>
 
         <div className={styles.fieldGroup}>
