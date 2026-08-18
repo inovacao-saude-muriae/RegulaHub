@@ -166,22 +166,16 @@ export default function Sidebar() {
 
   const [openRegulacao, setOpenRegulacao] = useState(false);
   const [openFarmacia, setOpenFarmacia] = useState(false);
-<<<<<<< HEAD
   const [openJunta, setOpenJunta] = useState(false);
-=======
   const [openCCZ, setOpenCCZ] = useState(false);
->>>>>>> a52eb104de373bbbf7404c79292a7aec72985da2
   const [openNestedMenu, setOpenNestedMenu] = useState(false);
 
   // Reseta todos os dropdowns quando o mouse sai da Sidebar
   const handleMouseLeaveSidebar = () => {
     setOpenRegulacao(false);
     setOpenFarmacia(false);
-<<<<<<< HEAD
     setOpenJunta(false);
-=======
     setOpenCCZ(false);
->>>>>>> a52eb104de373bbbf7404c79292a7aec72985da2
     setOpenNestedMenu(false);
   };
 
@@ -189,6 +183,7 @@ export default function Sidebar() {
     if (path === '/regulacao') return openRegulacao;
     if (path === '/camara-tecnica/farmacia-judicial') return openFarmacia;
     if (path === '/junta-reguladora') return openJunta;
+    if (path === '/ccz') return openCCZ;
     return false;
   };
 
@@ -196,6 +191,7 @@ export default function Sidebar() {
     if (path === '/regulacao') setOpenRegulacao(!openRegulacao);
     if (path === '/camara-tecnica/farmacia-judicial') setOpenFarmacia(!openFarmacia);
     if (path === '/junta-reguladora') setOpenJunta(!openJunta);
+    if (path === '/ccz') setOpenCCZ(!openCCZ);
   };
 
   return (
@@ -216,12 +212,7 @@ export default function Sidebar() {
             <ul className={styles.navList}>
               {section.items.map((item) => {
                 if (item.isDropdown) {
-<<<<<<< HEAD
                   const isOpen = getDropdownState(item.path);
-=======
-                  const isOpen = item.path === '/regulacao' ? openRegulacao : item.path === '/ccz' ? openCCZ : openFarmacia;
-                  const setIsOpen = item.path === '/regulacao' ? setOpenRegulacao : item.path === '/ccz' ? setOpenCCZ : setOpenFarmacia;
->>>>>>> a52eb104de373bbbf7404c79292a7aec72985da2
 
                   return (
                     <li key={item.path} className={styles.dropdownContainer}>
