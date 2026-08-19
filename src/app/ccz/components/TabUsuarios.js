@@ -6,7 +6,9 @@ import ts from "./TabUsuarios.module.css";
 
 function maskCpf(v) {
   if (!v) return "";
-  return v.replace(/\D/g, "").slice(0, 11)
+  return v
+    .replace(/\D/g, "")
+    .slice(0, 11)
     .replace(/(\d{3})(\d)/, "$1.$2")
     .replace(/(\d{3})(\d)/, "$1.$2")
     .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
@@ -14,23 +16,34 @@ function maskCpf(v) {
 function maskTel(v) {
   if (!v) return "";
   const d = v.replace(/\D/g, "").slice(0, 11);
-  if (d.length <= 10) return d.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{4})(\d{1,4})$/, "$1-$2");
-  return d.replace(/(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d{1,4})$/, "$1-$2");
+  if (d.length <= 10)
+    return d
+      .replace(/(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{4})(\d{1,4})$/, "$1-$2");
+  return d
+    .replace(/(\d{2})(\d)/, "($1) $2")
+    .replace(/(\d{5})(\d{1,4})$/, "$1-$2");
 }
-function onlyDigits(v) { return v ? v.replace(/\D/g, "") : ""; }
+function onlyDigits(v) {
+  return v ? v.replace(/\D/g, "") : "";
+}
 
-export default function TabUsuarios({ tutores = [], animais = [], reloadData }) {
-  const [search, setSearch]   = useState("");
+export default function TabUsuarios({
+  tutores = [],
+  animais = [],
+  reloadData,
+}) {
+  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
 
   // Filtra a lista de tutores pelo campo de busca
   const filtered = useMemo(() => {
-    const low    = search.toLowerCase().trim();
+    const low = search.toLowerCase().trim();
     const digits = onlyDigits(search);
     if (!low) return tutores;
     return tutores.filter((t) => {
       const nomeLow = (t.nomeCompleto || "").toLowerCase();
-      const cpfDig  = onlyDigits(t.cpf || "");
+      const cpfDig = onlyDigits(t.cpf || "");
       return nomeLow.includes(low) || (digits && cpfDig.includes(digits));
     });
   }, [tutores, search]);
@@ -43,22 +56,43 @@ export default function TabUsuarios({ tutores = [], animais = [], reloadData }) 
       <div className={ts.searchSection}>
         <div className={ts.searchRow}>
           <div className={ts.searchInputWrap}>
-            <svg className={ts.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <svg
+              className={ts.searchIcon}
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
               type="text"
               className={ts.searchInput}
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setSelected(null); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setSelected(null);
+              }}
               placeholder="Buscar por nome ou CPF..."
             />
             {search && (
-              <button className={ts.clearBtn} onClick={() => { setSearch(""); setSelected(null); }}>✕</button>
+              <button
+                className={ts.clearBtn}
+                onClick={() => {
+                  setSearch("");
+                  setSelected(null);
+                }}
+              >
+                ✕
+              </button>
             )}
           </div>
           <span className={ts.countBadge}>
-            {filtered.length} {filtered.length === 1 ? "responsável" : "responsáveis"}
+            {filtered.length}{" "}
+            {filtered.length === 1 ? "responsável" : "responsáveis"}
           </span>
         </div>
       </div>
@@ -116,7 +150,9 @@ export default function TabUsuarios({ tutores = [], animais = [], reloadData }) 
                 </div>
                 <div>
                   <h3 className={ts.detailName}>{selected.nomeCompleto}</h3>
-                  <span className={ts.detailCpf}>CPF: {maskCpf(selected.cpf)}</span>
+                  <span className={ts.detailCpf}>
+                    CPF: {maskCpf(selected.cpf)}
+                  </span>
                 </div>
               </div>
 
@@ -126,18 +162,24 @@ export default function TabUsuarios({ tutores = [], animais = [], reloadData }) 
                 <div className={ts.detailGrid}>
                   <div className={ts.detailField}>
                     <span className={ts.detailLabel}>Telefone</span>
-                    <span className={ts.detailValue}>{selected.telefone ? maskTel(selected.telefone) : "—"}</span>
+                    <span className={ts.detailValue}>
+                      {selected.telefone ? maskTel(selected.telefone) : "—"}
+                    </span>
                   </div>
                   {selected.telefoneSecundario && (
                     <div className={ts.detailField}>
                       <span className={ts.detailLabel}>Tel. Secundário</span>
-                      <span className={ts.detailValue}>{maskTel(selected.telefoneSecundario)}</span>
+                      <span className={ts.detailValue}>
+                        {maskTel(selected.telefoneSecundario)}
+                      </span>
                     </div>
                   )}
                   {selected.email && (
                     <div className={ts.detailField}>
                       <span className={ts.detailLabel}>E-mail</span>
-                      <span className={ts.detailValue}>{selected.email || "—"}</span>
+                      <span className={ts.detailValue}>
+                        {selected.email || "—"}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -149,23 +191,33 @@ export default function TabUsuarios({ tutores = [], animais = [], reloadData }) 
                   <div className={ts.detailField}>
                     <span className={ts.detailLabel}>Logradouro</span>
                     <span className={ts.detailValue}>
-                      {[selected.logradouro, selected.numero].filter(Boolean).join(", ") || "—"}
+                      {[selected.logradouro, selected.numero]
+                        .filter(Boolean)
+                        .join(", ") || "—"}
                     </span>
                   </div>
                   <div className={ts.detailField}>
                     <span className={ts.detailLabel}>Bairro</span>
-                    <span className={ts.detailValue}>{selected.bairro || "—"}</span>
+                    <span className={ts.detailValue}>
+                      {selected.bairro || "—"}
+                    </span>
                   </div>
                   <div className={ts.detailField}>
                     <span className={ts.detailLabel}>Cidade / UF</span>
                     <span className={ts.detailValue}>
-                      {[selected.cidade, selected.uf].filter(Boolean).join(" / ") || "—"}
+                      {[selected.cidade, selected.uf]
+                        .filter(Boolean)
+                        .join(" / ") || "—"}
                     </span>
                   </div>
                   {selected.pontoReferencia && (
                     <div className={`${ts.detailField} ${ts.detailFieldFull}`}>
-                      <span className={ts.detailLabel}>Ponto de Referência</span>
-                      <span className={ts.detailValue}>{selected.pontoReferencia}</span>
+                      <span className={ts.detailLabel}>
+                        Ponto de Referência
+                      </span>
+                      <span className={ts.detailValue}>
+                        {selected.pontoReferencia}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -190,7 +242,9 @@ export default function TabUsuarios({ tutores = [], animais = [], reloadData }) 
                     {selected.profissao && (
                       <div className={ts.detailField}>
                         <span className={ts.detailLabel}>Profissão</span>
-                        <span className={ts.detailValue}>{selected.profissao}</span>
+                        <span className={ts.detailValue}>
+                          {selected.profissao}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -210,17 +264,24 @@ export default function TabUsuarios({ tutores = [], animais = [], reloadData }) 
                   Animais Cadastrados ({animaisDeTutor(selected.cpf).length})
                 </p>
                 {animaisDeTutor(selected.cpf).length === 0 ? (
-                  <p style={{ fontSize: "0.85rem", color: "#94a3b8" }}>Nenhum animal vinculado.</p>
+                  <p style={{ fontSize: "0.85rem", color: "#94a3b8" }}>
+                    Nenhum animal vinculado.
+                  </p>
                 ) : (
                   <div className={ts.animalList}>
                     {animaisDeTutor(selected.cpf).map((a) => (
                       <div key={a.id} className={ts.animalChip}>
                         <span className={ts.animalEmoji}>
-                          {({ Cão: "🐕", Gato: "🐈", Bovino: "🐄", Equino: "🐴" })[a.especie] || "🐾"}
+                          {{ Cão: "🐕", Gato: "🐈" }[a.especie] || "🐾"}
                         </span>
                         <div>
-                          <span className={ts.animalChipName}>{a.nome || "Sem nome"}</span>
-                          <span className={ts.animalChipMeta}>{a.especie}{a.raca ? ` / ${a.raca}` : ""}</span>
+                          <span className={ts.animalChipName}>
+                            {a.nome || "Sem nome"}
+                          </span>
+                          <span className={ts.animalChipMeta}>
+                            {a.especie}
+                            {a.raca ? ` / ${a.raca}` : ""}
+                          </span>
                         </div>
                       </div>
                     ))}
