@@ -64,6 +64,7 @@ const EMPTY_TUTOR_EXTRA = {
 };
 
 const EMPTY_ANIMAL = {
+  id: "",
   possui_responsavel: "",
   tutorCpf: "",
   nome: "",
@@ -193,6 +194,7 @@ export default function TabCadastros({
   const handleEditAnimal = (a) => {
     setEditingAnimalId(a.id);
     setAnimalForm({
+      id: a.id || "",
       possui_responsavel:
         a.possui_responsavel || (a.tutorCpf || a.pessoa_cpf ? "Sim" : "Não"),
       tutorCpf: a.tutorCpf || a.pessoa_cpf || "",
@@ -217,12 +219,16 @@ export default function TabCadastros({
 
   const handleSubmitAnimal = async (e) => {
     e.preventDefault();
-    if (!animalForm.possui_responsavel || !animalForm.especie) {
+    if (
+      !animalForm.id.trim() ||
+      !animalForm.possui_responsavel ||
+      !animalForm.especie
+    ) {
       setMessageConfig({
         type: "warning",
         title: "Dados incompletos",
         message:
-          "Informe se o animal possui responsável e selecione a espécie.",
+          "Informe o ID do animal, se possui responsável e selecione a espécie.",
       });
       return;
     }
@@ -654,6 +660,22 @@ export default function TabCadastros({
           </h3>
 
           <form onSubmit={handleSubmitAnimal} className={s.formGrid}>
+            {/* Identificador manual */}
+            <div className={`${s.fieldGroup} ${s.fullWidth}`}>
+              <label htmlFor="animal-id">ID do Animal *</label>
+              <input
+                id="animal-id"
+                type="text"
+                value={animalForm.id}
+                onChange={(e) =>
+                  setAnimalForm({ ...animalForm, id: e.target.value })
+                }
+                placeholder="Ex.: 14/26"
+                required
+                disabled={Boolean(editingAnimalId)}
+              />
+            </div>
+
             {/* Responsável */}
             <div className={`${s.fieldGroup} ${s.fullWidth}`}>
               <label>O animal possui responsável? *</label>

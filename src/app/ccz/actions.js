@@ -244,27 +244,16 @@ export async function desvincularTutor(cpf) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// ANIMAIS  (tabela: animal — PK = id VARCHAR(50) = número/ano)
-// ─────────────────────────────────────────────────────────────
-async function getNextAnimalId() {
-  const year = String(new Date().getFullYear()).slice(-2);
-  const animals = await prisma.animal.findMany({ select: { id: true } });
-  const numbers = animals
-    .map(({ id }) => {
-      const match = String(id).match(/^(\d+)\/(\d{2})$/);
-      return match?.[2] === year ? Number(match[1]) : 0;
-    })
-    .filter(Number.isFinite);
-  const nextNumber = Math.max(0, ...numbers) + 1;
-  return `${nextNumber}/${year}`;
-}
-
 export async function createAnimal(data) {
   try {
+    const animalId = String(data.id || "").trim();
+    if (!animalId) {
+      return { success: false, error: "Informe o ID do animal." };
+    }
+
     const record = await prisma.animal.create({
       data: {
-        id: await getNextAnimalId(),
+        id: animalId,
         pessoa_cpf:
           data.possui_responsavel === "Sim" ? data.tutorCpf || null : null,
         nome: data.nome || null,
