@@ -35,7 +35,10 @@
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
-.searchInput { flex: 1; min-width: 200px; }
+.searchInput {
+  flex: 1;
+  min-width: 200px;
+}
 
 .filterLabel {
   font-size: 0.83rem;
@@ -56,7 +59,9 @@
   transition: background-color 0.2s;
   font-family: inherit;
 }
-.clearBtn:hover { background-color: #f1f5f9; }
+.clearBtn:hover {
+  background-color: #f1f5f9;
+}
 
 .count {
   font-size: 0.83rem;
@@ -78,7 +83,10 @@
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    transform 0.15s;
   display: flex;
   flex-direction: column;
 }
@@ -147,11 +155,26 @@
   flex-shrink: 0;
 }
 
-.badgeCao     { background-color: #dbeafe; color: #1d4ed8; }
-.badgeGato    { background-color: #fdf4ff; color: #7e22ce; }
-.badgeBovino  { background-color: #dcfce7; color: #15803d; }
-.badgeEquino  { background-color: #fff7ed; color: #c2410c; }
-.badgeOutro   { background-color: #f1f5f9; color: #475569; }
+.badgeCao {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+.badgeGato {
+  background-color: #fdf4ff;
+  color: #7e22ce;
+}
+.badgeBovino {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+.badgeEquino {
+  background-color: #fff7ed;
+  color: #c2410c;
+}
+.badgeOutro {
+  background-color: #f1f5f9;
+  color: #475569;
+}
 
 .infoList {
   display: flex;
@@ -172,6 +195,42 @@
   font-weight: 600;
   color: #64748b;
   min-width: 52px;
+}
+
+.healthRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.healthGood,
+.healthNeutral,
+.healthWarning {
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.healthGood {
+  background: #dcfce7;
+  color: #15803d;
+}
+.healthNeutral {
+  background: #f1f5f9;
+  color: #64748b;
+}
+.healthWarning {
+  background: #fef3c7;
+  color: #a16207;
+}
+
+.locationRow {
+  margin-top: 0.55rem;
+  color: #64748b;
+  font-size: 0.76rem;
+  line-height: 1.35;
 }
 
 /* Footer do card */

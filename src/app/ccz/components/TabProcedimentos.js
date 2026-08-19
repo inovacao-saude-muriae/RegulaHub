@@ -3,6 +3,7 @@
 import { useState } from "react";
 import s from "./shared.module.css";
 import ModalConfirmacaoCCZ from "./Modals/ModalConfirmacaoCCZ";
+import ModalMensagemCCZ from "./Modals/ModalMensagemCCZ";
 
 const TIPOS_PROCEDIMENTO = [
   "Castração",
@@ -46,11 +47,12 @@ export default function TabProcedimentos({ tutores = [], animais = [] }) {
   const [editingId, setEditingId] = useState(null);
   const [registros, setRegistros] = useState([]);
   const [deleteConfig, setDeleteConfig] = useState(null);
+  const [messageConfig, setMessageConfig] = useState(null);
 
   const animaisPorTutor = tutores
     .map((t) => ({
       tutor: t,
-      animais: animais.filter((a) => a.tutorId === t.id),
+      animais: animais.filter((a) => a.tutorCpf === t.cpf),
     }))
     .filter((g) => g.animais.length > 0);
 
@@ -58,7 +60,7 @@ export default function TabProcedimentos({ tutores = [], animais = [] }) {
     (a) => String(a.id) === String(form.animalId),
   );
   const tutorDoAnimal = animalSelecionado
-    ? tutores.find((t) => t.id === animalSelecionado.tutorId)
+    ? tutores.find((t) => t.cpf === animalSelecionado.tutorCpf)
     : null;
 
   const resetForm = () => {
@@ -69,16 +71,29 @@ export default function TabProcedimentos({ tutores = [], animais = [] }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.animalId || !form.tipoProcedimento || !form.dataProcedimento)
-      return alert("Preencha o Animal, Tipo de Procedimento e Data.");
+      setMessageConfig({
+        type: "warning",
+        title: "Dados incompletos",
+        message: "Preencha o animal, tipo de procedimento e data.",
+      });
+    return;
 
     if (editingId !== null) {
       setRegistros((prev) =>
         prev.map((r) => (r.id === editingId ? { ...r, ...form } : r)),
       );
-      alert("Procedimento atualizado!");
+      setMessageConfig({
+        type: "success",
+        title: "Procedimento atualizado",
+        message: "O procedimento foi salvo com sucesso.",
+      });
     } else {
       setRegistros((prev) => [...prev, { id: _nextId++, ...form }]);
-      alert("Procedimento registrado!");
+      setMessageConfig({
+        type: "success",
+        title: "Procedimento registrado",
+        message: "O procedimento foi salvo com sucesso.",
+      });
     }
     resetForm();
   };
@@ -106,6 +121,10 @@ export default function TabProcedimentos({ tutores = [], animais = [] }) {
         }}
         onCancel={() => setDeleteConfig(null)}
       />
+      <ModalMensagemCCZ
+        config={messageConfig}
+        onClose={() => setMessageConfig(null)}
+      />
 
       <h3>
         {editingId !== null
@@ -128,7 +147,7 @@ export default function TabProcedimentos({ tutores = [], animais = [] }) {
             )}
             {animaisPorTutor.map(({ tutor, animais: gr }) => (
               <optgroup
-                key={tutor.id}
+                key={tutor.cpf}
                 label={`${tutor.nomeCompleto}${tutor.bairro ? ` — ${tutor.bairro}` : ""}`}
               >
                 {gr.map((a) => (
@@ -298,7 +317,7 @@ export default function TabProcedimentos({ tutores = [], animais = [] }) {
                 (a) => String(a.id) === String(r.animalId),
               );
               const tutor = animal
-                ? tutores.find((t) => t.id === animal.tutorId)
+                ? tutores.find((t) => t.cpf === animal.tutorCpf)
                 : null;
               return (
                 <tr key={r.id}>
@@ -341,7 +360,11 @@ export default function TabProcedimentos({ tutores = [], animais = [] }) {
                             setRegistros((prev) =>
                               prev.filter((x) => x.id !== r.id),
                             );
-                            alert("Procedimento excluído!");
+                            setMessageConfig({
+                              type: "success",
+                              title: "Procedimento excluído",
+                              message: "O registro foi removido com sucesso.",
+                            });
                           },
                         })
                       }

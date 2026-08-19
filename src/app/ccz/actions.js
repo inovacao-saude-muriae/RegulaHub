@@ -2,143 +2,287 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "crypto";
 
 // ─────────────────────────────────────────────────────────────
-// DASHBOARD — busca tudo de uma vez
+// HELPERS
 // ─────────────────────────────────────────────────────────────
+function formatDateBR(d) {
+  if (!d) return "";
+  const s = d instanceof Date ? d.toISOString() : String(d);
+  const parts = s.split("T")[0].split("-");
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : s;
+}
+
+// Transforma um registro Pessoa+Tutor em objeto plano para o frontend
+function pessoaToTutor(pessoa) {
+  const end = pessoa.enderecos?.[0];
+  return {
+    cpf: pessoa.cpf,
+    nomeCompleto: pessoa.nomeCompleto,
+    telefone: pessoa.telefone || "",
+    dataNascimento: formatDateBR(pessoa.dataNascimento),
+    nomeMae: pessoa.nomeMae || "",
+    bairro: end?.bairro || "",
+    logradouro: end?.logradouro || "",
+    numero: end?.numero || "",
+    complemento: end?.complemento || "",
+    cidade: end?.cidade || "Muriaé",
+    uf: end?.uf || "MG",
+    cep: end?.cep || "",
+    // Dados extras da tabela tutor
+    rg: pessoa.tutor?.rg || "",
+    sexo: pessoa.tutor?.sexo || "",
+    profissao: pessoa.tutor?.profissao || "",
+    telefoneSecundario: pessoa.tutor?.telefoneSecundario || "",
+    pontoReferencia: pessoa.tutor?.pontoReferencia || "",
+    observacoes: pessoa.tutor?.observacoes || "",
+    isTutor: !!pessoa.tutor,
+  };
+}
+
+// Transforma Animal do banco em objeto para o frontend
+function animalToFront(a) {
+  return {
+    id: a.id,
+    pessoa_cpf: a.pessoa_cpf || "",
+    tutorCpf: a.pessoa_cpf || "", // alias para compatibilidade
+    tutorNome: a.tutor?.pessoa?.nomeCompleto || "",
+    nome: a.nome || "",
+    especie: a.especie || "",
+    sexo: a.sexo || "",
+    porte: a.porte || "",
+    idade: a.idade || "",
+    castrado: a.castrado || "Não",
+    fotoUrl: a.fotoUrl || null,
+    doenca_cronica: a.doenca_cronica || "Não",
+    sintomas_vomito_diarreia: a.sintomas_vomito_diarreia || "Não",
+    apetite_normal: a.apetite_normal || "Sim",
+    em_tratamento: a.em_tratamento || "Não",
+    qual_tratamento: a.qual_tratamento || "",
+    observacoes: a.observacoes || "",
+    possui_responsavel: a.possui_responsavel || "Sim",
+    endereco_recolhimento: a.endereco_recolhimento || "",
+    data_cadastro: a.data_cadastro || null,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+// DASHBOARD
+// ─────────────────────────────────────────────────────────────
+async function getTutoresCCZ() {
+  try {
+    const tutoresDiretos = await prisma.tutor.findMany({
+      include: {
+        pessoa: {
+          include: {
+            enderecos: { where: { enderecoAtual: true } },
+          },
+        },
+      },
+      orderBy: {
+        pessoa: { nomeCompleto: "asc" },
+      },
+    });
+
+    if (tutoresDiretos.length > 0) {
+      return tutoresDiretos.map((tutor) =>
+        pessoaToTutor(tutor.pessoa ? { ...tutor.pessoa, tutor } : tutor),
+      );
+    }
+  } catch (error) {
+    console.warn(
+      "Falha ao consultar tutores diretamente, tentando fallback:",
+      error,
+    );
+  }
+
+  const pessoasTutoras = await prisma.pessoa.findMany({
+    where: { tutor: { isNot: null } },
+    include: {
+      tutor: true,
+      enderecos: { where: { enderecoAtual: true } },
+    },
+    orderBy: { nomeCompleto: "asc" },
+  });
+
+  return pessoasTutoras.map(pessoaToTutor);
+}
+
 export async function getCCZDashboardData() {
   try {
-    const [tutores, animais, atividades, denuncias] = await Promise.all([
-      prisma.cczTutor.findMany({
-        where: { ativo: true },
-        orderBy: { nomeCompleto: "asc" },
+    const [tutores, animais, denuncias] = await Promise.all([
+      getTutoresCCZ(),
+      prisma.animal.findMany({
+        include: {
+          tutor: {
+            include: {
+              pessoa: true,
+            },
+          },
+        },
+        orderBy: { data_cadastro: "desc" },
       }),
-      prisma.cczAnimal.findMany({
-        where: { ativo: true },
-        include: { tutor: true },
-        orderBy: { createdAt: "desc" },
+      prisma.denuncia_cao_agressivo.findMany({
+        orderBy: { data_denuncia: "desc" },
       }),
-      prisma.cczAtividade.findMany({ orderBy: { dataAtividade: "desc" } }),
-      prisma.cczDenuncia.findMany({ orderBy: { dataDenuncia: "desc" } }),
     ]);
-    return { tutores, animais, atividades, denuncias };
+
+    return {
+      tutores,
+      animais: animais.map(animalToFront),
+      denuncias,
+    };
   } catch (error) {
     console.error("Erro ao buscar dados CCZ:", error);
-    return { tutores: [], animais: [], atividades: [], denuncias: [] };
+    return { tutores: [], animais: [], denuncias: [] };
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// TUTORES / USUÁRIOS
+// BUSCA DE PESSOAS (autocomplete)
 // ─────────────────────────────────────────────────────────────
-export async function getTutores() {
+export async function searchPessoasCCZ(termo) {
+  if (!termo || termo.trim().length < 2) return [];
   try {
-    return await prisma.cczTutor.findMany({
-      where: { ativo: true },
-      include: { animais: { where: { ativo: true } } },
+    const digits = termo.replace(/\D/g, "");
+    const pessoas = await prisma.pessoa.findMany({
+      where: {
+        OR: [
+          { nomeCompleto: { contains: termo, mode: "insensitive" } },
+          ...(digits.length >= 3 ? [{ cpf: { contains: digits } }] : []),
+        ],
+      },
+      include: {
+        enderecos: { where: { enderecoAtual: true } },
+        tutor: true,
+      },
+      take: 8,
       orderBy: { nomeCompleto: "asc" },
     });
+
+    const resultados = pessoas.map(pessoaToTutor);
+    if (resultados.length > 0) return resultados;
+
+    const tutores = await prisma.tutor.findMany({
+      include: {
+        pessoa: {
+          include: {
+            enderecos: { where: { enderecoAtual: true } },
+          },
+        },
+      },
+      orderBy: {
+        pessoa: { nomeCompleto: "asc" },
+      },
+      take: 8,
+    });
+
+    return tutores
+      .map((tutor) =>
+        pessoaToTutor(tutor.pessoa ? { ...tutor.pessoa, tutor } : tutor),
+      )
+      .filter((pessoa) => {
+        const nome = (pessoa.nomeCompleto || "").toLowerCase();
+        const cpf = (pessoa.cpf || "").replace(/\D/g, "");
+        const busca = termo.toLowerCase();
+        const buscaCpf = digits;
+
+        return nome.includes(busca) || (buscaCpf && cpf.includes(buscaCpf));
+      });
   } catch (error) {
-    console.error("Erro ao buscar tutores:", error);
+    console.error("Erro ao buscar pessoas:", error);
     return [];
   }
 }
 
-export async function createTutor(data) {
+// ─────────────────────────────────────────────────────────────
+// VINCULAR / DESVINCULAR TUTOR
+// ─────────────────────────────────────────────────────────────
+export async function vincularTutor(cpf, dados) {
   try {
-    const record = await prisma.cczTutor.create({
-      data: {
-        cpf: data.cpf ? data.cpf.replace(/\D/g, "") || null : null,
-        nomeCompleto: data.nomeCompleto,
-        telefone: data.telefone ? data.telefone.replace(/\D/g, "") : null,
-        email: data.email || null,
-        logradouro: data.logradouro || null,
-        numero: data.numero || null,
-        complemento: data.complemento || null,
-        bairro: data.bairro || null,
-        cidade: data.cidade || "Muriaé",
-        uf: data.uf || "MG",
-        cep: data.cep ? data.cep.replace(/\D/g, "") : null,
+    await prisma.tutor.upsert({
+      where: { pessoaCpf: cpf },
+      update: {
+        rg: dados.rg || null,
+        sexo: dados.sexo || null,
+        profissao: dados.profissao || null,
+        telefoneSecundario: dados.telefoneSecundario
+          ? dados.telefoneSecundario.replace(/\D/g, "")
+          : null,
+        pontoReferencia: dados.pontoReferencia || null,
+        observacoes: dados.observacoes || null,
       },
-    });
-    revalidatePath("/ccz");
-    return { success: true, data: record };
-  } catch (error) {
-    console.error("Erro ao criar tutor:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-export async function updateTutor(id, data) {
-  try {
-    const record = await prisma.cczTutor.update({
-      where: { id: Number(id) },
-      data: {
-        cpf: data.cpf ? data.cpf.replace(/\D/g, "") || null : null,
-        nomeCompleto: data.nomeCompleto,
-        telefone: data.telefone ? data.telefone.replace(/\D/g, "") : null,
-        email: data.email || null,
-        logradouro: data.logradouro || null,
-        numero: data.numero || null,
-        complemento: data.complemento || null,
-        bairro: data.bairro || null,
-        cidade: data.cidade || "Muriaé",
-        uf: data.uf || "MG",
-        cep: data.cep ? data.cep.replace(/\D/g, "") : null,
+      create: {
+        pessoaCpf: cpf,
+        rg: dados.rg || null,
+        sexo: dados.sexo || null,
+        profissao: dados.profissao || null,
+        telefoneSecundario: dados.telefoneSecundario
+          ? dados.telefoneSecundario.replace(/\D/g, "")
+          : null,
+        pontoReferencia: dados.pontoReferencia || null,
+        observacoes: dados.observacoes || null,
       },
-    });
-    revalidatePath("/ccz");
-    return { success: true, data: record };
-  } catch (error) {
-    console.error("Erro ao atualizar tutor:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-export async function deleteTutor(id) {
-  try {
-    await prisma.cczTutor.update({
-      where: { id: Number(id) },
-      data: { ativo: false },
     });
     revalidatePath("/ccz");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao excluir tutor:", error);
+    console.error("Erro ao vincular tutor:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function desvincularTutor(cpf) {
+  try {
+    await prisma.tutor.delete({ where: { pessoaCpf: cpf } });
+    revalidatePath("/ccz");
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao desvincular tutor:", error);
     return { success: false, error: error.message };
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// ANIMAIS
+// ANIMAIS  (tabela: animal — PK = id VARCHAR(50) = número/ano)
 // ─────────────────────────────────────────────────────────────
-export async function getAnimais() {
-  try {
-    return await prisma.cczAnimal.findMany({
-      where: { ativo: true },
-      include: { tutor: true },
-      orderBy: { createdAt: "desc" },
-    });
-  } catch (error) {
-    console.error("Erro ao buscar animais:", error);
-    return [];
-  }
+async function getNextAnimalId() {
+  const year = String(new Date().getFullYear()).slice(-2);
+  const animals = await prisma.animal.findMany({ select: { id: true } });
+  const numbers = animals
+    .map(({ id }) => {
+      const match = String(id).match(/^(\d+)\/(\d{2})$/);
+      return match?.[2] === year ? Number(match[1]) : 0;
+    })
+    .filter(Number.isFinite);
+  const nextNumber = Math.max(0, ...numbers) + 1;
+  return `${nextNumber}/${year}`;
 }
 
 export async function createAnimal(data) {
   try {
-    const record = await prisma.cczAnimal.create({
+    const record = await prisma.animal.create({
       data: {
-        tutorId: Number(data.tutorId),
+        id: await getNextAnimalId(),
+        pessoa_cpf:
+          data.possui_responsavel === "Sim" ? data.tutorCpf || null : null,
         nome: data.nome || null,
+        fotoUrl: data.fotoUrl || null,
         especie: data.especie,
-        raca: data.raca || null,
-        sexo: data.sexo || null,
-        cor: data.cor || null,
-        dataNascimento: data.dataNascimento
-          ? new Date(data.dataNascimento)
-          : null,
-        observacao: data.observacao || null,
+        sexo: (data.sexo || "M").charAt(0).toUpperCase(), // M | F | I
+        porte: data.porte || "Médio",
+        idade: data.idade || null,
+        castrado:
+          data.castrado === "Sim" || data.castrado === true ? "Sim" : "Não",
+        doenca_cronica: data.doenca_cronica || "Não",
+        sintomas_vomito_diarreia: data.sintomas_vomito_diarreia || "Não",
+        apetite_normal: data.apetite_normal || "Sim",
+        em_tratamento: data.em_tratamento || "Não",
+        qual_tratamento: data.qual_tratamento || null,
+        observacoes: data.observacoes || null,
+        possui_responsavel: data.possui_responsavel === "Sim" ? "Sim" : "Não",
+        endereco_recolhimento: data.endereco_recolhimento || null,
       },
     });
     revalidatePath("/ccz");
@@ -151,19 +295,27 @@ export async function createAnimal(data) {
 
 export async function updateAnimal(id, data) {
   try {
-    const record = await prisma.cczAnimal.update({
-      where: { id: Number(id) },
+    const record = await prisma.animal.update({
+      where: { id: String(id) },
       data: {
-        tutorId: Number(data.tutorId),
+        pessoa_cpf:
+          data.possui_responsavel === "Sim" ? data.tutorCpf || null : null,
         nome: data.nome || null,
+        fotoUrl: data.fotoUrl || null,
         especie: data.especie,
-        raca: data.raca || null,
-        sexo: data.sexo || null,
-        cor: data.cor || null,
-        dataNascimento: data.dataNascimento
-          ? new Date(data.dataNascimento)
-          : null,
-        observacao: data.observacao || null,
+        sexo: (data.sexo || "M").charAt(0).toUpperCase(),
+        porte: data.porte || "Médio",
+        idade: data.idade || null,
+        castrado:
+          data.castrado === "Sim" || data.castrado === true ? "Sim" : "Não",
+        doenca_cronica: data.doenca_cronica || "Não",
+        sintomas_vomito_diarreia: data.sintomas_vomito_diarreia || "Não",
+        apetite_normal: data.apetite_normal || "Sim",
+        em_tratamento: data.em_tratamento || "Não",
+        qual_tratamento: data.qual_tratamento || null,
+        observacoes: data.observacoes || null,
+        possui_responsavel: data.possui_responsavel === "Sim" ? "Sim" : "Não",
+        endereco_recolhimento: data.endereco_recolhimento || null,
       },
     });
     revalidatePath("/ccz");
@@ -176,10 +328,7 @@ export async function updateAnimal(id, data) {
 
 export async function deleteAnimal(id) {
   try {
-    await prisma.cczAnimal.update({
-      where: { id: Number(id) },
-      data: { ativo: false },
-    });
+    await prisma.animal.delete({ where: { id: String(id) } });
     revalidatePath("/ccz");
     return { success: true };
   } catch (error) {
@@ -189,154 +338,90 @@ export async function deleteAnimal(id) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// ATIVIDADES DE CAMPO
+// PROCEDIMENTOS  (tabela: cadastro_procedimento)
 // ─────────────────────────────────────────────────────────────
-export async function createAtividade(data) {
+export async function createProcedimento(data) {
   try {
-    const record = await prisma.cczAtividade.create({
+    const record = await prisma.cadastro_procedimento.create({
       data: {
+        id: randomUUID(),
+        animal_id: data.animal_id,
         tipo: data.tipo,
-        bairro: data.bairro,
-        logradouro: data.logradouro || null,
-        responsavel: data.responsavel || null,
-        dataAtividade: new Date(data.dataAtividade),
-        quantidadeImoveis: data.quantidadeImoveis
-          ? Number(data.quantidadeImoveis)
-          : null,
-        status: data.status || "Concluída",
-        observacao: data.observacao || null,
+        data_procedimento: new Date(data.data_procedimento),
+        veterinario: data.veterinario || null,
+        status: data.status || "Realizado",
+        descricao: data.descricao || null,
+        medicacao_prescrita: data.medicacao_prescrita || null,
+        data_retorno: data.data_retorno ? new Date(data.data_retorno) : null,
       },
     });
     revalidatePath("/ccz");
     return { success: true, data: record };
   } catch (error) {
-    console.error("Erro ao criar atividade:", error);
+    console.error("Erro ao criar procedimento:", error);
     return { success: false, error: error.message };
   }
 }
 
-export async function updateAtividade(id, data) {
+export async function updateProcedimento(id, data) {
   try {
-    const record = await prisma.cczAtividade.update({
-      where: { id: Number(id) },
+    const record = await prisma.cadastro_procedimento.update({
+      where: { id: String(id) },
       data: {
+        animal_id: data.animal_id,
         tipo: data.tipo,
-        bairro: data.bairro,
-        logradouro: data.logradouro || null,
-        responsavel: data.responsavel || null,
-        dataAtividade: new Date(data.dataAtividade),
-        quantidadeImoveis: data.quantidadeImoveis
-          ? Number(data.quantidadeImoveis)
-          : null,
-        status: data.status,
-        observacao: data.observacao || null,
+        data_procedimento: new Date(data.data_procedimento),
+        veterinario: data.veterinario || null,
+        status: data.status || "Realizado",
+        descricao: data.descricao || null,
+        medicacao_prescrita: data.medicacao_prescrita || null,
+        data_retorno: data.data_retorno ? new Date(data.data_retorno) : null,
       },
     });
     revalidatePath("/ccz");
     return { success: true, data: record };
   } catch (error) {
-    console.error("Erro ao atualizar atividade:", error);
+    console.error("Erro ao atualizar procedimento:", error);
     return { success: false, error: error.message };
   }
 }
 
-export async function deleteAtividade(id) {
+export async function deleteProcedimento(id) {
   try {
-    await prisma.cczAtividade.delete({ where: { id: Number(id) } });
+    await prisma.cadastro_procedimento.delete({ where: { id: String(id) } });
     revalidatePath("/ccz");
     return { success: true };
   } catch (error) {
-    console.error("Erro ao excluir atividade:", error);
+    console.error("Erro ao excluir procedimento:", error);
     return { success: false, error: error.message };
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// VACINAÇÃO
-// ─────────────────────────────────────────────────────────────
-export async function createVacinacao(data) {
+export async function getProcedimentosByAnimal(animalId) {
   try {
-    const record = await prisma.cczVacinacao.create({
-      data: {
-        animalId: data.animalId ? Number(data.animalId) : null,
-        nomeAnimal: data.nomeAnimal || null,
-        especie: data.especie || null,
-        tutorNome: data.tutorNome || null,
-        tutorCpf: data.tutorCpf ? data.tutorCpf.replace(/\D/g, "") : null,
-        bairro: data.bairro || null,
-        tipoVacina: data.tipoVacina,
-        dataVacinacao: new Date(data.dataVacinacao),
-        proximaVacinacao: data.proximaVacinacao
-          ? new Date(data.proximaVacinacao)
-          : null,
-        observacao: data.observacao || null,
-      },
+    return await prisma.cadastro_procedimento.findMany({
+      where: { animal_id: String(animalId) },
+      orderBy: { data_procedimento: "desc" },
     });
-    revalidatePath("/ccz");
-    return { success: true, data: record };
   } catch (error) {
-    console.error("Erro ao registrar vacinação:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-export async function updateVacinacao(id, data) {
-  try {
-    const record = await prisma.cczVacinacao.update({
-      where: { id: Number(id) },
-      data: {
-        animalId: data.animalId ? Number(data.animalId) : null,
-        nomeAnimal: data.nomeAnimal || null,
-        especie: data.especie || null,
-        tutorNome: data.tutorNome || null,
-        tutorCpf: data.tutorCpf ? data.tutorCpf.replace(/\D/g, "") : null,
-        bairro: data.bairro || null,
-        tipoVacina: data.tipoVacina,
-        dataVacinacao: new Date(data.dataVacinacao),
-        proximaVacinacao: data.proximaVacinacao
-          ? new Date(data.proximaVacinacao)
-          : null,
-        observacao: data.observacao || null,
-      },
-    });
-    revalidatePath("/ccz");
-    return { success: true, data: record };
-  } catch (error) {
-    console.error("Erro ao atualizar vacinação:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-export async function deleteVacinacao(id) {
-  try {
-    await prisma.cczVacinacao.delete({ where: { id: Number(id) } });
-    revalidatePath("/ccz");
-    return { success: true };
-  } catch (error) {
-    console.error("Erro ao excluir vacinação:", error);
-    return { success: false, error: error.message };
+    console.error("Erro ao buscar procedimentos:", error);
+    return [];
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// DENÚNCIAS
+// DENÚNCIAS DE CÃO AGRESSIVO
 // ─────────────────────────────────────────────────────────────
 export async function createDenuncia(data) {
   try {
-    const record = await prisma.cczDenuncia.create({
+    const record = await prisma.denuncia_cao_agressivo.create({
       data: {
-        tipo: data.tipo,
-        descricao: data.descricao,
-        bairro: data.bairro,
-        logradouro: data.logradouro || null,
-        numero: data.numero || null,
-        denuncianteNome: data.denuncianteNome || null,
-        denuncianteTelefone: data.denuncianteTelefone
-          ? data.denuncianteTelefone.replace(/\D/g, "")
-          : null,
-        status: data.status || "Pendente",
-        prioridade: data.prioridade || "Normal",
-        observacao: data.observacao || null,
+        id: randomUUID(),
+        localizacao: data.localizacao,
+        descricao_cao: data.descricao_cao,
+        relato: data.relato,
+        animal_id: data.animal_id || null,
+        causou_risco: data.causou_risco || "Não",
       },
     });
     revalidatePath("/ccz");
@@ -349,21 +434,14 @@ export async function createDenuncia(data) {
 
 export async function updateDenuncia(id, data) {
   try {
-    const record = await prisma.cczDenuncia.update({
-      where: { id: Number(id) },
+    const record = await prisma.denuncia_cao_agressivo.update({
+      where: { id: String(id) },
       data: {
-        tipo: data.tipo,
-        descricao: data.descricao,
-        bairro: data.bairro,
-        logradouro: data.logradouro || null,
-        numero: data.numero || null,
-        denuncianteNome: data.denuncianteNome || null,
-        denuncianteTelefone: data.denuncianteTelefone
-          ? data.denuncianteTelefone.replace(/\D/g, "")
-          : null,
-        status: data.status,
-        prioridade: data.prioridade,
-        observacao: data.observacao || null,
+        localizacao: data.localizacao,
+        descricao_cao: data.descricao_cao,
+        relato: data.relato,
+        animal_id: data.animal_id || null,
+        causou_risco: data.causou_risco || "Não",
       },
     });
     revalidatePath("/ccz");
@@ -376,7 +454,7 @@ export async function updateDenuncia(id, data) {
 
 export async function deleteDenuncia(id) {
   try {
-    await prisma.cczDenuncia.delete({ where: { id: Number(id) } });
+    await prisma.denuncia_cao_agressivo.delete({ where: { id: String(id) } });
     revalidatePath("/ccz");
     return { success: true };
   } catch (error) {
@@ -384,4 +462,3 @@ export async function deleteDenuncia(id) {
     return { success: false, error: error.message };
   }
 }
-

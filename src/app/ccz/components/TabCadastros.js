@@ -1,18 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import s from "./shared.module.css";
+import ts from "./TabCadastros.module.css";
 import ModalConfirmacaoCCZ from "./Modals/ModalConfirmacaoCCZ";
+import ModalMensagemCCZ from "./Modals/ModalMensagemCCZ";
 import {
-  createTutor,
-  updateTutor,
-  deleteTutor,
+  searchPessoasCCZ,
+  vincularTutor,
+  desvincularTutor,
   createAnimal,
   updateAnimal,
   deleteAnimal,
 } from "../actions";
 
-// ── Máscaras ──────────────────────────────────────────────────────────────
+// ── Máscaras ─────────────────────────────────────────────────────────────
 function maskCpf(v) {
   if (!v) return "";
   return v
@@ -33,13 +35,6 @@ function maskTel(v) {
     .replace(/(\d{2})(\d)/, "($1) $2")
     .replace(/(\d{5})(\d{1,4})$/, "$1-$2");
 }
-function maskCep(v) {
-  if (!v) return "";
-  return v
-    .replace(/\D/g, "")
-    .slice(0, 8)
-    .replace(/(\d{5})(\d{1,3})$/, "$1-$2");
-}
 function onlyDigits(v) {
   return v ? v.replace(/\D/g, "") : "";
 }
@@ -50,33 +45,42 @@ function formatDate(d) {
   return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : str;
 }
 
-// ── Forms vazios ──────────────────────────────────────────────────────────
-const EMPTY_TUTOR = {
-  cpf: "",
-  nomeCompleto: "",
-  telefone: "",
-  email: "",
-  logradouro: "",
-  numero: "",
-  complemento: "",
-  bairro: "",
-  cidade: "Muriaé",
-  uf: "MG",
-  cep: "",
-};
-const EMPTY_ANIMAL = {
-  tutorId: "",
-  nome: "",
-  especie: "",
-  raca: "",
+const ESPECIES = ["Cão", "Gato"];
+const SEXOS = [
+  { label: "Macho", value: "M" },
+  { label: "Fêmea", value: "F" },
+  { label: "Não identificado", value: "I" },
+];
+const PORTES = ["Pequeno", "Médio", "Grande", "Gigante"];
+const SIM_NAO = ["Sim", "Não"];
+
+const EMPTY_TUTOR_EXTRA = {
+  rg: "",
   sexo: "",
-  cor: "",
-  dataNascimento: "",
-  observacao: "",
+  profissao: "",
+  telefoneSecundario: "",
+  pontoReferencia: "",
+  observacoes: "",
 };
 
-const ESPECIES = ["Cão", "Gato"];
-const SEXOS = ["Macho", "Fêmea"];
+const EMPTY_ANIMAL = {
+  possui_responsavel: "",
+  tutorCpf: "",
+  nome: "",
+  fotoUrl: "",
+  especie: "",
+  sexo: "M",
+  porte: "Médio",
+  idade: "",
+  castrado: "Não",
+  doenca_cronica: "Não",
+  sintomas_vomito_diarreia: "Não",
+  apetite_normal: "Sim",
+  em_tratamento: "Não",
+  qual_tratamento: "",
+  observacoes: "",
+  endereco_recolhimento: "",
+};
 
 // ─────────────────────────────────────────────────────────────────────────
 export default function TabCadastros({
@@ -86,97 +90,202 @@ export default function TabCadastros({
 }) {
   const [subTab, setSubTab] = useState("TUTORES");
 
-  // ── Tutores ───────────────────────────────────────────────────────────
-  const [tutorForm, setTutorForm] = useState(EMPTY_TUTOR);
-  const [editingTutorId, setEditingTutorId] = useState(null);
-
-  // ── Animais ───────────────────────────────────────────────────────────
-  const [animalForm, setAnimalForm] = useState(EMPTY_ANIMAL);
-  const [editingAnimalId, setEditingAnimalId] = useState(null);
-
-  // ── Modal exclusão ────────────────────────────────────────────────────
+  // ── TUTORES ──────────────────────────────────────────────────────────
+  const [search, setSearch] = useState("");
+  const [sugestoes, setSugestoes] = useState([]);
+  const [showDrop, setShowDrop] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [pessoaSel, setPessoaSel] = useState(null); // pessoa carregada
+  const [tutorExtra, setTutorExtra] = useState(EMPTY_TUTOR_EXTRA);
   const [deleteConfig, setDeleteConfig] = useState(null);
+  const [messageConfig, setMessageConfig] = useState(null);
+  const dropRef = useRef(null);
+  const debounceRef = useRef(null);
 
-  // ── TUTOR: handlers ───────────────────────────────────────────────────
-  const handleEditTutor = (t) => {
-    setEditingTutorId(t.id);
-    setTutorForm({
-      cpf: t.cpf ? maskCpf(t.cpf) : "",
-      nomeCompleto: t.nomeCompleto || "",
-      telefone: t.telefone ? maskTel(t.telefone) : "",
-      email: t.email || "",
-      logradouro: t.logradouro || "",
-      numero: t.numero || "",
-      complemento: t.complemento || "",
-      bairro: t.bairro || "",
-      cidade: t.cidade || "Muriaé",
-      uf: t.uf || "MG",
-      cep: t.cep ? maskCep(t.cep) : "",
-    });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  // Fecha dropdown ao clicar fora
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropRef.current && !dropRef.current.contains(e.target))
+        setShowDrop(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleSearchChange = (val) => {
+    setSearch(val);
+    setShowDrop(true);
+    clearTimeout(debounceRef.current);
+    if (val.trim().length < 2) {
+      setSugestoes([]);
+      return;
+    }
+    setSearching(true);
+    debounceRef.current = setTimeout(async () => {
+      const res = await searchPessoasCCZ(val);
+      setSugestoes(res);
+      setSearching(false);
+    }, 300);
   };
 
-  const handleSubmitTutor = async (e) => {
+  const selecionarPessoa = (p) => {
+    setPessoaSel(p);
+    setSearch(`${p.nomeCompleto} (${maskCpf(p.cpf)})`);
+    setShowDrop(false);
+    setSugestoes([]);
+    setTutorExtra({
+      rg: p.rg || "",
+      sexo: p.sexo || "",
+      profissao: p.profissao || "",
+      telefoneSecundario: p.telefoneSecundario
+        ? maskTel(p.telefoneSecundario)
+        : "",
+      pontoReferencia: p.pontoReferencia || "",
+      observacoes: p.observacoes || "",
+    });
+  };
+
+  const limparSelecao = () => {
+    setPessoaSel(null);
+    setSearch("");
+    setSugestoes([]);
+    setTutorExtra(EMPTY_TUTOR_EXTRA);
+  };
+
+  const handleVincular = async (e) => {
     e.preventDefault();
-    if (!tutorForm.nomeCompleto) return alert("Preencha o Nome Completo.");
+    if (!pessoaSel) {
+      setMessageConfig({
+        type: "warning",
+        title: "Selecione uma pessoa",
+        message: "Escolha uma pessoa na busca antes de vincular um tutor.",
+      });
+      return;
+    }
     const payload = {
-      ...tutorForm,
-      cpf: onlyDigits(tutorForm.cpf) || null,
-      telefone: onlyDigits(tutorForm.telefone) || null,
-      cep: onlyDigits(tutorForm.cep) || null,
+      ...tutorExtra,
+      telefoneSecundario: onlyDigits(tutorExtra.telefoneSecundario) || null,
     };
-    const res = editingTutorId
-      ? await updateTutor(editingTutorId, payload)
-      : await createTutor(payload);
+    const res = await vincularTutor(pessoaSel.cpf, payload);
     if (res.success) {
-      alert(editingTutorId ? "Tutor atualizado!" : "Tutor cadastrado!");
-      setTutorForm(EMPTY_TUTOR);
-      setEditingTutorId(null);
+      setMessageConfig({
+        type: "success",
+        title: pessoaSel.isTutor ? "Tutor atualizado" : "Novo tutor cadastrado",
+        message: pessoaSel.isTutor
+          ? "Os dados do responsável foram atualizados com sucesso."
+          : "A pessoa foi vinculada como tutor do CCZ.",
+      });
+      limparSelecao();
       reloadData();
     } else {
-      alert("Erro: " + res.error);
+      setMessageConfig({
+        type: "error",
+        title: "Não foi possível salvar",
+        message: res.error,
+      });
     }
   };
 
-  // ── ANIMAL: handlers ──────────────────────────────────────────────────
+  // ── ANIMAIS ──────────────────────────────────────────────────────────
+  const [animalForm, setAnimalForm] = useState(EMPTY_ANIMAL);
+  const [editingAnimalId, setEditingAnimalId] = useState(null);
+
   const handleEditAnimal = (a) => {
     setEditingAnimalId(a.id);
-    const dateStr = a.dataNascimento
-      ? (a.dataNascimento instanceof Date
-          ? a.dataNascimento
-          : new Date(a.dataNascimento)
-        )
-          .toISOString()
-          .split("T")[0]
-      : "";
     setAnimalForm({
-      tutorId: String(a.tutorId),
+      possui_responsavel:
+        a.possui_responsavel || (a.tutorCpf || a.pessoa_cpf ? "Sim" : "Não"),
+      tutorCpf: a.tutorCpf || a.pessoa_cpf || "",
       nome: a.nome || "",
+      fotoUrl: a.fotoUrl || "",
       especie: a.especie || "",
-      raca: a.raca || "",
-      sexo: a.sexo || "",
-      cor: a.cor || "",
-      dataNascimento: dateStr,
-      observacao: a.observacao || "",
+      sexo: (a.sexo || "M").charAt(0).toUpperCase(),
+      porte: a.porte || "Médio",
+      idade: a.idade || "",
+      castrado: a.castrado || "Não",
+      doenca_cronica: a.doenca_cronica || "Não",
+      sintomas_vomito_diarreia: a.sintomas_vomito_diarreia || "Não",
+      apetite_normal: a.apetite_normal || "Sim",
+      em_tratamento: a.em_tratamento || "Não",
+      qual_tratamento: a.qual_tratamento || "",
+      observacoes: a.observacoes || "",
+      endereco_recolhimento: a.endereco_recolhimento || "",
     });
+    setSubTab("ANIMAIS");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleSubmitAnimal = async (e) => {
     e.preventDefault();
-    if (!animalForm.tutorId || !animalForm.especie)
-      return alert("Selecione o Tutor e a Espécie.");
+    if (!animalForm.possui_responsavel || !animalForm.especie) {
+      setMessageConfig({
+        type: "warning",
+        title: "Dados incompletos",
+        message:
+          "Informe se o animal possui responsável e selecione a espécie.",
+      });
+      return;
+    }
+    if (animalForm.possui_responsavel === "Sim" && !animalForm.tutorCpf) {
+      setMessageConfig({
+        type: "warning",
+        title: "Selecione o responsável",
+        message: "Escolha o tutor responsável pelo animal para continuar.",
+      });
+      return;
+    }
+    const animalPayload = {
+      ...animalForm,
+      tutorCpf:
+        animalForm.possui_responsavel === "Sim" ? animalForm.tutorCpf : "",
+    };
     const res = editingAnimalId
-      ? await updateAnimal(editingAnimalId, animalForm)
-      : await createAnimal(animalForm);
+      ? await updateAnimal(editingAnimalId, animalPayload)
+      : await createAnimal(animalPayload);
     if (res.success) {
-      alert(editingAnimalId ? "Animal atualizado!" : "Animal cadastrado!");
+      setMessageConfig({
+        type: "success",
+        title: editingAnimalId ? "Animal atualizado" : "Animal cadastrado",
+        message: editingAnimalId
+          ? "As informações do animal foram atualizadas."
+          : `O animal foi cadastrado com o ID ${res.data.id}.`,
+      });
       setAnimalForm(EMPTY_ANIMAL);
       setEditingAnimalId(null);
       reloadData();
     } else {
-      alert("Erro: " + res.error);
+      setMessageConfig({
+        type: "error",
+        title: "Não foi possível salvar o animal",
+        message: res.error,
+      });
     }
+  };
+
+  const handleAnimalPhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setMessageConfig({
+        type: "warning",
+        title: "Arquivo inválido",
+        message: "Selecione um arquivo de imagem para a foto do animal.",
+      });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setMessageConfig({
+        type: "warning",
+        title: "Imagem muito grande",
+        message: "A foto deve ter no máximo 5 MB.",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () =>
+      setAnimalForm((current) => ({ ...current, fotoUrl: reader.result }));
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -189,17 +298,13 @@ export default function TabCadastros({
         }}
         onCancel={() => setDeleteConfig(null)}
       />
+      <ModalMensagemCCZ
+        config={messageConfig}
+        onClose={() => setMessageConfig(null)}
+      />
 
       {/* Sub-nav */}
-      <div
-        style={{
-          display: "flex",
-          gap: "0.5rem",
-          borderBottom: "2px solid #e2e8f0",
-          marginBottom: "1.5rem",
-          paddingBottom: "0.5rem",
-        }}
-      >
+      <div className={ts.subNav}>
         {[
           {
             key: "TUTORES",
@@ -210,179 +315,235 @@ export default function TabCadastros({
           <button
             key={tab.key}
             type="button"
+            className={`${ts.subNavBtn} ${subTab === tab.key ? ts.subNavActive : ""}`}
             onClick={() => setSubTab(tab.key)}
-            style={{
-              background: subTab === tab.key ? "#eff6ff" : "transparent",
-              color: subTab === tab.key ? "#2563eb" : "#64748b",
-              border: "none",
-              padding: "0.55rem 1.1rem",
-              fontSize: "0.875rem",
-              fontWeight: 600,
-              borderRadius: "8px",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              fontFamily: "inherit",
-            }}
           >
             {tab.label}
           </button>
         ))}
       </div>
 
-      {/* ── ABA TUTORES ───────────────────────────────────────────────── */}
+      {/* ══════════ ABA TUTORES ══════════════════════════════════════ */}
       {subTab === "TUTORES" && (
         <>
-          <h3>
-            {editingTutorId
-              ? "✏️ Editar Tutor / Responsável"
-              : "➕ Cadastrar Novo Tutor / Responsável"}
-          </h3>
-          <form onSubmit={handleSubmitTutor} className={s.formGrid}>
-            <div className={s.fieldGroup}>
-              <label>Nome Completo *</label>
-              <input
-                type="text"
-                value={tutorForm.nomeCompleto}
-                onChange={(e) =>
-                  setTutorForm({ ...tutorForm, nomeCompleto: e.target.value })
-                }
-                placeholder="Ex: João da Silva"
-                required
-              />
-            </div>
-            <div className={s.fieldGroup}>
-              <label>CPF</label>
-              <input
-                type="text"
-                value={tutorForm.cpf}
-                onChange={(e) =>
-                  setTutorForm({ ...tutorForm, cpf: maskCpf(e.target.value) })
-                }
-                placeholder="000.000.000-00"
-              />
-            </div>
-            <div className={s.fieldGroup}>
-              <label>Telefone / WhatsApp</label>
-              <input
-                type="text"
-                value={tutorForm.telefone}
-                onChange={(e) =>
-                  setTutorForm({
-                    ...tutorForm,
-                    telefone: maskTel(e.target.value),
-                  })
-                }
-                placeholder="(32) 99999-0000"
-              />
-            </div>
-            <div className={s.fieldGroup}>
-              <label>E-mail</label>
-              <input
-                type="email"
-                value={tutorForm.email}
-                onChange={(e) =>
-                  setTutorForm({ ...tutorForm, email: e.target.value })
-                }
-                placeholder="Ex: joao@email.com"
-              />
-            </div>
-            <div className={s.fieldGroup}>
-              <label>Bairro</label>
-              <input
-                type="text"
-                value={tutorForm.bairro}
-                onChange={(e) =>
-                  setTutorForm({ ...tutorForm, bairro: e.target.value })
-                }
-                placeholder="Ex: Centro"
-              />
-            </div>
-            <div className={s.fieldGroup}>
-              <label>Logradouro</label>
-              <input
-                type="text"
-                value={tutorForm.logradouro}
-                onChange={(e) =>
-                  setTutorForm({ ...tutorForm, logradouro: e.target.value })
-                }
-                placeholder="Ex: Rua das Flores"
-              />
-            </div>
-            <div className={s.fieldGroup}>
-              <label>Número</label>
-              <input
-                type="text"
-                value={tutorForm.numero}
-                onChange={(e) =>
-                  setTutorForm({ ...tutorForm, numero: e.target.value })
-                }
-                placeholder="Ex: 100"
-              />
-            </div>
-            <div className={s.fieldGroup}>
-              <label>Complemento</label>
-              <input
-                type="text"
-                value={tutorForm.complemento}
-                onChange={(e) =>
-                  setTutorForm({ ...tutorForm, complemento: e.target.value })
-                }
-                placeholder="Ex: Apto 2"
-              />
-            </div>
-            <div className={s.fieldGroup}>
-              <label>CEP</label>
-              <input
-                type="text"
-                value={tutorForm.cep}
-                onChange={(e) =>
-                  setTutorForm({ ...tutorForm, cep: maskCep(e.target.value) })
-                }
-                placeholder="00000-000"
-              />
-            </div>
-            <div className={s.fieldGroup}>
-              <label>Cidade</label>
-              <input
-                type="text"
-                value={tutorForm.cidade}
-                onChange={(e) =>
-                  setTutorForm({ ...tutorForm, cidade: e.target.value })
-                }
-              />
-            </div>
-            <div className={s.fieldGroup}>
-              <label>UF</label>
-              <input
-                type="text"
-                value={tutorForm.uf}
-                onChange={(e) =>
-                  setTutorForm({ ...tutorForm, uf: e.target.value })
-                }
-                maxLength={2}
-                placeholder="MG"
-              />
-            </div>
-            <div className={s.formActions}>
-              {editingTutorId && (
+          {/* Busca de pessoa */}
+          <div className={ts.searchBox}>
+            <p className={ts.searchLabel}>
+              Busque uma pessoa já cadastrada no sistema e vincule-a como
+              responsável pelo CCZ.
+            </p>
+            <div className={ts.searchRow} ref={dropRef}>
+              <div className={ts.autocompleteWrap}>
+                <input
+                  type="text"
+                  className={ts.searchInput}
+                  value={search}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  onFocus={() => sugestoes.length > 0 && setShowDrop(true)}
+                  placeholder="Digite o nome ou CPF da pessoa..."
+                />
+                {searching && (
+                  <span className={ts.searchSpinner}>Buscando...</span>
+                )}
+                {showDrop && sugestoes.length > 0 && (
+                  <ul className={ts.dropdown}>
+                    {sugestoes.map((p) => (
+                      <li key={p.cpf} onClick={() => selecionarPessoa(p)}>
+                        <div className={ts.dropName}>{p.nomeCompleto}</div>
+                        <div className={ts.dropMeta}>
+                          CPF: {maskCpf(p.cpf)}
+                          {p.bairro ? ` • ${p.bairro}` : ""}
+                          {p.isTutor && (
+                            <span className={ts.dropBadge}>tutor</span>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* Botão buscar */}
+              <button
+                type="button"
+                className={`${ts.iconBtn} ${ts.btnBlue}`}
+                title="Buscar"
+                onClick={() => {
+                  if (sugestoes.length > 0) selecionarPessoa(sugestoes[0]);
+                }}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </button>
+
+              {/* Limpar */}
+              {pessoaSel && (
                 <button
                   type="button"
-                  className={s.secondaryBtn}
-                  onClick={() => {
-                    setTutorForm(EMPTY_TUTOR);
-                    setEditingTutorId(null);
-                  }}
+                  className={`${ts.iconBtn} ${ts.btnGray}`}
+                  title="Limpar seleção"
+                  onClick={limparSelecao}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Preview + formulário de dados extras do tutor */}
+          {pessoaSel && (
+            <form onSubmit={handleVincular} className={ts.formContainer}>
+              {/* Card de resumo da pessoa */}
+              <div className={ts.personCard}>
+                <div className={ts.personCardAvatar}>
+                  {pessoaSel.nomeCompleto.charAt(0).toUpperCase()}
+                </div>
+                <div className={ts.personCardInfo}>
+                  <strong>{pessoaSel.nomeCompleto}</strong>
+                  <span>CPF: {maskCpf(pessoaSel.cpf)}</span>
+                  {pessoaSel.telefone && (
+                    <span>Tel: {maskTel(pessoaSel.telefone)}</span>
+                  )}
+                  {pessoaSel.bairro && (
+                    <span>
+                      {pessoaSel.bairro}
+                      {pessoaSel.cidade ? `, ${pessoaSel.cidade}` : ""}
+                    </span>
+                  )}
+                </div>
+                {pessoaSel.isTutor && (
+                  <span className={ts.tutorBadge}>✓ Tutor CCZ</span>
+                )}
+              </div>
+
+              {/* Dados extras do CCZ */}
+              <div className={ts.formSection}>
+                <div className={ts.sectionHeader}>
+                  <h4>Dados Complementares CCZ</h4>
+                </div>
+                <div className={ts.formGrid}>
+                  <div className={`${ts.field} ${ts.col3}`}>
+                    <label>RG</label>
+                    <input
+                      type="text"
+                      value={tutorExtra.rg}
+                      onChange={(e) =>
+                        setTutorExtra({ ...tutorExtra, rg: e.target.value })
+                      }
+                      placeholder="Ex: MG-12.345.678"
+                    />
+                  </div>
+                  <div className={`${ts.field} ${ts.col3}`}>
+                    <label>Sexo</label>
+                    <select
+                      value={tutorExtra.sexo}
+                      onChange={(e) =>
+                        setTutorExtra({ ...tutorExtra, sexo: e.target.value })
+                      }
+                    >
+                      <option value="">--</option>
+                      <option value="Masculino">Masculino</option>
+                      <option value="Feminino">Feminino</option>
+                      <option value="Outro">Outro</option>
+                    </select>
+                  </div>
+                  <div className={`${ts.field} ${ts.col6}`}>
+                    <label>Profissão</label>
+                    <input
+                      type="text"
+                      value={tutorExtra.profissao}
+                      onChange={(e) =>
+                        setTutorExtra({
+                          ...tutorExtra,
+                          profissao: e.target.value,
+                        })
+                      }
+                      placeholder="Ex: Agricultor"
+                    />
+                  </div>
+                  <div className={`${ts.field} ${ts.col4}`}>
+                    <label>Telefone Secundário</label>
+                    <input
+                      type="text"
+                      value={tutorExtra.telefoneSecundario}
+                      onChange={(e) =>
+                        setTutorExtra({
+                          ...tutorExtra,
+                          telefoneSecundario: maskTel(e.target.value),
+                        })
+                      }
+                      placeholder="(32) 3333-0000"
+                    />
+                  </div>
+                  <div className={`${ts.field} ${ts.col8}`}>
+                    <label>Ponto de Referência</label>
+                    <input
+                      type="text"
+                      value={tutorExtra.pontoReferencia}
+                      onChange={(e) =>
+                        setTutorExtra({
+                          ...tutorExtra,
+                          pontoReferencia: e.target.value,
+                        })
+                      }
+                      placeholder="Ex: Próximo à escola municipal"
+                    />
+                  </div>
+                  <div className={`${ts.field} ${ts.col12}`}>
+                    <label>Observações</label>
+                    <textarea
+                      rows={2}
+                      value={tutorExtra.observacoes}
+                      onChange={(e) =>
+                        setTutorExtra({
+                          ...tutorExtra,
+                          observacoes: e.target.value,
+                        })
+                      }
+                      placeholder="Anotações internas do CCZ sobre este responsável..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className={ts.formActions}>
+                <button
+                  type="button"
+                  className={ts.secondaryBtn}
+                  onClick={limparSelecao}
                 >
                   Cancelar
                 </button>
-              )}
-              <button type="submit" className={s.primaryBtn}>
-                {editingTutorId ? "💾 Atualizar Tutor" : "➕ Salvar Tutor"}
-              </button>
-            </div>
-          </form>
+                <button type="submit" className={ts.primaryBtn}>
+                  {pessoaSel.isTutor
+                    ? "💾 Atualizar Dados do Tutor"
+                    : "✓ Vincular como Tutor CCZ"}
+                </button>
+              </div>
+            </form>
+          )}
 
-          <h4 className={s.sectionHeader}>Tutores Cadastrados</h4>
+          {/* Tabela de tutores */}
+          <h4 className={s.sectionHeader}>Responsáveis Vinculados ao CCZ</h4>
           <div className={s.tableWrapper}>
             <table className={s.table}>
               <thead>
@@ -406,31 +567,26 @@ export default function TabCadastros({
                         padding: "2rem",
                       }}
                     >
-                      Nenhum tutor cadastrado.
+                      Nenhum responsável vinculado. Use a busca acima para
+                      vincular uma pessoa.
                     </td>
                   </tr>
                 )}
                 {tutores.map((t) => (
-                  <tr key={t.id}>
+                  <tr key={t.cpf}>
                     <td>
                       <strong>{t.nomeCompleto}</strong>
                     </td>
-                    <td>
-                      {t.cpf ? (
-                        maskCpf(t.cpf)
-                      ) : (
-                        <span style={{ color: "#94a3b8" }}>-</span>
-                      )}
-                    </td>
+                    <td>{maskCpf(t.cpf)}</td>
                     <td>
                       {t.telefone ? (
                         maskTel(t.telefone)
                       ) : (
-                        <span style={{ color: "#94a3b8" }}>-</span>
+                        <span style={{ color: "#94a3b8" }}>—</span>
                       )}
                     </td>
                     <td>
-                      {t.bairro || <span style={{ color: "#94a3b8" }}>-</span>}
+                      {t.bairro || <span style={{ color: "#94a3b8" }}>—</span>}
                     </td>
                     <td>
                       <span
@@ -438,18 +594,18 @@ export default function TabCadastros({
                           background: "#eff6ff",
                           color: "#2563eb",
                           borderRadius: "6px",
-                          padding: "0.15rem 0.5rem",
+                          padding: "0.15rem 0.55rem",
                           fontSize: "0.75rem",
                           fontWeight: 700,
                         }}
                       >
-                        {animais.filter((a) => a.tutorId === t.id).length}
+                        {animais.filter((a) => a.tutorCpf === t.cpf).length}
                       </span>
                     </td>
                     <td className={s.actionsCell}>
                       <button
                         className={s.editBtn}
-                        onClick={() => handleEditTutor(t)}
+                        onClick={() => selecionarPessoa(t)}
                       >
                         ✏️ Editar
                       </button>
@@ -458,20 +614,28 @@ export default function TabCadastros({
                         onClick={() =>
                           setDeleteConfig({
                             nome: t.nomeCompleto,
-                            detalhe: t.cpf
-                              ? `CPF: ${maskCpf(t.cpf)}`
-                              : "Sem CPF cadastrado",
+                            detalhe: `CPF: ${maskCpf(t.cpf)} — será desvinculado do CCZ`,
                             onConfirm: async () => {
-                              const res = await deleteTutor(t.id);
+                              const res = await desvincularTutor(t.cpf);
                               if (res.success) {
-                                alert("Tutor removido!");
+                                setMessageConfig({
+                                  type: "success",
+                                  title: "Tutor desvinculado",
+                                  message:
+                                    "O responsável foi removido dos vínculos do CCZ.",
+                                });
                                 reloadData();
-                              } else alert("Erro: " + res.error);
+                              } else
+                                setMessageConfig({
+                                  type: "error",
+                                  title: "Não foi possível desvincular",
+                                  message: res.error,
+                                });
                             },
                           })
                         }
                       >
-                        🗑️ Excluir
+                        🗑️ Desvincular
                       </button>
                     </td>
                   </tr>
@@ -482,30 +646,60 @@ export default function TabCadastros({
         </>
       )}
 
-      {/* ── ABA ANIMAIS ───────────────────────────────────────────────── */}
+      {/* ══════════ ABA ANIMAIS ══════════════════════════════════════ */}
       {subTab === "ANIMAIS" && (
         <>
           <h3>
             {editingAnimalId ? "✏️ Editar Animal" : "➕ Cadastrar Novo Animal"}
           </h3>
+
           <form onSubmit={handleSubmitAnimal} className={s.formGrid}>
-            <div className={s.fieldGroup}>
-              <label>Tutor / Responsável *</label>
+            {/* Responsável */}
+            <div className={`${s.fieldGroup} ${s.fullWidth}`}>
+              <label>O animal possui responsável? *</label>
               <select
-                value={animalForm.tutorId}
+                value={animalForm.possui_responsavel}
                 onChange={(e) =>
-                  setAnimalForm({ ...animalForm, tutorId: e.target.value })
+                  setAnimalForm({
+                    ...animalForm,
+                    possui_responsavel: e.target.value,
+                    tutorCpf:
+                      e.target.value === "Sim" ? animalForm.tutorCpf : "",
+                  })
                 }
                 required
               >
-                <option value="">-- Selecione o Tutor --</option>
-                {tutores.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.nomeCompleto}
+                <option value="">-- Selecione --</option>
+                {SIM_NAO.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
                   </option>
                 ))}
               </select>
             </div>
+
+            {/* Tutor */}
+            {animalForm.possui_responsavel === "Sim" && (
+              <div className={s.fieldGroup}>
+                <label>Tutor / Responsável *</label>
+                <select
+                  value={animalForm.tutorCpf}
+                  onChange={(e) =>
+                    setAnimalForm({ ...animalForm, tutorCpf: e.target.value })
+                  }
+                  required
+                >
+                  <option value="">-- Selecione --</option>
+                  {tutores.map((t) => (
+                    <option key={t.cpf} value={t.cpf}>
+                      {t.nomeCompleto}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Nome */}
             <div className={s.fieldGroup}>
               <label>Nome do Animal</label>
               <input
@@ -517,6 +711,30 @@ export default function TabCadastros({
                 placeholder="Ex: Rex"
               />
             </div>
+
+            <div className={s.fieldGroup}>
+              <label>Foto do Animal</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAnimalPhotoChange}
+              />
+              {animalForm.fotoUrl && (
+                <img
+                  src={animalForm.fotoUrl}
+                  alt="Pré-visualização do animal"
+                  style={{
+                    width: 96,
+                    height: 72,
+                    objectFit: "cover",
+                    borderRadius: 8,
+                    marginTop: 8,
+                  }}
+                />
+              )}
+            </div>
+
+            {/* Espécie */}
             <div className={s.fieldGroup}>
               <label>Espécie *</label>
               <select
@@ -534,68 +752,160 @@ export default function TabCadastros({
                 ))}
               </select>
             </div>
+
+            {/* Sexo */}
             <div className={s.fieldGroup}>
-              <label>Raça</label>
-              <input
-                type="text"
-                value={animalForm.raca}
-                onChange={(e) =>
-                  setAnimalForm({ ...animalForm, raca: e.target.value })
-                }
-                placeholder="Ex: Labrador"
-              />
-            </div>
-            <div className={s.fieldGroup}>
-              <label>Sexo</label>
+              <label>Sexo *</label>
               <select
                 value={animalForm.sexo}
                 onChange={(e) =>
                   setAnimalForm({ ...animalForm, sexo: e.target.value })
                 }
+                required
               >
-                <option value="">-- Selecione --</option>
                 {SEXOS.map((sx) => (
-                  <option key={sx} value={sx}>
-                    {sx}
+                  <option key={sx.value} value={sx.value}>
+                    {sx.label}
                   </option>
                 ))}
               </select>
             </div>
+
+            {/* Porte */}
             <div className={s.fieldGroup}>
-              <label>Cor / Pelagem</label>
+              <label>Porte *</label>
+              <select
+                value={animalForm.porte}
+                onChange={(e) =>
+                  setAnimalForm({ ...animalForm, porte: e.target.value })
+                }
+                required
+              >
+                {PORTES.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Idade */}
+            <div className={s.fieldGroup}>
+              <label>Idade estimada</label>
               <input
                 type="text"
-                value={animalForm.cor}
+                value={animalForm.idade}
                 onChange={(e) =>
-                  setAnimalForm({ ...animalForm, cor: e.target.value })
+                  setAnimalForm({ ...animalForm, idade: e.target.value })
                 }
-                placeholder="Ex: Caramelo"
+                placeholder="Ex: 2 anos"
               />
             </div>
+
+            {/* Castrado */}
             <div className={s.fieldGroup}>
-              <label>Data de Nascimento</label>
-              <input
-                type="date"
-                value={animalForm.dataNascimento}
+              <label>Castrado(a)?</label>
+              <select
+                value={animalForm.castrado}
+                onChange={(e) =>
+                  setAnimalForm({ ...animalForm, castrado: e.target.value })
+                }
+              >
+                {SIM_NAO.map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Doença crónica */}
+            <div className={s.fieldGroup}>
+              <label>Doença Crônica?</label>
+              <select
+                value={animalForm.doenca_cronica}
                 onChange={(e) =>
                   setAnimalForm({
                     ...animalForm,
-                    dataNascimento: e.target.value,
+                    doenca_cronica: e.target.value,
                   })
                 }
+              >
+                {SIM_NAO.map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Em tratamento */}
+            <div className={s.fieldGroup}>
+              <label>Em Tratamento?</label>
+              <select
+                value={animalForm.em_tratamento}
+                onChange={(e) =>
+                  setAnimalForm({
+                    ...animalForm,
+                    em_tratamento: e.target.value,
+                  })
+                }
+              >
+                {SIM_NAO.map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Qual tratamento */}
+            {animalForm.em_tratamento === "Sim" && (
+              <div className={s.fieldGroup}>
+                <label>Qual Tratamento?</label>
+                <input
+                  type="text"
+                  value={animalForm.qual_tratamento}
+                  onChange={(e) =>
+                    setAnimalForm({
+                      ...animalForm,
+                      qual_tratamento: e.target.value,
+                    })
+                  }
+                  placeholder="Descreva o tratamento"
+                />
+              </div>
+            )}
+
+            {/* Endereço de recolhimento */}
+            <div className={`${s.fieldGroup} ${s.fullWidth}`}>
+              <label>Endereço de Recolhimento / Localização</label>
+              <input
+                type="text"
+                value={animalForm.endereco_recolhimento}
+                onChange={(e) =>
+                  setAnimalForm({
+                    ...animalForm,
+                    endereco_recolhimento: e.target.value,
+                  })
+                }
+                placeholder="Ex: Rua das Flores, 100 — Centro"
               />
             </div>
+
+            {/* Observações */}
             <div className={`${s.fieldGroup} ${s.fullWidth}`}>
-              <label>Observação</label>
+              <label>Observações</label>
               <textarea
                 rows={2}
-                value={animalForm.observacao}
+                value={animalForm.observacoes}
                 onChange={(e) =>
-                  setAnimalForm({ ...animalForm, observacao: e.target.value })
+                  setAnimalForm({ ...animalForm, observacoes: e.target.value })
                 }
                 placeholder="Histórico de saúde, comportamento, etc."
               />
             </div>
+
             <div className={s.formActions}>
               {editingAnimalId && (
                 <button
@@ -621,10 +931,10 @@ export default function TabCadastros({
               <thead>
                 <tr>
                   <th>Animal</th>
-                  <th>Espécie / Raça</th>
-                  <th>Sexo</th>
+                  <th>Espécie</th>
+                  <th>Sexo / Porte</th>
                   <th>Tutor</th>
-                  <th>Nasc.</th>
+                  <th>Castrado</th>
                   <th className={s.actionsColumn}>Ações</th>
                 </tr>
               </thead>
@@ -651,24 +961,42 @@ export default function TabCadastros({
                           <span style={{ color: "#94a3b8" }}>Sem nome</span>
                         )}
                       </strong>
-                      {a.cor && (
+                      {a.idade && (
                         <div style={{ fontSize: "0.78rem", color: "#64748b" }}>
-                          {a.cor}
+                          {a.idade}
                         </div>
                       )}
                     </td>
+                    <td>{a.especie}</td>
                     <td>
-                      {a.especie}
-                      {a.raca && (
-                        <span style={{ color: "#64748b" }}> / {a.raca}</span>
+                      {[
+                        { M: "Macho", F: "Fêmea", I: "—" }[a.sexo] || a.sexo,
+                        a.porte,
+                      ]
+                        .filter(Boolean)
+                        .join(" • ") || (
+                        <span style={{ color: "#94a3b8" }}>—</span>
                       )}
                     </td>
                     <td>
-                      {a.sexo || <span style={{ color: "#94a3b8" }}>-</span>}
+                      {a.tutorNome || (
+                        <span style={{ color: "#94a3b8" }}>—</span>
+                      )}
                     </td>
-                    <td>{a.tutor?.nomeCompleto || "-"}</td>
-                    <td style={{ whiteSpace: "nowrap" }}>
-                      {formatDate(a.dataNascimento)}
+                    <td>
+                      <span
+                        style={{
+                          background:
+                            a.castrado === "Sim" ? "#f0fdf4" : "#f8fafc",
+                          color: a.castrado === "Sim" ? "#15803d" : "#64748b",
+                          borderRadius: "4px",
+                          padding: "0.1rem 0.5rem",
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {a.castrado || "Não"}
+                      </span>
                     </td>
                     <td className={s.actionsCell}>
                       <button
@@ -681,16 +1009,24 @@ export default function TabCadastros({
                         className={s.deleteBtn}
                         onClick={() =>
                           setDeleteConfig({
-                            nome:
-                              a.nome ||
-                              `${a.especie} de ${a.tutor?.nomeCompleto}`,
-                            detalhe: `Tutor: ${a.tutor?.nomeCompleto || "-"} • Espécie: ${a.especie}`,
+                            nome: a.nome || `${a.especie} de ${a.tutorNome}`,
+                            detalhe: `Tutor: ${a.tutorNome} • ${a.especie}`,
                             onConfirm: async () => {
                               const res = await deleteAnimal(a.id);
                               if (res.success) {
-                                alert("Animal removido!");
+                                setMessageConfig({
+                                  type: "success",
+                                  title: "Animal removido",
+                                  message:
+                                    "O cadastro do animal foi excluído com sucesso.",
+                                });
                                 reloadData();
-                              } else alert("Erro: " + res.error);
+                              } else
+                                setMessageConfig({
+                                  type: "error",
+                                  title: "Não foi possível excluir",
+                                  message: res.error,
+                                });
                             },
                           })
                         }

@@ -3,29 +3,18 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
-// ------------------------------------------------------
-// GERAL & REGULAÇÃO DE EXAMES
-// ------------------------------------------------------
-
 model Pessoa {
-  cpf            String                    @id @db.VarChar(11)
-  nomeCompleto   String                    @map("nome_completo") @db.VarChar(150)
-  dataNascimento DateTime                  @map("data_nascimento") @db.Date
-  nomeMae        String                    @map("nome_mae") @db.VarChar(150)
-  telefone       String                    @db.VarChar(20)
-
+  cpf            String        @id @db.VarChar(11)
+  nomeCompleto   String        @map("nome_completo") @db.VarChar(150)
+  dataNascimento DateTime      @map("data_nascimento") @db.Date
+  nomeMae        String        @map("nome_mae") @db.VarChar(150)
+  telefone       String        @db.VarChar(20)
   enderecos      Endereco[]
   pedidos        PedidoExame[]
-  
-  // Relacionamentos com os módulos do RegulaHub
-  pacienteFarmacia PacienteFarmaciaJudicial?
-  pacienteJunta    PacienteJunta?
-  tutor            Tutor?
+  tutor          Tutor?
 
   @@index([nomeCompleto, dataNascimento], map: "idx_pessoa_nome")
   @@map("pessoa")
@@ -43,7 +32,6 @@ model Endereco {
   cep           String?  @db.VarChar(8)
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   enderecoAtual Boolean  @default(true) @map("endereco_atual")
-
   pessoa        Pessoa   @relation(fields: [pessoaCpf], references: [cpf], onDelete: NoAction, onUpdate: NoAction, map: "fk_endereco_pessoa")
 
   @@index([pessoaCpf], map: "pessoa_cpf_idx")
@@ -63,9 +51,8 @@ model Procedimento {
   tipoExameId Int           @map("tipo_exame_id")
   nome        String        @db.VarChar(150)
   valor       Decimal       @db.Decimal(10, 2)
-
-  tipoExame   TipoExame     @relation(fields: [tipoExameId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_procedimentos_tipo_exames")
   pedidos     PedidoExame[]
+  tipoExame   TipoExame     @relation(fields: [tipoExameId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_procedimentos_tipo_exames")
 
   @@index([tipoExameId], map: "exame_id_idx")
   @@map("procedimentos")
@@ -80,9 +67,8 @@ model Medico {
   ativo              Boolean       @default(true)
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   tipo               String?
-
-  pedidosSolicitados PedidoExame[] @relation("medico_solicitante")
   pedidosResponsavel PedidoExame[] @relation("medico_responsavel")
+  pedidosSolicitados PedidoExame[] @relation("medico_solicitante")
 
   @@unique([crm, ufCrm], map: "idx_medico_crm")
   @@map("medicos")
@@ -94,35 +80,33 @@ model Ubs {
   nome      String        @db.VarChar(150)
   ativo     Boolean       @default(true)
   createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-
   pedidos   PedidoExame[]
 
   @@map("ubs")
 }
 
 model PedidoExame {
-  id                  Int           @id @default(autoincrement())
-  pessoaCpf           String        @map("pessoa_cpf") @db.VarChar(11)
-  cnsPaciente         String?       @map("cns_paciente") @db.VarChar(15)
-  procedimentoId      Int           @map("procedimento_id")
-  ubsResponsavelId    Int?          @map("ubs_responsavel_id")
-  medicoSolicitanteId Int?          @map("medico_solicitante_id")
-  medicoResponsavelId Int?          @map("medico_responsavel_id")
-  classificacaoRisco  String?       @map("classificacao_risco") @db.VarChar(50)
-  tipoCota            String?       @map("tipo_cota") @db.VarChar(50)
-  status              String        @default("Aguardando") @db.VarChar(50)
-  statusComunicacao   String?       @default("PENDENTE") @map("status_comunicacao") @db.VarChar(50)
-  motivoLiberacao     String?       @map("motivo_liberacao")
+  id                  Int          @id @default(autoincrement())
+  pessoaCpf           String       @map("pessoa_cpf") @db.VarChar(11)
+  cnsPaciente         String?      @map("cns_paciente") @db.VarChar(15)
+  procedimentoId      Int          @map("procedimento_id")
+  ubsResponsavelId    Int?         @map("ubs_responsavel_id")
+  medicoSolicitanteId Int?         @map("medico_solicitante_id")
+  medicoResponsavelId Int?         @map("medico_responsavel_id")
+  classificacaoRisco  String?      @map("classificacao_risco") @db.VarChar(50)
+  tipoCota            String?      @map("tipo_cota") @db.VarChar(50)
+  status              String       @default("Aguardando") @db.VarChar(50)
+  statusComunicacao   String?      @default("PENDENTE") @map("status_comunicacao") @db.VarChar(50)
+  motivoLiberacao     String?      @map("motivo_liberacao")
   observacao          String?
-  dataSolicitacao     DateTime?     @default(now()) @map("data_solicitacao") @db.Timestamptz(6)
-  dataComunicacao     DateTime?     @map("data_comunicacao") @db.Timestamptz(6)
-  dataLiberacao       DateTime?     @map("data_liberacao") @db.Timestamptz(6)
-
-  pessoa              Pessoa        @relation(fields: [pessoaCpf], references: [cpf], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_pessoa")
-  procedimento        Procedimento  @relation(fields: [procedimentoId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_procedimento")
-  medicoSolicitante   Medico?       @relation("medico_solicitante", fields: [medicoSolicitanteId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_med_solic")
-  medicoResponsavel   Medico?       @relation("medico_responsavel", fields: [medicoResponsavelId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_med_resp")
-  ubs                 Ubs?          @relation(fields: [ubsResponsavelId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_ubs")
+  dataSolicitacao     DateTime?    @default(now()) @map("data_solicitacao") @db.Timestamptz(6)
+  dataComunicacao     DateTime?    @map("data_comunicacao") @db.Timestamptz(6)
+  dataLiberacao       DateTime?    @map("data_liberacao") @db.Timestamptz(6)
+  medicoResponsavel   Medico?      @relation("medico_responsavel", fields: [medicoResponsavelId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_med_resp")
+  medicoSolicitante   Medico?      @relation("medico_solicitante", fields: [medicoSolicitanteId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_med_solic")
+  pessoa              Pessoa       @relation(fields: [pessoaCpf], references: [cpf], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_pessoa")
+  procedimento        Procedimento @relation(fields: [procedimentoId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_procedimento")
+  ubs                 Ubs?         @relation(fields: [ubsResponsavelId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_ubs")
 
   @@index([pessoaCpf], map: "fk_pedidos_pessoa_idx")
   @@index([status], map: "idx_pedidos_status")
@@ -146,233 +130,219 @@ model CotaFinanceira {
   @@map("cotas_financeiras")
 }
 
-<<<<<<< HEAD
-// ------------------------------------------------------
-// CÂMARA TÉCNICA - FARMÁCIA JUDICIAL
-// ------------------------------------------------------
-
 model PacienteFarmaciaJudicial {
-  numeroPasta    String                   @id @map("numero_pasta") @db.VarChar(50)
-  pessoaCpf      String                   @unique @map("pessoa_cpf") @db.VarChar(11)
-  numeroProcesso String                   @map("numero_processo") @db.VarChar(100)
-  status         String                   @db.VarChar(50)
-  createdAt      DateTime?                @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  pessoa         Pessoa                   @relation(fields: [pessoaCpf], references: [cpf], onDelete: Cascade)
-  tratamentos    TratamentoPaciente[]
-  dispensacoes   DispensacaoMedicamento[]
+  numeroPasta    String    @id @map("numero_pasta") @db.VarChar(50)
+  pessoaCpf      String    @unique @map("pessoa_cpf") @db.VarChar(11)
+  numeroProcesso String    @map("numero_processo") @db.VarChar(100)
+  status         String    @default("ATIVO") @db.VarChar(20)
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("paciente_farmacia_judicial")
 }
 
 model Medicamento {
-  id          Int                  @id @default(autoincrement())
-  nome        String               @db.VarChar(150)
-  tipo        String               @db.VarChar(50)
-  dosagem     String               @db.VarChar(50)
-  ativo       Boolean?             @default(true)
-  createdAt   DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  lotes       LoteMedicamento[]
-  tratamentos TratamentoPaciente[]
+  id        Int       @id @default(autoincrement())
+  nome      String    @db.VarChar(150)
+  tipo      String    @db.VarChar(50)
+  dosagem   String    @db.VarChar(50)
+  ativo     Boolean   @default(true)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("medicamento")
 }
 
 model LoteMedicamento {
-  id            Int                      @id @default(autoincrement())
-  medicamentoId Int                      @map("medicamento_id")
-  numeroLote    String                   @map("numero_lote") @db.VarChar(50)
-  fornecedor    String                   @db.VarChar(150)
-  qtdInicial    Int                      @map("qtd_inicial")
-  valorUnitario Decimal                  @map("valor_unitario") @db.Decimal(10, 2)
-  dataEntrada   DateTime                 @map("data_entrada") @db.Date
-  dataValidade  DateTime                 @map("data_validade") @db.Date
-  createdAt     DateTime?                @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  medicamento   Medicamento              @relation(fields: [medicamentoId], references: [id], onDelete: Cascade)
-  dispensacoes  DispensacaoMedicamento[]
+  id            Int       @id @default(autoincrement())
+  medicamentoId Int       @map("medicamento_id")
+  numeroLote    String    @map("numero_lote") @db.VarChar(50)
+  fornecedor    String    @db.VarChar(150)
+  qtdInicial    Int       @map("qtd_inicial")
+  valorUnitario Decimal   @map("valor_unitario") @db.Decimal(10, 2)
+  dataEntrada   DateTime  @default(dbgenerated("CURRENT_DATE")) @map("data_entrada") @db.Date
+  dataValidade  DateTime  @map("data_validade") @db.Date
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("lote_medicamento")
 }
 
 model TratamentoPaciente {
-  id                 Int                      @id @default(autoincrement())
-  pacientePasta      String                   @map("paciente_pasta") @db.VarChar(50)
-  medicamentoId      Int                      @map("medicamento_id")
-  qtdPrescritaMensal Int                      @map("qtd_prescrita_mensal")
-  ativo              Boolean?                 @default(true)
-  createdAt          DateTime?                @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  paciente           PacienteFarmaciaJudicial @relation(fields: [pacientePasta], references: [numeroPasta], onDelete: Cascade)
-  medicamento        Medicamento              @relation(fields: [medicamentoId], references: [id], onDelete: Cascade)
+  id                 Int       @id @default(autoincrement())
+  pacientePasta      String    @map("paciente_pasta") @db.VarChar(50)
+  medicamentoId      Int       @map("medicamento_id")
+  qtdPrescritaMensal Int       @map("qtd_prescrita_mensal")
+  ativo              Boolean   @default(true)
+  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("tratamento_paciente")
 }
 
 model DispensacaoMedicamento {
-  id                Int                      @id @default(autoincrement())
-  pacientePasta     String                   @map("paciente_pasta") @db.VarChar(50)
-  loteMedicamentoId Int                      @map("lote_medicamento_id")
-  qtdEntregue       Int                      @map("qtd_entregue")
-  dataDispensacao   DateTime?                @default(now()) @map("data_dispensacao") @db.Timestamptz(6)
-  observacao        String?                  @db.Text
-
-  paciente          PacienteFarmaciaJudicial @relation(fields: [pacientePasta], references: [numeroPasta], onDelete: Cascade)
-  lote              LoteMedicamento          @relation(fields: [loteMedicamentoId], references: [id], onDelete: Cascade)
+  id                Int       @id @default(autoincrement())
+  pacientePasta     String    @map("paciente_pasta") @db.VarChar(50)
+  loteMedicamentoId Int       @map("lote_medicamento_id")
+  qtdEntregue       Int       @map("qtd_entregue")
+  dataDispensacao   DateTime? @default(now()) @map("data_dispensacao") @db.Timestamptz(6)
+  observacao        String?
 
   @@map("dispensacao_medicamento")
 }
 
-// ------------------------------------------------------
-// JUNTA REGULADORA
-// ------------------------------------------------------
-
 model PacienteJunta {
-  id              Int                    @id @default(autoincrement())
-  pessoaCpf       String                 @unique @map("pessoa_cpf") @db.VarChar(11)
-  tipoDeficiencia String                 @map("tipo_deficiencia") @db.VarChar(255)
-  observacoes     String?                @db.Text
-  createdAt       DateTime?              @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  pessoa          Pessoa                 @relation(fields: [pessoaCpf], references: [cpf], onDelete: Cascade)
-  servicos        PacienteJuntaServico[]
-  atendimentos    JuntaAtendimento[]
+  id              Int       @id @default(autoincrement())
+  pessoaCpf       String    @unique @map("pessoa_cpf") @db.VarChar(14)
+  tipoDeficiencia String    @map("tipo_deficiencia") @db.VarChar(255)
+  observacoes     String?
+  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("paciente_junta")
 }
 
 model JuntaServico {
-  id           Int                    @id @default(autoincrement())
-  nome         String                 @unique @db.VarChar(100)
-  descricao    String?                @db.Text
-  ativo        Boolean?               @default(true)
-  createdAt    DateTime?              @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  pacientes    PacienteJuntaServico[]
-  atendimentos JuntaAtendimento[]
+  id        Int       @id @default(autoincrement())
+  nome      String    @unique @db.VarChar(100)
+  descricao String?
+  ativo     Boolean?  @default(true)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("junta_servicos")
 }
 
 model PacienteJuntaServico {
-  pacienteJuntaId Int           @map("paciente_junta_id")
-  servicoId       Int           @map("servico_id")
-  dataVinculo     DateTime?     @default(now()) @map("data_vinculo") @db.Timestamptz(6)
-  ativo           Boolean?      @default(true)
-
-  pacienteJunta   PacienteJunta @relation(fields: [pacienteJuntaId], references: [id], onDelete: Cascade)
-  servico         JuntaServico  @relation(fields: [servicoId], references: [id], onDelete: Cascade)
+  pacienteJuntaId Int       @map("paciente_junta_id")
+  servicoId       Int       @map("servico_id")
+  dataVinculo     DateTime? @default(now()) @map("data_vinculo") @db.Timestamptz(6)
+  ativo           Boolean?  @default(true)
 
   @@id([pacienteJuntaId, servicoId])
   @@map("paciente_junta_servicos")
 }
 
 model JuntaAtendimento {
-  id                      Int           @id @default(autoincrement())
-  pacienteJuntaId         Int           @map("paciente_junta_id")
-  servicoId               Int           @map("servico_id")
-  especialidade           String        @db.VarChar(100)
-  dataAtendimento         DateTime      @map("data_atendimento") @db.Date
-  status                  String        @db.VarChar(20)
-  observacao              String?       @db.Text
-  profissionalResponsavel String?       @map("profissional_responsavel") @db.VarChar(150)
-  createdAt               DateTime?     @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  pacienteJunta           PacienteJunta @relation(fields: [pacienteJuntaId], references: [id], onDelete: Cascade)
-  servico                 JuntaServico  @relation(fields: [servicoId], references: [id], onDelete: Cascade)
+  id                      Int       @id @default(autoincrement())
+  pacienteJuntaId         Int       @map("paciente_junta_id")
+  servicoId               Int       @map("servico_id")
+  especialidade           String    @db.VarChar(100)
+  dataAtendimento         DateTime  @map("data_atendimento") @db.Date
+  status                  String    @db.VarChar(20)
+  observacao              String?
+  profissionalResponsavel String?   @map("profissional_responsavel") @db.VarChar(150)
+  createdAt               DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("junta_atendimentos")
 }
 
-// ------------------------------------------------------
-// VIGILÂNCIA & ZOONOSES (CCZ)
-// ------------------------------------------------------
-
 model Tutor {
-  pessoaCpf          String    @id @map("pessoa_cpf") @db.VarChar(11)
+  pessoaCpf          String    @id(map: "tutor_zoonoses_pkey") @map("pessoa_cpf") @db.VarChar(11)
   rg                 String?   @db.VarChar(20)
   sexo               String?   @db.VarChar(20)
   profissao          String?   @db.VarChar(100)
   telefoneSecundario String?   @map("telefone_secundario") @db.VarChar(20)
   pontoReferencia    String?   @map("ponto_referencia") @db.VarChar(150)
-  observacoes        String?   @db.Text
+  observacoes        String?
   createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
-
   pessoa             Pessoa    @relation(fields: [pessoaCpf], references: [cpf], onDelete: Cascade)
+  animais            Animal[]
 
   @@map("tutor")
-=======
-// ─── CCZ ────────────────────────────────────────────────────────────────────
-
-model CczTutor {
-  id            Int          @id @default(autoincrement())
-  cpf           String?      @unique @db.VarChar(11)
-  nomeCompleto  String       @map("nome_completo") @db.VarChar(150)
-  telefone      String?      @db.VarChar(20)
-  email         String?      @db.VarChar(100)
-  logradouro    String?      @db.VarChar(150)
-  numero        String?      @db.VarChar(20)
-  complemento   String?      @db.VarChar(50)
-  bairro        String?      @db.VarChar(100)
-  cidade        String?      @default("Muriaé") @db.VarChar(100)
-  uf            String?      @default("MG") @db.Char(2)
-  cep           String?      @db.VarChar(8)
-  ativo         Boolean      @default(true)
-  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  animais       CczAnimal[]
-
-  @@map("ccz_tutores")
 }
 
-model CczAnimal {
-  id               Int           @id @default(autoincrement())
-  tutorId          Int           @map("tutor_id")
-  nome             String?       @db.VarChar(100)
-  especie          String        @db.VarChar(50)   // Cão, Gato, Bovino, etc.
-  raca             String?       @db.VarChar(80)
-  sexo             String?       @db.VarChar(20)
-  cor              String?       @db.VarChar(50)
-  dataNascimento   DateTime?     @map("data_nascimento") @db.Date
-  ativo            Boolean       @default(true)
-  observacao       String?
-  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  tutor            CczTutor      @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+model Animal {
+  id                       String                  @id @db.VarChar(50)
+  pessoa_cpf               String?                 @db.VarChar(11)
+  fotoUrl                  String?                 @map("foto_url")
+  nome                     String?                 @db.VarChar(100)
+  especie                  String                  @db.VarChar(50)
+  sexo                     String                  @db.Char(1)
+  porte                    String                  @db.VarChar(20)
+  idade                    String?                 @db.VarChar(50)
+  castrado                 String?                 @default("Não") @db.VarChar(10)
+  doenca_cronica           String?                 @default("Não") @db.VarChar(10)
+  sintomas_vomito_diarreia String?                 @default("Não") @db.VarChar(10)
+  apetite_normal           String?                 @default("Sim") @db.VarChar(10)
+  em_tratamento            String?                 @default("Não") @db.VarChar(10)
+  qual_tratamento          String?                 @db.VarChar(150)
+  observacoes              String?
+  possui_responsavel       String?                 @default("Sim") @db.VarChar(10)
+  endereco_recolhimento    String?
+  data_cadastro            DateTime?               @default(now()) @db.Timestamptz(6)
+  tutor                    Tutor?                  @relation(fields: [pessoa_cpf], references: [pessoaCpf], onDelete: SetNull)
+  procedimentos            cadastro_procedimento[]
 
-  @@index([tutorId], map: "idx_ccz_animal_tutor")
-  @@map("ccz_animais")
+  @@map("animal")
 }
 
-model CczAtividade {
-  id                Int      @id @default(autoincrement())
-  tipo              String   @db.VarChar(100)
-  bairro            String   @db.VarChar(100)
-  logradouro        String?  @db.VarChar(150)
-  responsavel       String?  @db.VarChar(150)
-  dataAtividade     DateTime @map("data_atividade") @db.Date
-  quantidadeImoveis Int?     @map("quantidade_imoveis")
-  status            String   @default("Concluída") @db.VarChar(50)
-  observacao        String?
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model cadastro_procedimento {
+  id                  String    @id(map: "zoonoses_procedimento_pkey") @db.VarChar(50)
+  animal_id           String    @db.VarChar(50)
+  tipo                String    @db.VarChar(50)
+  data_procedimento   DateTime  @db.Date
+  veterinario         String?   @db.VarChar(150)
+  status              String    @default("Realizado") @db.VarChar(30)
+  descricao           String?
+  medicacao_prescrita String?
+  data_retorno        DateTime? @db.Date
+  created_at          DateTime? @default(now()) @db.Timestamptz(6)
+  animal              Animal    @relation(fields: [animal_id], references: [id], onDelete: Cascade)
 
-  @@map("ccz_atividades")
+  @@index([animal_id], map: "idx_procedimento_animal")
 }
 
-model CczDenuncia {
-  id                   Int      @id @default(autoincrement())
-  tipo                 String   @db.VarChar(100)
-  descricao            String
-  bairro               String   @db.VarChar(100)
-  logradouro           String?  @db.VarChar(150)
-  numero               String?  @db.VarChar(20)
-  denuncianteNome      String?  @map("denunciante_nome") @db.VarChar(150)
-  denuncianteTelefone  String?  @map("denunciante_telefone") @db.VarChar(20)
-  status               String   @default("Pendente") @db.VarChar(50)
-  prioridade           String   @default("Normal") @db.VarChar(30)
-  observacao           String?
-  dataDenuncia         DateTime @default(now()) @map("data_denuncia") @db.Timestamptz(6)
-  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model cadastro_zoonoses {
+  id                        String    @id(map: "zoonoses_notificacao_pkey") @db.VarChar(50)
+  animal_id                 String    @db.VarChar(50)
+  doenca                    String    @db.VarChar(100)
+  data_identificacao        DateTime  @db.Date
+  grau_risco                String    @db.VarChar(30)
+  risco_vida                String?   @default("Não") @db.VarChar(10)
+  formas_contaminacao       String?
+  periodo_monitoramento     String    @db.VarChar(50)
+  responsavel_monitoramento String?   @db.VarChar(150)
+  observacao                String?
+  created_at                DateTime? @default(now()) @db.Timestamptz(6)
+}
 
-  @@map("ccz_denuncias")
->>>>>>> a52eb104de373bbbf7404c79292a7aec72985da2
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model denuncia_cao_agressivo {
+  id            String    @id(map: "zoonoses_denuncia_pkey") @db.VarChar(50)
+  data_denuncia DateTime? @default(now()) @db.Timestamptz(6)
+  localizacao   String
+  descricao_cao String
+  relato        String
+  animal_id     String?   @db.VarChar(50)
+  causou_risco  String?   @default("Não") @db.VarChar(10)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model esporotricose {
+  id                        String    @id(map: "zoonoses_esporotricose_pkey") @db.VarChar(50)
+  animal_id                 String?   @db.VarChar(50)
+  numero_protocolo          String?   @db.VarChar(50)
+  data_visita               DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
+  fiscal_responsavel        String?   @db.VarChar(150)
+  apresenta_lesoes          String?   @default("Sim") @db.VarChar(10)
+  descricao_lesoes          String?
+  em_tratamento_continuo    String?   @default("Sim") @db.VarChar(10)
+  profissional_servico_ref  String?   @db.VarChar(150)
+  medicamentos_prescritos   String?
+  interrupcao_tratamento    String?   @default("Não") @db.VarChar(10)
+  retorno_veterinario       String?   @default("Sim") @db.VarChar(10)
+  isolamento_domiciliar     String?   @default("Sim") @db.VarChar(10)
+  observacoes_isolamento    String?
+  acesso_rua                String?   @default("Não") @db.VarChar(10)
+  uso_epi                   String?   @default("Sim") @db.VarChar(10)
+  quais_epis                String?   @db.VarChar(150)
+  higienizacao_ambiente     String?
+  outros_animais_residencia String?   @default("Não") @db.VarChar(10)
+  outros_animais_descricao  String?
+  pessoas_com_lesoes        String?   @default("Não") @db.VarChar(10)
+  pessoas_lesoes_descricao  String?
+  conclusao_tecnica         String?
+  enc_acompanhamento_ccz    Boolean?  @default(false)
+  enc_notificacao_tutor     Boolean?  @default(false)
+  enc_ministerio_publico    Boolean?  @default(false)
+  enc_outras_medidas        Boolean?  @default(false)
+  outras_medidas_descricao  String?
+  created_at                DateTime? @default(now()) @db.Timestamptz(6)
 }

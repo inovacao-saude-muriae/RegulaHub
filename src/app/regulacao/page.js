@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 
@@ -27,7 +27,7 @@ import ModalSeletorCotas from "./components/Modals/ModalSeletorCotas";
 
 import styles from "./page.module.css";
 
-export default function RegulacaoPage() {
+function RegulacaoPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -43,25 +43,26 @@ export default function RegulacaoPage() {
   };
 
   const data = useRegulacaoData((tab) => handleSetActiveTab(tab));
-  const { filters, handleFilterChange, clearFilters, applyFilters } = useRegulacaoFilters();
+  const { filters, handleFilterChange, clearFilters, applyFilters } =
+    useRegulacaoFilters();
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const availableProcedures = data.auxData.procedimentos.filter(
-    (p) => String(p.tipoExameId) === String(data.newRequest.examTypeId)
+    (p) => String(p.tipoExameId) === String(data.newRequest.examTypeId),
   );
 
   const activeExamName =
     activeTab === "LISTA_ESPERA"
       ? data.selectedQueueExam
       : activeTab === "LIBERADOS"
-      ? data.selectedReleasedExam
-      : "";
+        ? data.selectedReleasedExam
+        : "";
 
   const activeExamObj = data.auxData.tiposExame.find(
     (t) =>
       t.nome?.toLowerCase() === activeExamName?.toLowerCase() ||
-      String(t.id) === String(activeExamName)
+      String(t.id) === String(activeExamName),
   );
 
   const allProceduresList = data.auxData.procedimentos
@@ -186,7 +187,9 @@ export default function RegulacaoPage() {
           handleExportToExcelReleased={(selectedIds) => {
             if (!selectedIds || selectedIds.length === 0)
               return alert("Selecione pelo menos um paciente liberado.");
-            const selectedItems = data.requests.filter((r) => selectedIds.includes(r.id));
+            const selectedItems = data.requests.filter((r) =>
+              selectedIds.includes(r.id),
+            );
             const exportData = selectedItems.map((item) => ({
               "Código Regulação": item.id,
               "Nome do Paciente": item.patientName,
@@ -204,14 +207,20 @@ export default function RegulacaoPage() {
               "Médico Regulador": item.regulatorDoctor || "Não informado",
               "Médico Solicitante": item.requestDoctor || "Não informado",
               "UBS Solicitante": item.requestUbs || "Não informada",
-              "Valor do Exame (R$)": item.estimatedCost ? item.estimatedCost.toFixed(2) : "0.00",
+              "Valor do Exame (R$)": item.estimatedCost
+                ? item.estimatedCost.toFixed(2)
+                : "0.00",
             }));
             const worksheet = XLSX.utils.json_to_sheet(exportData);
             const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Exames Liberados");
+            XLSX.utils.book_append_sheet(
+              workbook,
+              worksheet,
+              "Exames Liberados",
+            );
             XLSX.writeFile(
               workbook,
-              `Liberados_${data.selectedReleasedExam.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.xlsx`
+              `Liberados_${data.selectedReleasedExam.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.xlsx`,
             );
           }}
         />
@@ -286,5 +295,26 @@ export default function RegulacaoPage() {
         styles={styles}
       />
     </div>
+  );
+}
+
+export default function RegulacaoPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            textAlign: "center",
+            padding: "3rem",
+            color: "#64748b",
+            fontWeight: 500,
+          }}
+        >
+          Carregando página...
+        </div>
+      }
+    >
+      <RegulacaoPageContent />
+    </Suspense>
   );
 }

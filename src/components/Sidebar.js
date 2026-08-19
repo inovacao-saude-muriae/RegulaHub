@@ -1,168 +1,210 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
-import styles from './Sidebar.module.css';
+import { Suspense, useState } from "react";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
+import styles from "./Sidebar.module.css";
 
 const menuSections = [
   {
-    title: 'Geral',
+    title: "Geral",
     items: [
       {
-        name: 'Início / Módulos',
-        path: '/',
+        name: "Início / Módulos",
+        path: "/",
         icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-            <polyline points="9 22 9 12 15 12 15 22"/>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+          >
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
           </svg>
-        )
-      }
-    ]
+        ),
+      },
+    ],
   },
   {
-    title: 'Regulação de Exames',
+    title: "Regulação de Exames",
     items: [
       {
-        name: 'Regulação de Exames',
-        path: '/regulacao',
+        name: "Regulação de Exames",
+        path: "/regulacao",
         isDropdown: true,
         icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 2a7 7 0 1 0 10 7"/>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 2a7 7 0 1 0 10 7" />
           </svg>
         ),
         subItems: [
-          { name: 'Dashboard', tab: 'DASHBOARD' },
-          { name: 'Novo Pedido', tab: 'NOVO_PEDIDO' },
-          { name: 'Lista de Espera', tab: 'LISTA_ESPERA' },
-          { name: 'Liberados', tab: 'LIBERADOS' },
-          { name: 'Financeiro', tab: 'FINANCEIRO' },
-          { 
-            name: 'Cadastros', 
-            tab: 'CADASTROS',
+          { name: "Dashboard", tab: "DASHBOARD" },
+          { name: "Novo Pedido", tab: "NOVO_PEDIDO" },
+          { name: "Lista de Espera", tab: "LISTA_ESPERA" },
+          { name: "Liberados", tab: "LIBERADOS" },
+          { name: "Financeiro", tab: "FINANCEIRO" },
+          {
+            name: "Cadastros",
+            tab: "CADASTROS",
             isNestedDropdown: true,
             nestedItems: [
-              { name: 'Pacientes', subTab: 'PESSOAS' },
-              { name: 'Médicos Solicitantes', subTab: 'MEDICOS' },
-              { name: 'Unidades / UBS', subTab: 'UBS' },
-              { name: 'Procedimentos', subTab: 'PROCEDIMENTOS' }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
-    title: 'Câmara Técnica',
-    items: [
-      {
-        name: 'Farmácia Judicial',
-        path: '/camara-tecnica/farmacia-judicial',
-        isDropdown: true,
-        icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-            <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/>
-            <path d="m8.5 8.5 7 7"/>
-          </svg>
-        ),
-        subItems: [
-          { name: 'Dashboard', tab: 'DASHBOARD' },
-          { name: 'Pacientes', tab: 'PACIENTES' },
-          { name: 'Dispensação', tab: 'DISPENSACAO' },
-          { 
-            name: 'Estoque e Lotes', 
-            tab: 'ESTOQUE',
-            isNestedDropdown: true,
-            nestedItems: [
-              { name: 'Saldo do Estoque', subTab: 'SALDO' },
-              { name: 'Registrar Entrada', subTab: 'ENTRADA' },
-              { name: 'Cadastrar Medicamento', subTab: 'CADASTRAR' }
-            ]
+              { name: "Pacientes", subTab: "PESSOAS" },
+              { name: "Médicos Solicitantes", subTab: "MEDICOS" },
+              { name: "Unidades / UBS", subTab: "UBS" },
+              { name: "Procedimentos", subTab: "PROCEDIMENTOS" },
+            ],
           },
-          { name: 'Relatórios', tab: 'RELATORIOS' }
-        ]
+        ],
+      },
+    ],
+  },
+  {
+    title: "Câmara Técnica",
+    items: [
+      {
+        name: "Farmácia Judicial",
+        path: "/camara-tecnica/farmacia-judicial",
+        isDropdown: true,
+        icon: (
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+          >
+            <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
+            <path d="m8.5 8.5 7 7" />
+          </svg>
+        ),
+        subItems: [
+          { name: "Dashboard", tab: "DASHBOARD" },
+          { name: "Pacientes", tab: "PACIENTES" },
+          { name: "Dispensação", tab: "DISPENSACAO" },
+          {
+            name: "Estoque e Lotes",
+            tab: "ESTOQUE",
+            isNestedDropdown: true,
+            nestedItems: [
+              { name: "Saldo do Estoque", subTab: "SALDO" },
+              { name: "Registrar Entrada", subTab: "ENTRADA" },
+              { name: "Cadastrar Medicamento", subTab: "CADASTRAR" },
+            ],
+          },
+          { name: "Relatórios", tab: "RELATORIOS" },
+        ],
       },
       {
-        name: 'Processos',
-        path: '/camara-tecnica/processos',
+        name: "Processos",
+        path: "/camara-tecnica/processos",
         icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+          >
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
           </svg>
-        )
-      }
-    ]
+        ),
+      },
+    ],
   },
   {
-    title: 'Junta Reguladora',
+    title: "Junta Reguladora",
     items: [
       {
-        name: 'Junta Reguladora',
-        path: '/junta-reguladora',
+        name: "Junta Reguladora",
+        path: "/junta-reguladora",
         isDropdown: true,
         icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+          >
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
         ),
         subItems: [
-          { name: 'Cadastro de Paciente', tab: 'CADASTRO' },
-          { name: 'Prontuário e Relatório', tab: 'RELATORIO' },
-          { 
-            name: 'Serviços de Atendimento', 
-            tab: 'SERVICOS',
+          { name: "Cadastro de Paciente", tab: "CADASTRO" },
+          { name: "Prontuário e Relatório", tab: "RELATORIO" },
+          {
+            name: "Serviços de Atendimento",
+            tab: "SERVICOS",
             isNestedDropdown: true,
             nestedItems: [
-              { name: 'CAEE', subTab: 'CAEE' },
-              { name: 'APAE', subTab: 'APAE' },
-              { name: 'Ambulatório', subTab: 'AMBULATORIO' },
-              { name: 'Educação', subTab: 'EDUCACAO' },
-              { name: 'Social', subTab: 'SOCIAL' },
-              { name: 'Centro de Especialidades', subTab: 'ESPECIALIDADES' },
-              { name: 'Centro de Reabilitação', subTab: 'REABILITACAO' }
-            ]
-          }
-        ]
-      }
-    ]
+              { name: "CAEE", subTab: "CAEE" },
+              { name: "APAE", subTab: "APAE" },
+              { name: "Ambulatório", subTab: "AMBULATORIO" },
+              { name: "Educação", subTab: "EDUCACAO" },
+              { name: "Social", subTab: "SOCIAL" },
+              { name: "Centro de Especialidades", subTab: "ESPECIALIDADES" },
+              { name: "Centro de Reabilitação", subTab: "REABILITACAO" },
+            ],
+          },
+        ],
+      },
+    ],
   },
   {
-    title: 'Vigilância & Zoonoses',
+    title: "Vigilância & Zoonoses",
     items: [
       {
-        name: 'CCZ - Zoonoses',
-        path: '/ccz',
+        name: "CCZ - Zoonoses",
+        path: "/ccz",
         isDropdown: true,
         icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+          >
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
         ),
         subItems: [
-          { name: 'Dashboard',     tab: 'DASHBOARD' },
-          { name: 'Usuários',      tab: 'USUARIOS' },
-          { name: 'Cadastros',     tab: 'CADASTROS' },
-          { name: 'Animais',       tab: 'ANIMAIS' },
-          { name: 'Procedimentos', tab: 'PROCEDIMENTOS' },
-          { name: 'Denúncias',     tab: 'DENUNCIAS' },
-        ]
-      }
-    ]
-  }
+          { name: "Dashboard", tab: "DASHBOARD" },
+          { name: "Cadastros", tab: "CADASTROS" },
+          { name: "Usuários", tab: "USUARIOS" },
+          { name: "Animais", tab: "ANIMAIS" },
+          { name: "Procedimentos", tab: "PROCEDIMENTOS" },
+          { name: "Denúncias", tab: "DENUNCIAS" },
+        ],
+      },
+    ],
+  },
 ];
 
-export default function Sidebar() {
+function SidebarContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const currentTab = searchParams.get('tab') || 'DASHBOARD';
-  const currentSubTab = searchParams.get('subTab') || 'PESSOAS';
+  const currentTab = searchParams.get("tab") || "DASHBOARD";
+  const currentSubTab = searchParams.get("subTab") || "PESSOAS";
 
   const [openRegulacao, setOpenRegulacao] = useState(false);
   const [openFarmacia, setOpenFarmacia] = useState(false);
@@ -180,26 +222,34 @@ export default function Sidebar() {
   };
 
   const getDropdownState = (path) => {
-    if (path === '/regulacao') return openRegulacao;
-    if (path === '/camara-tecnica/farmacia-judicial') return openFarmacia;
-    if (path === '/junta-reguladora') return openJunta;
-    if (path === '/ccz') return openCCZ;
+    if (path === "/regulacao") return openRegulacao;
+    if (path === "/camara-tecnica/farmacia-judicial") return openFarmacia;
+    if (path === "/junta-reguladora") return openJunta;
+    if (path === "/ccz") return openCCZ;
     return false;
   };
 
   const toggleDropdownState = (path) => {
-    if (path === '/regulacao') setOpenRegulacao(!openRegulacao);
-    if (path === '/camara-tecnica/farmacia-judicial') setOpenFarmacia(!openFarmacia);
-    if (path === '/junta-reguladora') setOpenJunta(!openJunta);
-    if (path === '/ccz') setOpenCCZ(!openCCZ);
+    if (path === "/regulacao") setOpenRegulacao(!openRegulacao);
+    if (path === "/camara-tecnica/farmacia-judicial")
+      setOpenFarmacia(!openFarmacia);
+    if (path === "/junta-reguladora") setOpenJunta(!openJunta);
+    if (path === "/ccz") setOpenCCZ(!openCCZ);
   };
 
   return (
     <aside className={styles.sidebar} onMouseLeave={handleMouseLeaveSidebar}>
       <div className={styles.logo}>
         <div className={styles.logoIcon}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M12 6v12M6 12h12"/>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+          >
+            <path d="M12 6v12M6 12h12" />
           </svg>
         </div>
         <span className={styles.logoText}>RegulaHub</span>
@@ -219,14 +269,16 @@ export default function Sidebar() {
                       <button
                         type="button"
                         className={`${styles.navLink} ${styles.dropdownTrigger} ${
-                          pathname.includes(item.path) ? styles.activeParent : ''
+                          pathname.includes(item.path)
+                            ? styles.activeParent
+                            : ""
                         }`}
                         onClick={() => toggleDropdownState(item.path)}
                       >
                         <span className={styles.icon}>{item.icon}</span>
                         <span className={styles.label}>{item.name}</span>
                         <svg
-                          className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}
+                          className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ""}`}
                           width="16"
                           height="16"
                           viewBox="0 0 24 24"
@@ -234,7 +286,7 @@ export default function Sidebar() {
                           stroke="currentColor"
                           strokeWidth="2"
                         >
-                          <polyline points="6 9 12 15 18 9"/>
+                          <polyline points="6 9 12 15 18 9" />
                         </svg>
                       </button>
 
@@ -242,10 +294,14 @@ export default function Sidebar() {
                         <ul className={styles.submenuList}>
                           {item.subItems.map((sub) => {
                             if (sub.isNestedDropdown) {
-                              const defaultSubTab = sub.nestedItems[0]?.subTab || '';
+                              const defaultSubTab =
+                                sub.nestedItems[0]?.subTab || "";
 
                               return (
-                                <li key={sub.tab} className={styles.nestedContainer}>
+                                <li
+                                  key={sub.tab}
+                                  className={styles.nestedContainer}
+                                >
                                   <div className={styles.nestedHeaderWrapper}>
                                     <Link
                                       href={`${item.path}?tab=${sub.tab}&subTab=${defaultSubTab}`}
@@ -257,10 +313,12 @@ export default function Sidebar() {
                                     <button
                                       type="button"
                                       className={styles.chevronToggleBtn}
-                                      onClick={() => setOpenNestedMenu(!openNestedMenu)}
+                                      onClick={() =>
+                                        setOpenNestedMenu(!openNestedMenu)
+                                      }
                                     >
                                       <svg
-                                        className={`${styles.chevron} ${openNestedMenu ? styles.chevronOpen : ''}`}
+                                        className={`${styles.chevron} ${openNestedMenu ? styles.chevronOpen : ""}`}
                                         width="14"
                                         height="14"
                                         viewBox="0 0 24 24"
@@ -268,7 +326,7 @@ export default function Sidebar() {
                                         stroke="currentColor"
                                         strokeWidth="2"
                                       >
-                                        <polyline points="6 9 12 15 18 9"/>
+                                        <polyline points="6 9 12 15 18 9" />
                                       </svg>
                                     </button>
                                   </div>
@@ -277,14 +335,17 @@ export default function Sidebar() {
                                     <ul className={styles.nestedSubmenuList}>
                                       {sub.nestedItems.map((nested) => {
                                         const isNestedActive =
-                                          currentTab === sub.tab && currentSubTab === nested.subTab;
+                                          currentTab === sub.tab &&
+                                          currentSubTab === nested.subTab;
 
                                         return (
                                           <li key={nested.subTab}>
                                             <Link
                                               href={`${item.path}?tab=${sub.tab}&subTab=${nested.subTab}`}
                                               className={`${styles.nestedSubmenuLink} ${
-                                                isNestedActive ? styles.activeNestedSubmenu : ''
+                                                isNestedActive
+                                                  ? styles.activeNestedSubmenu
+                                                  : ""
                                               }`}
                                             >
                                               {nested.name}
@@ -298,14 +359,15 @@ export default function Sidebar() {
                               );
                             }
 
-                            const isSubActive = pathname === item.path && currentTab === sub.tab;
+                            const isSubActive =
+                              pathname === item.path && currentTab === sub.tab;
 
                             return (
                               <li key={sub.tab}>
                                 <Link
                                   href={`${item.path}?tab=${sub.tab}`}
                                   className={`${styles.submenuLink} ${
-                                    isSubActive ? styles.activeSubmenu : ''
+                                    isSubActive ? styles.activeSubmenu : ""
                                   }`}
                                 >
                                   {sub.name}
@@ -324,7 +386,7 @@ export default function Sidebar() {
                     <Link
                       href={item.path}
                       className={`${styles.navLink} ${
-                        pathname === item.path ? styles.active : ''
+                        pathname === item.path ? styles.active : ""
                       }`}
                     >
                       <span className={styles.icon}>{item.icon}</span>
@@ -338,5 +400,33 @@ export default function Sidebar() {
         ))}
       </nav>
     </aside>
+  );
+}
+
+export default function Sidebar() {
+  return (
+    <Suspense
+      fallback={
+        <aside className={styles.sidebar}>
+          <div className={styles.logo}>
+            <div className={styles.logoIcon}>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <path d="M12 6v12M6 12h12" />
+              </svg>
+            </div>
+            <span className={styles.logoText}>RegulaHub</span>
+          </div>
+        </aside>
+      }
+    >
+      <SidebarContent />
+    </Suspense>
   );
 }

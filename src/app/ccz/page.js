@@ -1,22 +1,22 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 import { getCCZDashboardData } from "./actions";
 
-import TabDashboardCCZ  from "./components/Dashboard";
-import TabUsuarios      from "./components/TabUsuarios";
-import TabCadastros     from "./components/TabCadastros";
-import TabAnimaisCards  from "./components/TabAnimaisCards";
+import TabDashboardCCZ from "./components/Dashboard";
+import TabUsuarios from "./components/TabUsuarios";
+import TabCadastros from "./components/TabCadastros";
+import TabAnimaisCards from "./components/TabAnimaisCards";
 import TabProcedimentos from "./components/TabProcedimentos";
-import TabDenuncias     from "./components/TabDenuncias";
+import TabDenuncias from "./components/TabDenuncias";
 
 import styles from "./page.module.css";
 
-export default function CCZPage() {
+function CCZPageContent() {
   const searchParams = useSearchParams();
-  const router       = useRouter();
+  const router = useRouter();
 
   const activeTab = searchParams.get("tab") || "DASHBOARD";
 
@@ -39,7 +39,9 @@ export default function CCZPage() {
     }
   }, []);
 
-  useEffect(() => { reloadData(); }, [reloadData]);
+  useEffect(() => {
+    reloadData();
+  }, [reloadData]);
 
   const setActiveTab = (tab) => router.push(`/ccz?tab=${tab}`);
 
@@ -53,7 +55,14 @@ export default function CCZPage() {
       </header>
 
       {loading ? (
-        <div style={{ textAlign: "center", padding: "3rem", color: "#64748b", fontWeight: 500 }}>
+        <div
+          style={{
+            textAlign: "center",
+            padding: "3rem",
+            color: "#64748b",
+            fontWeight: 500,
+          }}
+        >
           Carregando dados...
         </div>
       ) : (
@@ -67,14 +76,6 @@ export default function CCZPage() {
             />
           )}
 
-          {activeTab === "USUARIOS" && (
-            <TabUsuarios
-              tutores={data.tutores}
-              animais={data.animais}
-              reloadData={reloadData}
-            />
-          )}
-
           {activeTab === "CADASTROS" && (
             <TabCadastros
               tutores={data.tutores}
@@ -83,28 +84,52 @@ export default function CCZPage() {
             />
           )}
 
-          {activeTab === "ANIMAIS" && (
-            <TabAnimaisCards
-              animais={data.animais}
+          {activeTab === "USUARIOS" && (
+            <TabUsuarios
               tutores={data.tutores}
+              animais={data.animais}
+              reloadData={reloadData}
             />
           )}
 
+          {activeTab === "ANIMAIS" && (
+            <TabAnimaisCards animais={data.animais} tutores={data.tutores} />
+          )}
+
           {activeTab === "PROCEDIMENTOS" && (
-            <TabProcedimentos
-              tutores={data.tutores}
-              animais={data.animais}
-            />
+            <TabProcedimentos tutores={data.tutores} animais={data.animais} />
           )}
 
           {activeTab === "DENUNCIAS" && (
             <TabDenuncias
               denuncias={data.denuncias}
+              animais={data.animais}
               reloadData={reloadData}
             />
           )}
         </>
       )}
     </div>
+  );
+}
+
+export default function CCZPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            textAlign: "center",
+            padding: "3rem",
+            color: "#64748b",
+            fontWeight: 500,
+          }}
+        >
+          Carregando página...
+        </div>
+      }
+    >
+      <CCZPageContent />
+    </Suspense>
   );
 }
