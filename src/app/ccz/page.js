@@ -10,6 +10,7 @@ import TabUsuarios from "./components/TabUsuarios";
 import TabCadastros from "./components/TabCadastros";
 import TabAnimaisCards from "./components/TabAnimaisCards";
 import TabProcedimentos from "./components/TabProcedimentos";
+import TabZoonoses from "./components/TabZoonoses";
 import TabDenuncias from "./components/TabDenuncias";
 
 import styles from "./page.module.css";
@@ -78,6 +79,14 @@ function CCZPageContent() {
 
           {activeTab === "CADASTROS" && (
             <TabCadastros
+              tutores={data.tutores}
+              animais={data.animais}
+              reloadData={reloadData}
+            />
+          )}
+
+          {activeTab === "ZOONOSES" && (
+            <TabZoonoses
               tutores={data.tutores}
               animais={data.animais}
               reloadData={reloadData}

@@ -192,6 +192,7 @@ const menuSections = [
           { name: "Cadastros", tab: "CADASTROS" },
           { name: "Usuários", tab: "USUARIOS" },
           { name: "Animais", tab: "ANIMAIS" },
+          { name: "Zoonoses", tab: "ZOONOSES" },
           { name: "Procedimentos", tab: "PROCEDIMENTOS" },
           { name: "Denúncias", tab: "DENUNCIAS" },
         ],
