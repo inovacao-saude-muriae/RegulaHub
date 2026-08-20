@@ -131,7 +131,12 @@ export default function TabExibirZoonoses({
                 {/* Doença e Animal */}
                 <div className={styles.mainInfo}>
                   <div className={styles.titleRow}>
-                    <h3 className={styles.doencaName}>{zoonose.doenca}</h3>
+                    <h2 className={styles.doencaName}>
+                      Animal:{" "}
+                      <strong>{animal?.nome || "Sem tutor / Sem nome"}</strong>{" "}
+                      (#
+                      {zoonose.animal_id})
+                    </h2>
                     <span className={`${styles.badge} ${risk.badge}`}>
                       {zoonose.grau_risco || "Baixo"}
                     </span>
@@ -139,11 +144,7 @@ export default function TabExibirZoonoses({
                       <span className={styles.lifeRisk}>⚠️ Risco Vital</span>
                     )}
                   </div>
-                  <p className={styles.animalInfo}>
-                    Animal:{" "}
-                    <strong>{animal?.nome || "Sem tutor / Sem nome"}</strong> (#
-                    {zoonose.animal_id})
-                  </p>
+                  <h4 className={styles.doencaName}>{zoonose.doenca}</h4>
                 </div>
 
                 {/* Metadados compactos */}
