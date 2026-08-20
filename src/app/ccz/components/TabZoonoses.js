@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
+import { createZoonose } from "../actions";
 import styles from "./TabZoonoses.module.css";
 
-export default function TabZoonoses() {
+export default function TabZoonoses({ animais = [], reloadData }) {
+  const [message, setMessage] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     animalRelacionado: "",
     nomeDoenca: "",
@@ -24,11 +27,36 @@ export default function TabZoonoses() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Aqui você pode adicionar a lógica para enviar os dados do formulário para o backend ou processá-los conforme necessário.
-    console.log("Dados do formulário enviados:", formData);
-    // Resetar o formulário após o envio, se desejado
+    setSaving(true);
+    setMessage(null);
+
+    const result = await createZoonose({
+      animal_id: formData.animalRelacionado,
+      doenca: formData.nomeDoenca,
+      data_identificacao: formData.dataIdentificacao,
+      grau_risco: formData.grauRisco,
+      risco_vida: formData.riscoVida === "sim" ? "Sim" : "Não",
+      formas_contaminacao: formData.formasContaminacao,
+      periodo_monitoramento: formData.periodoMonitoramento,
+      responsavel_monitoramento: formData.responsavelMonitoramento,
+      observacao: formData.observacoes,
+    });
+
+    setSaving(false);
+    if (!result.success) {
+      setMessage({
+        type: "error",
+        text: result.error || "Não foi possível salvar o registro.",
+      });
+      return;
+    }
+
+    setMessage({
+      type: "success",
+      text: "Registro de zoonose salvo com sucesso.",
+    });
     setFormData({
       animalRelacionado: "",
       nomeDoenca: "",
@@ -40,6 +68,7 @@ export default function TabZoonoses() {
       responsavelMonitoramento: "",
       observacoes: "",
     });
+    reloadData?.();
   };
   return (
     <div className={styles.container}>
@@ -48,6 +77,18 @@ export default function TabZoonoses() {
         <h2>Cadastro de Zoonose</h2>
         <p>Registre casos de zoonoses para controle e monitoramento</p>
       </div>
+
+      {message && (
+        <p
+          className={
+            message.type === "error"
+              ? styles.errorMessage
+              : styles.successMessage
+          }
+        >
+          {message.text}
+        </p>
+      )}
 
       <form onSubmit={handleSubmit} className={styles.formContainer}>
         {/* Seção: Dados do Caso */}
@@ -65,9 +106,14 @@ export default function TabZoonoses() {
                 required
               >
                 <option value="">Selecione o animal...</option>
-                <option value="animal_1">Animal #001 - Sem tutor</option>
-                <option value="animal_2">Animal #002 - Sem tutor</option>
-                <option value="animal_3">Animal #003 - Sem tutor</option>
+                {animais.length === 0 && (
+                  <option disabled>Nenhum animal cadastrado.</option>
+                )}
+                {animais.map((animal) => (
+                  <option key={animal.id} value={animal.id}>
+                    {animal.nome || "Sem nome"} ({animal.id})
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -208,8 +254,8 @@ export default function TabZoonoses() {
           <button type="button" className={styles.secondaryBtn}>
             Cancelar
           </button>
-          <button type="submit" className={styles.primaryBtn}>
-            Salvar Registro
+          <button type="submit" className={styles.primaryBtn} disabled={saving}>
+            {saving ? "Salvando..." : "Salvar Registro"}
           </button>
         </div>
       </form>

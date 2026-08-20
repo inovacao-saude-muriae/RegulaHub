@@ -11,6 +11,7 @@ import TabCadastros from "./components/TabCadastros";
 import TabAnimaisCards from "./components/TabAnimaisCards";
 import TabProcedimentos from "./components/TabProcedimentos";
 import TabZoonoses from "./components/TabZoonoses";
+import TabExibirZoonoses from "./components/TabExibirZoonoses";
 import TabDenuncias from "./components/TabDenuncias";
 
 import styles from "./page.module.css";
@@ -26,6 +27,7 @@ function CCZPageContent() {
     tutores: [],
     animais: [],
     denuncias: [],
+    zoonoses: [],
   });
 
   const reloadData = useCallback(async () => {
@@ -88,6 +90,14 @@ function CCZPageContent() {
           {activeTab === "ZOONOSES" && (
             <TabZoonoses
               tutores={data.tutores}
+              animais={data.animais}
+              reloadData={reloadData}
+            />
+          )}
+
+          {activeTab === "EXIBIR_ZOONOSES" && (
+            <TabExibirZoonoses
+              zoonoses={data.zoonoses}
               animais={data.animais}
               reloadData={reloadData}
             />

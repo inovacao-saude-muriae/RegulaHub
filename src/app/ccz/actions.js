@@ -111,7 +111,7 @@ async function getTutoresCCZ() {
 
 export async function getCCZDashboardData() {
   try {
-    const [tutores, animais, denuncias] = await Promise.all([
+    const [tutores, animais, denuncias, zoonoses] = await Promise.all([
       getTutoresCCZ(),
       prisma.animal.findMany({
         include: {
@@ -126,16 +126,20 @@ export async function getCCZDashboardData() {
       prisma.denuncia_cao_agressivo.findMany({
         orderBy: { data_denuncia: "desc" },
       }),
+      prisma.cadastro_zoonoses.findMany({
+        orderBy: { created_at: "desc" },
+      }),
     ]);
 
     return {
       tutores,
       animais: animais.map(animalToFront),
       denuncias,
+      zoonoses,
     };
   } catch (error) {
     console.error("Erro ao buscar dados CCZ:", error);
-    return { tutores: [], animais: [], denuncias: [] };
+    return { tutores: [], animais: [], denuncias: [], zoonoses: [] };
   }
 }
 
@@ -399,6 +403,33 @@ export async function getProcedimentosByAnimal(animalId) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// ZOONOSES  (tabela: cadastro_zoonoses)
+// ─────────────────────────────────────────────────────────────
+export async function createZoonose(data) {
+  try {
+    const record = await prisma.cadastro_zoonoses.create({
+      data: {
+        id: randomUUID(),
+        animal_id: String(data.animal_id),
+        doenca: data.doenca,
+        data_identificacao: new Date(data.data_identificacao),
+        grau_risco: data.grau_risco,
+        risco_vida: data.risco_vida || "Não",
+        formas_contaminacao: data.formas_contaminacao || null,
+        periodo_monitoramento: data.periodo_monitoramento || "Não informado",
+        responsavel_monitoramento: data.responsavel_monitoramento || null,
+        observacao: data.observacao || null,
+      },
+    });
+    revalidatePath("/ccz");
+    return { success: true, data: record };
+  } catch (error) {
+    console.error("Erro ao criar zoonose:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // DENÚNCIAS DE CÃO AGRESSIVO
 // ─────────────────────────────────────────────────────────────
 export async function createDenuncia(data) {
@@ -449,5 +480,62 @@ export async function deleteDenuncia(id) {
   } catch (error) {
     console.error("Erro ao excluir denúncia:", error);
     return { success: false, error: error.message };
+  }
+}
+
+export async function excluirZoonoseAction(id) {
+  if (!id) {
+    return { success: false, error: "ID não fornecido para exclusão." };
+  }
+
+  try {
+    await prisma.cadastro_zoonoses.delete({ where: { id: String(id) } });
+    revalidatePath("/ccz");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao excluir zoonose:", error);
+    return {
+      success: false,
+      error: error.message || "Erro ao excluir o registro.",
+    };
+  }
+}
+
+/**
+ * Atualiza um registro de zoonose existente
+ * @param {string|number} id - ID da zoonose
+ * @param {Object} dados - Objeto com os campos atualizados
+ */
+export async function salvarEdicaoZoonoseAction(id, dados) {
+  if (!id) {
+    return { success: false, error: "ID não fornecido para atualização." };
+  }
+
+  try {
+    const record = await prisma.cadastro_zoonoses.update({
+      where: { id: String(id) },
+      data: {
+        animal_id: String(dados.animal_id),
+        doenca: dados.doenca,
+        data_identificacao: new Date(dados.data_identificacao),
+        grau_risco: dados.grau_risco,
+        risco_vida: dados.risco_vida || "Não",
+        formas_contaminacao: dados.formas_contaminacao || null,
+        periodo_monitoramento: dados.periodo_monitoramento || "Não informado",
+        responsavel_monitoramento: dados.responsavel_monitoramento || null,
+        observacao: dados.observacao || null,
+      },
+    });
+
+    revalidatePath("/ccz");
+
+    return { success: true, data: record };
+  } catch (error) {
+    console.error("Erro ao atualizar zoonose:", error);
+    return {
+      success: false,
+      error: error.message || "Erro ao salvar alterações.",
+    };
   }
 }
