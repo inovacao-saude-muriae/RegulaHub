@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { buscarPessoaExistente } from '../actions';
 import styles from './ProntuarioRelatorio.module.css';
 
@@ -54,12 +56,207 @@ export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
   };
 
   const paciente = prontuarioData?.paciente;
-  const historico = prontuarioData?.historico || [];
+  const servicosAgrupados = prontuarioData?.servicosAgrupados || [];
+
+  // FUNÇÃO DE GERAÇÃO E DOWNLOAD DO DOCUMENTO PDF REAL
+  const gerarPDFDownload = () => {
+    if (!paciente) return;
+
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+    });
+
+    const dataEmissao = `${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+
+    // 1. Cabeçalho Oficial
+    doc.setFillColor(2, 132, 199); // Azul #0284c7
+    doc.rect(0, 0, 210, 18, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('REGULAHUB - JUNTA REGULADORA MULTIDISCIPLINAR', 14, 12);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Emissão: ${dataEmissao}`, 196, 12, { align: 'right' });
+
+    // Título do Documento
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('PRONTUÁRIO UNIFICADO E RELATÓRIO DE FREQUÊNCIAS', 14, 28);
+
+    // 2. Tabela de Dados Pessoais do Paciente
+    autoTable(doc, {
+      startY: 32,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [30, 41, 59],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 9,
+      },
+      head: [['DADOS PESSOAIS DO PACIENTE', '']],
+      body: [
+        ['Nome Completo:', paciente.nome || '-'],
+        ['CPF:', formatCPF(paciente.cpf) || '-'],
+        ['Nome da Mãe:', paciente.nomeMae || 'Não informado'],
+        ['Data de Nascimento:', paciente.data_nascimento ? new Date(paciente.data_nascimento).toLocaleDateString('pt-BR') : 'Não informada'],
+        ['Telefone / WhatsApp:', paciente.telefone || 'Não informado'],
+        ['Diagnóstico / Deficiência:', paciente.tipo_deficiencia || 'Não informado'],
+        ['Endereço:', paciente.logradouro ? `${paciente.logradouro}, ${paciente.numero} - ${paciente.bairro}` : 'Não informado'],
+        ['Serviços Ativos Vinculados:', paciente.servicos_ativos?.length > 0 ? paciente.servicos_ativos.join(', ') : 'Nenhum serviço ativo'],
+      ],
+      styles: { fontSize: 8, cellPadding: 2 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 45, fillColor: [248, 250, 252] },
+        1: { cellWidth: 'auto' },
+      },
+    });
+
+    let currentY = doc.lastAutoTable.finalY + 8;
+
+    // 3. Renderiza cada Serviço e Especialidade como Tabela Formatada
+    if (servicosAgrupados.length === 0) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(100, 116, 139);
+      doc.text('Nenhum registro de atendimento ou frequência gravado no sistema.', 14, currentY);
+    } else {
+      servicosAgrupados.forEach((grupo) => {
+        // Verifica quebra de página se o espaço for curto
+        if (currentY > 250) {
+          doc.addPage();
+          currentY = 20;
+        }
+
+        // Título da Seção do Serviço e Especialidade
+        doc.setFillColor(241, 245, 249);
+        doc.setDrawColor(203, 213, 225);
+        doc.rect(14, currentY, 182, 10, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(2, 132, 199);
+        doc.text(`SERVIÇO: ${grupo.servico}`, 18, currentY + 6.5);
+
+        doc.setTextColor(30, 41, 59);
+        doc.text(`Especialidade: ${grupo.especialidade}`, 80, currentY + 6.5);
+
+        const resumoFrequencia = `Presenças: ${grupo.presencas} | Faltas: ${grupo.faltas} | Justificadas: ${grupo.faltasJustificadas}`;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text(resumoFrequencia, 192, currentY + 6.5, { align: 'right' });
+
+        currentY += 12;
+
+        // Tabela de Histórico de Frequência do Serviço
+        const tableBody = grupo.datas.map((d) => {
+          let statusText = 'Presença Confirmada';
+          if (d.status === 'FALTA') statusText = 'Falta';
+          if (d.status === 'FALTA_JUSTIFICADA') statusText = 'Falta Justificada';
+
+          return [
+            new Date(d.data).toLocaleDateString('pt-BR'),
+            statusText,
+            d.profissional || '-',
+            d.observacao || '-',
+          ];
+        });
+
+        autoTable(doc, {
+          startY: currentY,
+          theme: 'striped',
+          headStyles: {
+            fillColor: [71, 85, 105],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 8,
+          },
+          head: [['Data', 'Frequência / Status', 'Profissional', 'Observação']],
+          body: tableBody,
+          styles: { fontSize: 8, cellPadding: 2.5 },
+          columnStyles: {
+            0: { cellWidth: 28, fontStyle: 'bold' },
+            1: { cellWidth: 40 },
+            2: { cellWidth: 45 },
+            3: { cellWidth: 'auto' },
+          },
+          didParseCell: (data) => {
+            if (data.section === 'body' && data.column.index === 1) {
+              const val = data.cell.raw;
+              if (val === 'Presença Confirmada') {
+                data.cell.styles.textColor = [22, 101, 52];
+                data.cell.styles.fontStyle = 'bold';
+              } else if (val === 'Falta') {
+                data.cell.styles.textColor = [153, 27, 27];
+                data.cell.styles.fontStyle = 'bold';
+              } else if (val === 'Falta Justificada') {
+                data.cell.styles.textColor = [146, 64, 14];
+                data.cell.styles.fontStyle = 'bold';
+              }
+            }
+          },
+        });
+
+        currentY = doc.lastAutoTable.finalY + 8;
+      });
+    }
+
+    // Rodapé em todas as páginas
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setTextColor(148, 163, 184);
+      doc.text(
+        `Página ${i} de ${totalPageCount(doc)} - Documento Gerado pelo Sistema RegulaHub`,
+        105,
+        290,
+        { align: 'center' }
+      );
+    }
+
+    function totalPageCount(pdfDoc) {
+      return pdfDoc.internal.getNumberOfPages();
+    }
+
+    // Salva o arquivo diretamente no computador
+    const nomeLimpo = (paciente.nome || 'Paciente').replace(/[^a-zA-Z0-9]/g, '_');
+    doc.save(`Prontuario_${nomeLimpo}.pdf`);
+  };
 
   return (
     <div className={styles.card}>
-      <h3 className={styles.title}>Prontuário Unificado e Relatório de Serviços</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h3 className={styles.title} style={{ margin: 0 }}>Prontuário Unificado e Relatório de Serviços</h3>
+        {paciente && (
+          <button
+            type="button"
+            onClick={gerarPDFDownload}
+            style={{
+              backgroundColor: '#16a34a',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '0.65rem 1.25rem',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.12)',
+            }}
+          >
+            📥 Baixar Relatório em PDF
+          </button>
+        )}
+      </div>
 
+      {/* CAMPO DE BUSCA COM AUTOCOMPLETAR */}
       <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
         <form onSubmit={handleSearchSubmit} className={styles.searchRow}>
           <div style={{ position: 'relative', flex: 1 }}>
@@ -71,7 +268,6 @@ export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
               style={{ width: '100%' }}
             />
 
-            {/* LISTA SUSPENSA DE AUTOCOMPLETAR AO DIGITAR */}
             {showDropdown && sugestoes.length > 0 && (
               <ul
                 style={{
@@ -127,10 +323,9 @@ export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
             <p><strong>Data Nascimento:</strong> {paciente.data_nascimento ? new Date(paciente.data_nascimento).toLocaleDateString('pt-BR') : 'Não informada'}</p>
             <p><strong>Telefone:</strong> {paciente.telefone || 'Não informado'}</p>
             <p><strong>Deficiência/Diagnóstico:</strong> {paciente.tipo_deficiencia || 'Não informado'}</p>
-            <p><strong>Endereço:</strong> {paciente.logradouro ? `${paciente.logradouro}, ${paciente.numero} - ${paciente.bairro}` : 'Não informado'}</p>
           </div>
 
-          {/* SERVIÇOS ATIVOS */}
+          {/* SERVIÇOS VINCULADOS */}
           <div className={styles.infoCard}>
             <h4>Serviços onde o Paciente está Ativo</h4>
             <div className={styles.badgesGroup}>
@@ -146,42 +341,114 @@ export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
             </div>
           </div>
 
-          {/* HISTÓRICO DE FREQUÊNCIAS */}
+          {/* HISTÓRICO AGRUPADO POR SERVIÇO E ESPECIALIDADE */}
           <div className={styles.historySection}>
-            <h4>Histórico Multidisciplinar de Atendimentos</h4>
-            {historico.length === 0 ? (
-              <p className={styles.emptyMsg}>Nenhum registro de atendimento gravado até o momento.</p>
+            <h4 style={{ marginBottom: '1rem' }}>Relatório Multidisciplinar por Serviço e Especialidade</h4>
+
+            {servicosAgrupados.length === 0 ? (
+              <p className={styles.emptyMsg}>Nenhum registro de atendimento ou frequência gravado até o momento.</p>
             ) : (
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Data</th>
-                    <th>Serviço</th>
-                    <th>Especialidade</th>
-                    <th>Status</th>
-                    <th>Profissional</th>
-                    <th>Observação</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {historico.map((item) => (
-                    <tr key={item.id}>
-                      <td>{new Date(item.data).toLocaleDateString('pt-BR')}</td>
-                      <td><strong>{item.servico}</strong></td>
-                      <td>{item.especialidade}</td>
-                      <td>
-                        <span className={styles[item.status]}>
-                          {item.status === 'PRESENCA' && 'Presença'}
-                          {item.status === 'FALTA' && 'Falta'}
-                          {item.status === 'FALTA_JUSTIFICADA' && 'Falta Justificada'}
+              servicosAgrupados.map((grupo, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '1.25rem',
+                    marginBottom: '1.5rem',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      borderBottom: '2px solid #cbd5e1',
+                      paddingBottom: '0.75rem',
+                      marginBottom: '1rem',
+                      flexWrap: 'wrap',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <div>
+                      <span
+                        style={{
+                          backgroundColor: '#0284c7',
+                          color: '#fff',
+                          padding: '4px 10px',
+                          borderRadius: '4px',
+                          fontWeight: 'bold',
+                          fontSize: '0.85rem',
+                          marginRight: '8px',
+                        }}
+                      >
+                        SERVIÇO: {grupo.servico}
+                      </span>
+                      <strong style={{ fontSize: '1.05rem', color: '#1e293b' }}>
+                        Especialidade: {grupo.especialidade}
+                      </strong>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                      <span style={{ color: '#166534', background: '#dcfce7', padding: '2px 8px', borderRadius: '4px' }}>
+                        ✅ {grupo.presencas} Presença(s)
+                      </span>
+                      <span style={{ color: '#991b1b', background: '#fee2e2', padding: '2px 8px', borderRadius: '4px' }}>
+                        ❌ {grupo.faltas} Falta(s)
+                      </span>
+                      {grupo.faltasJustificadas > 0 && (
+                        <span style={{ color: '#92400e', background: '#fef3c7', padding: '2px 8px', borderRadius: '4px' }}>
+                          ⚠️ {grupo.faltasJustificadas} Justificada(s)
                         </span>
-                      </td>
-                      <td>{item.profissional || '-'}</td>
-                      <td>{item.observacao || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      )}
+                    </div>
+                  </div>
+
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={{ width: '20%' }}>Data do Atendimento</th>
+                        <th style={{ width: '30%' }}>Frequência / Status</th>
+                        <th style={{ width: '25%' }}>Profissional</th>
+                        <th style={{ width: '25%' }}>Observação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {grupo.datas.map((d) => (
+                        <tr key={d.id}>
+                          <td>
+                            <strong>{new Date(d.data).toLocaleDateString('pt-BR')}</strong>
+                          </td>
+                          <td>
+                            <span
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: '4px',
+                                fontWeight: 'bold',
+                                fontSize: '0.85rem',
+                                display: 'inline-block',
+                                backgroundColor:
+                                  d.status === 'PRESENCA' ? '#dcfce7' :
+                                  d.status === 'FALTA' ? '#fee2e2' : '#fef3c7',
+                                color:
+                                  d.status === 'PRESENCA' ? '#166534' :
+                                  d.status === 'FALTA' ? '#991b1b' : '#92400e',
+                              }}
+                            >
+                              {d.status === 'PRESENCA' && '✅ Presença Confirmada'}
+                              {d.status === 'FALTA' && '❌ Falta'}
+                              {d.status === 'FALTA_JUSTIFICADA' && '⚠️ Falta Justificada'}
+                            </span>
+                          </td>
+                          <td>{d.profissional || '-'}</td>
+                          <td>{d.observacao || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))
             )}
           </div>
         </div>

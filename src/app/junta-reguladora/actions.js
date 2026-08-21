@@ -186,7 +186,7 @@ export async function cadastrarPacienteJunta(data) {
   }
 }
 
-/* ── 3. LISTAR PACIENTES VINCULADOS A UM SERVIÇO ── */
+/* ── 3. LISTAR PACIENTES VINCULADOS A UM SERVIÇO (CORRIGIDO) ── */
 export async function getPacientesPorServico(servicoNome) {
   try {
     if (!servicoNome) return { success: true, data: [] };
@@ -206,57 +206,81 @@ export async function getPacientesPorServico(servicoNome) {
       return { success: true, data: [] };
     }
 
+    // Busca os vínculos e traz os dados da pessoa sem realizar o orderBy direto no Prisma
     const vinculos = await prisma.pacienteJuntaServico.findMany({
       where: {
         servicoId: servico.id,
         ativo: true,
       },
+    });
+
+    if (vinculos.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    const pacienteJuntaIds = vinculos.map((v) => v.pacienteJuntaId).filter(Boolean);
+
+    const pacientesJunta = await prisma.pacienteJunta.findMany({
+      where: {
+        id: { in: pacienteJuntaIds },
+      },
+    });
+
+    const pessoaCpfs = pacientesJunta.map((pj) => pj.pessoaCpf).filter(Boolean);
+
+    const pessoas = await prisma.pessoa.findMany({
+      where: {
+        cpf: { in: pessoaCpfs },
+      },
       include: {
-        pacienteJunta: {
-          include: {
-            pessoa: {
-              include: {
-                enderecos: {
-                  where: { enderecoAtual: true },
-                  take: 1,
-                },
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        pacienteJunta: {
-          pessoa: {
-            nomeCompleto: 'asc',
-          },
+        enderecos: {
+          where: { enderecoAtual: true },
+          take: 1,
         },
       },
     });
 
-    const data = vinculos.map((v) => {
-      const p = v.pacienteJunta;
-      const pessoa = p?.pessoa || {};
-      const end = pessoa?.enderecos?.[0] || {};
+    const pessoaDict = pessoas.reduce((acc, p) => {
+      acc[p.cpf] = p;
+      return acc;
+    }, {});
 
-      return {
-        id: p.id,
-        paciente_junta_id: p.id,
-        cpf: pessoa.cpf || '',
-        nome: pessoa.nomeCompleto || '',
-        nomeCompleto: pessoa.nomeCompleto || '',
-        nomeMae: pessoa.nomeMae || '',
-        telefone: pessoa.telefone || '',
-        tipo_deficiencia: p.tipoDeficiencia || '',
-        tipoDeficiencia: p.tipoDeficiencia || '',
-        logradouro: end.logradouro || '',
-        numero: end.numero || '',
-        bairro: end.bairro || '',
-        cidade: end.cidade || '',
-        uf: end.uf || '',
-        cep: end.cep || '',
-      };
-    });
+    const pacienteJuntaDict = pacientesJunta.reduce((acc, pj) => {
+      acc[pj.id] = pj;
+      return acc;
+    }, {});
+
+    const data = vinculos
+      .map((v) => {
+        const pj = pacienteJuntaDict[v.pacienteJuntaId];
+        const pessoa = pj ? pessoaDict[pj.pessoaCpf] : null;
+
+        if (!pessoa || !pj) return null;
+
+        const end = pessoa.enderecos?.[0] || {};
+
+        return {
+          id: pj.id,
+          paciente_junta_id: pj.id,
+          cpf: pessoa.cpf || '',
+          nome: pessoa.nomeCompleto || '',
+          nomeCompleto: pessoa.nomeCompleto || '',
+          nomeMae: pessoa.nomeMae || '',
+          telefone: pessoa.telefone || '',
+          tipo_deficiencia: pj.tipoDeficiencia || '',
+          tipoDeficiencia: pj.tipoDeficiencia || '',
+          logradouro: end.logradouro || '',
+          numero: end.numero || '',
+          bairro: end.bairro || '',
+          cidade: end.cidade || '',
+          uf: end.uf || '',
+          cep: end.cep || '',
+        };
+      })
+      .filter(Boolean);
+
+    // Ordena alfabeticamente pelo nome do paciente em memória
+    data.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto));
 
     return { success: true, data };
   } catch (error) {
@@ -323,13 +347,12 @@ export async function registrarAtendimentoServico(data) {
   }
 }
 
-//* ── 5. CONSULTA DO PRONTUÁRIO UNIFICADO (SEM DEPENDÊNCIA DE INCLUDE) ── */
+/* ── 5. CONSULTA DO PRONTUÁRIO UNIFICADO (AGRUPADO POR SERVIÇO E ESPECIALIDADE) ── */
 export async function getProntuarioUnificado(termoBusca) {
   try {
     const termoClean = String(termoBusca).trim();
     const apenasNumeros = termoClean.replace(/\D/g, '');
 
-    // 1. Localiza a pessoa pelo CPF ou Nome
     const pessoa = await prisma.pessoa.findFirst({
       where: {
         OR: [
@@ -349,16 +372,14 @@ export async function getProntuarioUnificado(termoBusca) {
       return { success: true, data: null };
     }
 
-    // 2. Busca o cadastro da pessoa na Junta Reguladora
     const pacienteJunta = await prisma.pacienteJunta.findFirst({
       where: { pessoaCpf: pessoa.cpf },
     });
 
     let servicosAtivos = [];
-    let historicoFormatted = [];
+    let servicosAgrupados = [];
 
     if (pacienteJunta) {
-      // 3. Busca os vínculos e mapeia os serviços pelos IDs
       const vinculos = await prisma.pacienteJuntaServico.findMany({
         where: {
           pacienteJuntaId: pacienteJunta.id,
@@ -374,7 +395,6 @@ export async function getProntuarioUnificado(termoBusca) {
         servicosAtivos = listaServicos.map((s) => s.nome);
       }
 
-      // 4. Busca os atendimentos e mapeia os serviços pelos IDs
       const atendimentos = await prisma.juntaAtendimento.findMany({
         where: { pacienteJuntaId: pacienteJunta.id },
         orderBy: { dataAtendimento: 'desc' },
@@ -391,15 +411,38 @@ export async function getProntuarioUnificado(termoBusca) {
           return acc;
         }, {});
 
-        historicoFormatted = atendimentos.map((a) => ({
-          id: a.id,
-          data: a.dataAtendimento,
-          servico: servicoDict[a.servicoId] || 'Serviço',
-          especialidade: a.especialidade,
-          status: a.status,
-          observacao: a.observacao,
-          profissional: a.profissionalResponsavel,
-        }));
+        const gruposMap = {};
+
+        for (const a of atendimentos) {
+          const nomeServico = servicoDict[a.servicoId] || 'Outros';
+          const espec = a.especialidade || 'Geral';
+          const chaveGrupo = `${nomeServico}___${espec}`;
+
+          if (!gruposMap[chaveGrupo]) {
+            gruposMap[chaveGrupo] = {
+              servico: nomeServico,
+              especialidade: espec,
+              presencas: 0,
+              faltas: 0,
+              faltasJustificadas: 0,
+              datas: [],
+            };
+          }
+
+          if (a.status === 'PRESENCA') gruposMap[chaveGrupo].presencas++;
+          else if (a.status === 'FALTA') gruposMap[chaveGrupo].faltas++;
+          else if (a.status === 'FALTA_JUSTIFICADA') gruposMap[chaveGrupo].faltasJustificadas++;
+
+          gruposMap[chaveGrupo].datas.push({
+            id: a.id,
+            data: a.dataAtendimento,
+            status: a.status,
+            profissional: a.profissionalResponsavel,
+            observacao: a.observacao,
+          });
+        }
+
+        servicosAgrupados = Object.values(gruposMap);
       }
     }
 
@@ -426,7 +469,7 @@ export async function getProntuarioUnificado(termoBusca) {
       success: true,
       data: {
         paciente: pacienteFormatted,
-        historico: historicoFormatted,
+        servicosAgrupados,
       },
     };
   } catch (error) {
