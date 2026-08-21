@@ -16,48 +16,114 @@ import ProntuarioRelatorio from "./components/ProntuarioRelatorio";
 
 import styles from "./page.module.css";
 
+// Mapeia os códigos de subTab da URL para os nomes exatos gravados no banco
+const MAPA_SERVICOS = {
+  CAEE: "CAEE",
+  APAE: "APAE",
+  AMBULATORIO: "Ambulatório",
+  EDUCACAO: "Educação",
+  SOCIAL: "Social",
+  ESPECIALIDADES: "Centro de Especialidades",
+  REABILITACAO: "Centro de Reabilitação",
+};
+
 function JuntaReguladoraPageContent() {
   const searchParams = useSearchParams();
 
   const activeTab = searchParams.get("tab") || "CADASTRO";
   const activeSubTab = searchParams.get("subTab") || "CAEE";
 
+  // Nome formatado do serviço atual (Ex: "AMBULATORIO" -> "Ambulatório")
+  const servicoNomeFormatado =
+    MAPA_SERVICOS[activeSubTab.toUpperCase()] || activeSubTab;
+
   const [pacientesServico, setPacientesServico] = useState([]);
   const [prontuarioData, setProntuarioData] = useState(null);
+  const [loadingServico, setLoadingServico] = useState(false);
 
-  // Carrega os pacientes vinculados ao serviço selecionado no menu da Sidebar
+  // Busca de pacientes no banco ao selecionar/mudar de serviço
   useEffect(() => {
+    let isMounted = true;
+
     if (activeTab === "SERVICOS") {
-      getPacientesPorServico(activeSubTab).then((res) => {
-        if (res.success) setPacientesServico(res.data);
+      // Usar queueMicrotask evita o aviso de setState síncrono no topo do Effect
+      queueMicrotask(() => {
+        if (isMounted) setLoadingServico(true);
       });
+
+      getPacientesPorServico(servicoNomeFormatado)
+        .then((res) => {
+          if (!isMounted) return;
+          if (res && res.success && Array.isArray(res.data)) {
+            setPacientesServico(res.data);
+          } else {
+            setPacientesServico([]);
+          }
+        })
+        .catch((err) => {
+          console.error("Erro ao carregar pacientes:", err);
+          if (isMounted) setPacientesServico([]);
+        })
+        .finally(() => {
+          if (isMounted) setLoadingServico(false);
+        });
     }
-  }, [activeTab, activeSubTab]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab, servicoNomeFormatado]);
+
+  // Função para recarregar lista após um cadastro ou atendimento
+  const recarregarPacientes = async () => {
+    if (activeTab === "SERVICOS") {
+      setLoadingServico(true);
+      try {
+        const res = await getPacientesPorServico(servicoNomeFormatado);
+        if (res && res.success && Array.isArray(res.data)) {
+          setPacientesServico(res.data);
+        } else {
+          setPacientesServico([]);
+        }
+      } catch (err) {
+        console.error("Erro ao recarregar pacientes:", err);
+        setPacientesServico([]);
+      } finally {
+        setLoadingServico(false);
+      }
+    }
+  };
 
   const handleCadastrarPaciente = async (formData) => {
     const res = await cadastrarPacienteJunta(formData);
     if (res.success) {
-      alert("Paciente cadastrado/atualizado no banco RegulaHub com sucesso!");
+      alert("Paciente cadastrado/atualizado na Junta Reguladora com sucesso!");
+      recarregarPacientes();
     } else {
-      alert("Erro ao salvar: " + res.error);
+      alert("Erro ao salvar paciente: " + (res.error || "Erro desconhecido"));
     }
   };
 
   const handleRegistrarAtendimento = async (atendimentoData) => {
     const res = await registrarAtendimentoServico(atendimentoData);
     if (res.success) {
-      alert("Registro de presença/frequência gravado com sucesso!");
+      alert("Registro de presença/atendimento gravado com sucesso!");
+      recarregarPacientes();
     } else {
-      alert("Erro ao registrar: " + res.error);
+      alert("Erro ao registrar atendimento: " + (res.error || "Erro desconhecido"));
     }
   };
 
   const handleBuscarProntuario = async (termo) => {
     const res = await getProntuarioUnificado(termo);
-    if (res.success) {
+    if (res && res.success) {
+      if (!res.data) {
+        alert("Nenhum paciente encontrado com este Nome ou CPF.");
+      }
       setProntuarioData(res.data);
     } else {
-      alert("Erro na busca: " + res.error);
+      alert("Erro na busca do prontuário: " + (res.error || "Erro no banco"));
+      setProntuarioData(null);
     }
   };
 
@@ -77,11 +143,19 @@ function JuntaReguladoraPageContent() {
       )}
 
       {activeTab === "SERVICOS" && (
-        <AtendimentoServico
-          servicoNome={activeSubTab}
-          pacientes={pacientesServico}
-          onRegistrar={handleRegistrarAtendimento}
-        />
+        <>
+          {loadingServico ? (
+            <div style={{ textAlign: "center", padding: "2rem", color: "#64748b" }}>
+              Carregando pacientes do serviço {servicoNomeFormatado}...
+            </div>
+          ) : (
+            <AtendimentoServico
+              servicoNome={servicoNomeFormatado}
+              pacientes={pacientesServico}
+              onRegistrar={handleRegistrarAtendimento}
+            />
+          )}
+        </>
       )}
 
       {activeTab === "RELATORIO" && (

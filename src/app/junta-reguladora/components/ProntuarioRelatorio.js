@@ -1,15 +1,56 @@
 'use client';
 
 import { useState } from 'react';
+import { buscarPessoaExistente } from '../actions';
 import styles from './ProntuarioRelatorio.module.css';
 
 export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
   const [termo, setTermo] = useState('');
+  const [sugestoes, setSugestoes] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const formatCPF = (cpf) => {
+    if (!cpf) return '';
+    const digits = cpf.replace(/\D/g, '');
+    return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  };
+
+  const handleInputChange = async (valor) => {
+    setTermo(valor);
+    if (valor.trim().length >= 2) {
+      setIsSearching(true);
+      setShowDropdown(true);
+      try {
+        const resultados = await buscarPessoaExistente(valor.trim());
+        setSugestoes(resultados || []);
+      } catch (error) {
+        console.error('Erro ao buscar sugestões:', error);
+        setSugestoes([]);
+      } finally {
+        setIsSearching(false);
+      }
+    } else {
+      setSugestoes([]);
+      setShowDropdown(false);
+    }
+  };
+
+  const handleSelectPessoa = (pessoa) => {
+    setTermo(pessoa.cpf || pessoa.nomeCompleto);
+    setShowDropdown(false);
+    if (onBuscar) {
+      onBuscar(pessoa.cpf);
+    }
+  };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (!termo.trim()) return alert('Digite um Nome ou CPF para pesquisar.');
-    onBuscar(termo);
+    setShowDropdown(false);
+    if (onBuscar) {
+      onBuscar(termo.trim());
+    }
   };
 
   const paciente = prontuarioData?.paciente;
@@ -19,15 +60,61 @@ export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
     <div className={styles.card}>
       <h3 className={styles.title}>Prontuário Unificado e Relatório de Serviços</h3>
 
-      <form onSubmit={handleSearchSubmit} className={styles.searchRow}>
-        <input
-          type="text"
-          placeholder="Digite o Nome ou CPF do paciente para buscar no banco..."
-          value={termo}
-          onChange={(e) => setTermo(e.target.value)}
-        />
-        <button type="submit" className={styles.primaryBtn}>Buscar Prontuário</button>
-      </form>
+      <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
+        <form onSubmit={handleSearchSubmit} className={styles.searchRow}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <input
+              type="text"
+              placeholder="Digite o Nome ou CPF do paciente para buscar no banco..."
+              value={termo}
+              onChange={(e) => handleInputChange(e.target.value)}
+              style={{ width: '100%' }}
+            />
+
+            {/* LISTA SUSPENSA DE AUTOCOMPLETAR AO DIGITAR */}
+            {showDropdown && sugestoes.length > 0 && (
+              <ul
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '6px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  zIndex: 99,
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: '4px 0 0 0',
+                  maxHeight: '220px',
+                  overflowY: 'auto',
+                }}
+              >
+                {sugestoes.map((p, index) => (
+                  <li
+                    key={p.cpf ? `${p.cpf}-${index}` : index}
+                    onClick={() => handleSelectPessoa(p)}
+                    style={{
+                      padding: '10px 14px',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid #f1f5f9',
+                      fontSize: '0.9rem',
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
+                    <strong>{p.nomeCompleto || p.nome}</strong> — CPF: {formatCPF(p.cpf)}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <button type="submit" className={styles.primaryBtn}>
+            {isSearching ? 'Buscando...' : 'Buscar Prontuário'}
+          </button>
+        </form>
+      </div>
 
       {paciente ? (
         <div className={styles.prontuarioBox}>
@@ -35,10 +122,12 @@ export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
           <div className={styles.infoCard}>
             <h4>Dados do Paciente</h4>
             <p><strong>Nome:</strong> {paciente.nome}</p>
-            <p><strong>CPF:</strong> {paciente.cpf}</p>
+            <p><strong>CPF:</strong> {formatCPF(paciente.cpf)}</p>
+            <p><strong>Nome da Mãe:</strong> {paciente.nomeMae || 'Não informado'}</p>
             <p><strong>Data Nascimento:</strong> {paciente.data_nascimento ? new Date(paciente.data_nascimento).toLocaleDateString('pt-BR') : 'Não informada'}</p>
             <p><strong>Telefone:</strong> {paciente.telefone || 'Não informado'}</p>
-            <p><strong>Deficiência/Diagnóstico:</strong> {paciente.tipo_deficiencia}</p>
+            <p><strong>Deficiência/Diagnóstico:</strong> {paciente.tipo_deficiencia || 'Não informado'}</p>
+            <p><strong>Endereço:</strong> {paciente.logradouro ? `${paciente.logradouro}, ${paciente.numero} - ${paciente.bairro}` : 'Não informado'}</p>
           </div>
 
           {/* SERVIÇOS ATIVOS */}

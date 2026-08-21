@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 
-/* ── 1. BUSCA DE PESSOAS NO BANCO (BUSCAR PESSOA EXISTENTE) ── */
+/* ── 1. BUSCA DE PESSOAS NO BANCO (AUTOCOMPLETAR) ── */
 export async function buscarPessoaExistente(termo) {
   if (!termo || String(termo).trim().length < 2) {
     return [];
@@ -24,14 +24,6 @@ export async function buscarPessoaExistente(termo) {
           where: { enderecoAtual: true },
           take: 1,
         },
-        pacienteJunta: {
-          include: {
-            servicos: {
-              where: { ativo: true },
-              include: { servico: true },
-            },
-          },
-        },
       },
       take: 10,
     });
@@ -39,7 +31,6 @@ export async function buscarPessoaExistente(termo) {
     return pessoas.map((p) => {
       const enderecoAtual = p.enderecos?.[0] || {};
       return {
-        id: p.pacienteJunta?.id || null,
         cpf: p.cpf,
         nomeCompleto: p.nomeCompleto,
         nome: p.nomeCompleto,
@@ -53,10 +44,6 @@ export async function buscarPessoaExistente(termo) {
         cidade: enderecoAtual.cidade || 'Muriaé',
         uf: enderecoAtual.uf || 'MG',
         cep: enderecoAtual.cep || '',
-        tipoDeficiencia: p.pacienteJunta?.tipoDeficiencia || '',
-        servicosAtivos: p.pacienteJunta?.servicos
-          ? p.pacienteJunta.servicos.map((s) => s.servico.nome)
-          : [],
       };
     });
   } catch (error) {
@@ -65,7 +52,6 @@ export async function buscarPessoaExistente(termo) {
   }
 }
 
-/* ── ALIASES DE COMPATIBILIDADE ── */
 export async function buscarPessoaPorCpfOuNome(termo) {
   return buscarPessoaExistente(termo);
 }
@@ -100,7 +86,6 @@ export async function cadastrarPacienteJunta(data) {
       return { success: false, error: 'CPF inválido. Deve conter 11 dígitos.' };
     }
 
-    // 1. Cria ou atualiza a Pessoa
     await prisma.pessoa.upsert({
       where: { cpf: cpfClean },
       update: {
@@ -118,7 +103,6 @@ export async function cadastrarPacienteJunta(data) {
       },
     });
 
-    // 2. Cria ou atualiza o Endereço Residencial
     if (logradouro || bairro || cep) {
       const enderecoExistente = await prisma.endereco.findFirst({
         where: { pessoaCpf: cpfClean, enderecoAtual: true },
@@ -154,7 +138,6 @@ export async function cadastrarPacienteJunta(data) {
       }
     }
 
-    // 3. Cria ou atualiza Paciente na Junta
     const pacienteJunta = await prisma.pacienteJunta.upsert({
       where: { pessoaCpf: cpfClean },
       update: { tipoDeficiencia },
@@ -164,7 +147,6 @@ export async function cadastrarPacienteJunta(data) {
       },
     });
 
-    // 4. Atualiza os Serviços Vinculados
     await prisma.pacienteJuntaServico.deleteMany({
       where: { pacienteJuntaId: pacienteJunta.id },
     });
@@ -204,14 +186,13 @@ export async function cadastrarPacienteJunta(data) {
   }
 }
 
-/* ── 3. LISTAR PACIENTES VINCULADOS A UM SERVIÇO (RECEPÇÃO) ── */
+/* ── 3. LISTAR PACIENTES VINCULADOS A UM SERVIÇO ── */
 export async function getPacientesPorServico(servicoNome) {
   try {
     if (!servicoNome) return { success: true, data: [] };
 
     const termo = String(servicoNome).trim();
 
-    // Encontra o serviço no banco com busca flexível
     const servico = await prisma.juntaServico.findFirst({
       where: {
         OR: [
@@ -300,7 +281,6 @@ export async function registrarAtendimentoServico(data) {
       profissional 
     } = data;
 
-    // Aceita tanto servicoNome quanto servico e evita erro de 'trim' em undefined
     const nomeDoServico = (servicoNome || servico || '').trim();
     const idDoPaciente = pacienteJuntaId || pacienteId;
 
@@ -343,71 +323,104 @@ export async function registrarAtendimentoServico(data) {
   }
 }
 
-/* ── 5. CONSULTA DO PRONTUÁRIO UNIFICADO ── */
+//* ── 5. CONSULTA DO PRONTUÁRIO UNIFICADO (SEM DEPENDÊNCIA DE INCLUDE) ── */
 export async function getProntuarioUnificado(termoBusca) {
   try {
     const termoClean = String(termoBusca).trim();
-    const cpfClean = termoClean.replace(/\D/g, '').slice(0, 11);
+    const apenasNumeros = termoClean.replace(/\D/g, '');
 
-    const pacienteJunta = await prisma.pacienteJunta.findFirst({
+    // 1. Localiza a pessoa pelo CPF ou Nome
+    const pessoa = await prisma.pessoa.findFirst({
       where: {
         OR: [
-          { pessoa: { nomeCompleto: { contains: termoClean, mode: 'insensitive' } } },
-          ...(cpfClean.length > 0 ? [{ pessoaCpf: cpfClean }] : []),
+          { nomeCompleto: { contains: termoClean, mode: 'insensitive' } },
+          ...(apenasNumeros.length > 0 ? [{ cpf: { contains: apenasNumeros } }] : []),
         ],
       },
       include: {
-        pessoa: {
-          include: {
-            enderecos: {
-              where: { enderecoAtual: true },
-              take: 1,
-            },
-          },
-        },
-        servicos: {
-          where: { ativo: true },
-          include: { servico: true },
-        },
-        atendimentos: {
-          include: { servico: true },
-          orderBy: { dataAtendimento: 'desc' },
+        enderecos: {
+          where: { enderecoAtual: true },
+          take: 1,
         },
       },
     });
 
-    if (!pacienteJunta) {
+    if (!pessoa) {
       return { success: true, data: null };
     }
 
-    const end = pacienteJunta.pessoa?.enderecos?.[0] || {};
+    // 2. Busca o cadastro da pessoa na Junta Reguladora
+    const pacienteJunta = await prisma.pacienteJunta.findFirst({
+      where: { pessoaCpf: pessoa.cpf },
+    });
+
+    let servicosAtivos = [];
+    let historicoFormatted = [];
+
+    if (pacienteJunta) {
+      // 3. Busca os vínculos e mapeia os serviços pelos IDs
+      const vinculos = await prisma.pacienteJuntaServico.findMany({
+        where: {
+          pacienteJuntaId: pacienteJunta.id,
+          ativo: true,
+        },
+      });
+
+      if (vinculos.length > 0) {
+        const servicoIds = vinculos.map((v) => v.servicoId).filter(Boolean);
+        const listaServicos = await prisma.juntaServico.findMany({
+          where: { id: { in: servicoIds } },
+        });
+        servicosAtivos = listaServicos.map((s) => s.nome);
+      }
+
+      // 4. Busca os atendimentos e mapeia os serviços pelos IDs
+      const atendimentos = await prisma.juntaAtendimento.findMany({
+        where: { pacienteJuntaId: pacienteJunta.id },
+        orderBy: { dataAtendimento: 'desc' },
+      });
+
+      if (atendimentos.length > 0) {
+        const servicoIdsAtend = atendimentos.map((a) => a.servicoId).filter(Boolean);
+        const servicosMap = await prisma.juntaServico.findMany({
+          where: { id: { in: servicoIdsAtend } },
+        });
+
+        const servicoDict = servicosMap.reduce((acc, s) => {
+          acc[s.id] = s.nome;
+          return acc;
+        }, {});
+
+        historicoFormatted = atendimentos.map((a) => ({
+          id: a.id,
+          data: a.dataAtendimento,
+          servico: servicoDict[a.servicoId] || 'Serviço',
+          especialidade: a.especialidade,
+          status: a.status,
+          observacao: a.observacao,
+          profissional: a.profissionalResponsavel,
+        }));
+      }
+    }
+
+    const end = pessoa.enderecos?.[0] || {};
 
     const pacienteFormatted = {
-      paciente_junta_id: pacienteJunta.id,
-      cpf: pacienteJunta.pessoa.cpf,
-      nome: pacienteJunta.pessoa.nomeCompleto,
-      nomeMae: pacienteJunta.pessoa.nomeMae,
-      data_nascimento: pacienteJunta.pessoa.dataNascimento,
-      telefone: pacienteJunta.pessoa.telefone,
-      tipo_deficiencia: pacienteJunta.tipoDeficiencia,
+      paciente_junta_id: pacienteJunta?.id || null,
+      cpf: pessoa.cpf,
+      nome: pessoa.nomeCompleto,
+      nomeMae: pessoa.nomeMae,
+      data_nascimento: pessoa.dataNascimento,
+      telefone: pessoa.telefone,
+      tipo_deficiencia: pacienteJunta?.tipoDeficiencia || 'Não cadastrado na Junta',
       logradouro: end.logradouro || '',
       numero: end.numero || '',
       bairro: end.bairro || '',
       cidade: end.cidade || '',
       uf: end.uf || '',
       cep: end.cep || '',
-      servicos_ativos: pacienteJunta.servicos.map((s) => s.servico.nome),
+      servicos_ativos: servicosAtivos,
     };
-
-    const historicoFormatted = pacienteJunta.atendimentos.map((a) => ({
-      id: a.id,
-      data: a.dataAtendimento,
-      servico: a.servico.nome,
-      especialidade: a.especialidade,
-      status: a.status,
-      observacao: a.observacao,
-      profissional: a.profissionalResponsavel,
-    }));
 
     return {
       success: true,
