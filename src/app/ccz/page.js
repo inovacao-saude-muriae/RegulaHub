@@ -12,6 +12,8 @@ import TabAnimaisCards from "./components/TabAnimaisCards";
 import TabProcedimentos from "./components/TabProcedimentos";
 import TabZoonoses from "./components/TabZoonoses";
 import TabExibirZoonoses from "./components/TabExibirZoonoses";
+import TabExibirEsporotricose from "./components/TabExibirEsporotricose";
+import TabEsporotricose from "./components/TabEsporotricose";
 import TabDenuncias from "./components/TabDenuncias";
 
 import styles from "./page.module.css";
@@ -21,6 +23,7 @@ function CCZPageContent() {
   const router = useRouter();
 
   const activeTab = searchParams.get("tab") || "DASHBOARD";
+  const activeSubTab = searchParams.get("subTab") || "CADASTRO";
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
@@ -28,6 +31,7 @@ function CCZPageContent() {
     animais: [],
     denuncias: [],
     zoonoses: [],
+    esporotricoses: [],
   });
 
   const reloadData = useCallback(async () => {
@@ -87,7 +91,7 @@ function CCZPageContent() {
             />
           )}
 
-          {activeTab === "ZOONOSES" && (
+          {activeTab === "ZOONOSES" && activeSubTab === "CADASTRO" && (
             <TabZoonoses
               tutores={data.tutores}
               animais={data.animais}
@@ -95,13 +99,30 @@ function CCZPageContent() {
             />
           )}
 
-          {activeTab === "EXIBIR_ZOONOSES" && (
+          {activeTab === "ZOONOSES" && activeSubTab === "EXIBIR_ZOONOSES" && (
             <TabExibirZoonoses
               zoonoses={data.zoonoses}
               animais={data.animais}
               reloadData={reloadData}
             />
           )}
+
+          {activeTab === "ESPOROTRICOSE" && activeSubTab === "CADASTRO" && (
+            <TabEsporotricose
+              tutores={data.tutores}
+              animais={data.animais}
+              reloadData={reloadData}
+            />
+          )}
+
+          {activeTab === "ESPOROTRICOSE" &&
+            activeSubTab === "EXIBIR_ESPOROTRICOSE" && (
+              <TabExibirEsporotricose
+                registros={data.esporotricoses}
+                animais={data.animais}
+                reloadData={reloadData}
+              />
+            )}
 
           {activeTab === "USUARIOS" && (
             <TabUsuarios

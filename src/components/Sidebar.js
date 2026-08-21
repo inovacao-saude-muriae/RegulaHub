@@ -192,8 +192,24 @@ const menuSections = [
           { name: "Cadastros", tab: "CADASTROS" },
           { name: "Usuários", tab: "USUARIOS" },
           { name: "Animais", tab: "ANIMAIS" },
-          { name: "Cadastro de Zoonoses", tab: "ZOONOSES" },
-          { name: "Lista de Zoonoses", tab: "EXIBIR_ZOONOSES" },
+          {
+            name: "Zoonoses",
+            tab: "ZOONOSES",
+            isNestedDropdown: true,
+            nestedItems: [
+              { name: "Cadastrar Zoonose", subTab: "CADASTRO" },
+              { name: "Exibir Zoonoses", subTab: "EXIBIR_ZOONOSES" },
+            ],
+          },
+          {
+            name: "Esporotricose",
+            tab: "ESPOROTRICOSE",
+            isNestedDropdown: true,
+            nestedItems: [
+              { name: "Cadastrar Esporotricose", subTab: "CADASTRO" },
+              { name: "Exibir Esporotricose", subTab: "EXIBIR_ESPOROTRICOSE" },
+            ],
+          },
           { name: "Procedimentos", tab: "PROCEDIMENTOS" },
           { name: "Denúncias", tab: "DENUNCIAS" },
         ],
@@ -206,21 +222,22 @@ function SidebarContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentTab = searchParams.get("tab") || "DASHBOARD";
-  const currentSubTab = searchParams.get("subTab") || "PESSOAS";
+  const currentSubTab = searchParams.get("subTab") || "";
 
   const [openRegulacao, setOpenRegulacao] = useState(false);
   const [openFarmacia, setOpenFarmacia] = useState(false);
   const [openJunta, setOpenJunta] = useState(false);
   const [openCCZ, setOpenCCZ] = useState(false);
-  const [openNestedMenu, setOpenNestedMenu] = useState(false);
 
-  // Reseta todos os dropdowns quando o mouse sai da Sidebar
+  // Mapeia o estado de abertura de cada submenu aninhado por chave do tab
+  const [openNestedMenus, setOpenNestedMenus] = useState({});
+
   const handleMouseLeaveSidebar = () => {
     setOpenRegulacao(false);
     setOpenFarmacia(false);
     setOpenJunta(false);
     setOpenCCZ(false);
-    setOpenNestedMenu(false);
+    setOpenNestedMenus({});
   };
 
   const getDropdownState = (path) => {
@@ -237,6 +254,13 @@ function SidebarContent() {
       setOpenFarmacia(!openFarmacia);
     if (path === "/junta-reguladora") setOpenJunta(!openJunta);
     if (path === "/ccz") setOpenCCZ(!openCCZ);
+  };
+
+  const toggleNestedMenu = (tabKey) => {
+    setOpenNestedMenus((prev) => ({
+      ...prev,
+      [tabKey]: !prev[tabKey],
+    }));
   };
 
   return (
@@ -298,6 +322,9 @@ function SidebarContent() {
                             if (sub.isNestedDropdown) {
                               const defaultSubTab =
                                 sub.nestedItems[0]?.subTab || "";
+                              const isNestedOpen = Boolean(
+                                openNestedMenus[sub.tab],
+                              );
 
                               return (
                                 <li
@@ -315,12 +342,12 @@ function SidebarContent() {
                                     <button
                                       type="button"
                                       className={styles.chevronToggleBtn}
-                                      onClick={() =>
-                                        setOpenNestedMenu(!openNestedMenu)
-                                      }
+                                      onClick={() => toggleNestedMenu(sub.tab)}
                                     >
                                       <svg
-                                        className={`${styles.chevron} ${openNestedMenu ? styles.chevronOpen : ""}`}
+                                        className={`${styles.chevron} ${
+                                          isNestedOpen ? styles.chevronOpen : ""
+                                        }`}
                                         width="14"
                                         height="14"
                                         viewBox="0 0 24 24"
@@ -333,7 +360,7 @@ function SidebarContent() {
                                     </button>
                                   </div>
 
-                                  {openNestedMenu && (
+                                  {isNestedOpen && (
                                     <ul className={styles.nestedSubmenuList}>
                                       {sub.nestedItems.map((nested) => {
                                         const isNestedActive =

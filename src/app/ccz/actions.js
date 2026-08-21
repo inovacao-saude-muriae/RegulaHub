@@ -111,35 +111,46 @@ async function getTutoresCCZ() {
 
 export async function getCCZDashboardData() {
   try {
-    const [tutores, animais, denuncias, zoonoses] = await Promise.all([
-      getTutoresCCZ(),
-      prisma.animal.findMany({
-        include: {
-          tutor: {
-            include: {
-              pessoa: true,
+    const [tutores, animais, denuncias, zoonoses, esporotricoses] =
+      await Promise.all([
+        getTutoresCCZ(),
+        prisma.animal.findMany({
+          include: {
+            tutor: {
+              include: {
+                pessoa: true,
+              },
             },
           },
-        },
-        orderBy: { data_cadastro: "desc" },
-      }),
-      prisma.denuncia_cao_agressivo.findMany({
-        orderBy: { data_denuncia: "desc" },
-      }),
-      prisma.cadastro_zoonoses.findMany({
-        orderBy: { created_at: "desc" },
-      }),
-    ]);
+          orderBy: { data_cadastro: "desc" },
+        }),
+        prisma.denuncia_cao_agressivo.findMany({
+          orderBy: { data_denuncia: "desc" },
+        }),
+        prisma.cadastro_zoonoses.findMany({
+          orderBy: { created_at: "desc" },
+        }),
+        prisma.esporotricose.findMany({
+          orderBy: { data_visita: "desc" },
+        }),
+      ]);
 
     return {
       tutores,
       animais: animais.map(animalToFront),
       denuncias,
       zoonoses,
+      esporotricoses,
     };
   } catch (error) {
     console.error("Erro ao buscar dados CCZ:", error);
-    return { tutores: [], animais: [], denuncias: [], zoonoses: [] };
+    return {
+      tutores: [],
+      animais: [],
+      denuncias: [],
+      zoonoses: [],
+      esporotricoses: [],
+    };
   }
 }
 
@@ -537,5 +548,75 @@ export async function salvarEdicaoZoonoseAction(id, dados) {
       success: false,
       error: error.message || "Erro ao salvar alterações.",
     };
+  }
+}
+
+export async function salvarEsporotricoseAction(dados, id = null) {
+  try {
+    const payload = {
+      animal_id: dados.animal_id || null,
+      numero_protocolo: dados.numero_protocolo || null,
+      data_visita: dados.data_visita ? new Date(dados.data_visita) : new Date(),
+      fiscal_responsavel: dados.fiscal_responsavel || null,
+      apresenta_lesoes: dados.apresenta_lesoes || "Sim",
+      descricao_lesoes: dados.descricao_lesoes || null,
+      em_tratamento_continuo: dados.em_tratamento_continuo || "Sim",
+      profissional_servico_ref: dados.profissional_servico_ref || null,
+      medicamentos_prescritos: dados.medicamentos_prescritos || null,
+      interrupcao_tratamento: dados.interrupcao_tratamento || "Não",
+      retorno_veterinario: dados.retorno_veterinario || "Sim",
+      isolamento_domiciliar: dados.isolamento_domiciliar || "Sim",
+      observacoes_isolamento: dados.observacoes_isolamento || null,
+      acesso_rua: dados.acesso_rua || "Não",
+      uso_epi: dados.uso_epi || "Sim",
+      quais_epis: dados.quais_epis || null,
+      higienizacao_ambiente: dados.higienizacao_ambiente || null,
+      outros_animais_residencia: dados.outros_animais_residencia || "Não",
+      outros_animais_descricao: dados.outros_animais_descricao || null,
+      pessoas_com_lesoes: dados.pessoas_com_lesoes || "Não",
+      pessoas_lesoes_descricao: dados.pessoas_lesoes_descricao || null,
+      conclusao_tecnica: dados.conclusao_tecnica || null,
+      enc_acompanhamento_ccz: Boolean(dados.enc_acompanhamento_ccz),
+      enc_notificacao_tutor: Boolean(dados.enc_notificacao_tutor),
+      enc_ministerio_publico: Boolean(dados.enc_ministerio_publico),
+      enc_outras_medidas: Boolean(dados.enc_outras_medidas),
+      outras_medidas_descricao: dados.outras_medidas_descricao || null,
+    };
+
+    if (id) {
+      await prisma.esporotricose.update({
+        where: { id: String(id) },
+        data: payload,
+      });
+    } else {
+      await prisma.esporotricose.create({
+        data: {
+          id: `esp_${Date.now()}`,
+          ...payload,
+        },
+      });
+    }
+
+    revalidatePath("/ccz");
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao salvar esporotricose:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function excluirEsporotricoseAction(id) {
+  if (!id) return { success: false, error: "ID não fornecido" };
+
+  try {
+    await prisma.esporotricose.delete({
+      where: { id: String(id) },
+    });
+
+    revalidatePath("/ccz");
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao excluir esporotricose:", error);
+    return { success: false, error: error.message };
   }
 }
