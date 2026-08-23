@@ -15,25 +15,37 @@ export async function GET() {
       where: { token },
       include: {
         user: {
-          include: { pessoa: true },
+          select: {
+            role: true,
+            cargo: true,
+            pessoa: {
+              select: {
+                nomeCompleto: true,
+                cpf: true,
+              },
+            },
+          },
         },
       },
     });
 
-    if (!session || session.expiresAt < new Date()) {
+    if (!session || (session.expiresAt && session.expiresAt < new Date())) {
       return NextResponse.json({ error: "Sessão expirada" }, { status: 401 });
     }
 
-    return NextResponse.json({
-      user: {
-        nomeCompleto: session.user.pessoa.nomeCompleto,
-        role: session.user.role,
-        cargo: session.user.cargo || session.user.role,
-        cpf: session.user.pessoaCpf,
+    return NextResponse.json(
+      {
+        user: {
+          nomeCompleto: session.user.pessoa.nomeCompleto,
+          cpf: session.user.pessoa.cpf,
+          role: session.user.role,
+          cargo: session.user.cargo || session.user.role,
+        },
       },
-    });
+      { status: 200 }
+    );
   } catch (error) {
-    console.error("Erro na rota /api/auth/me:", error);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    console.error("Erro na rota /api/me:", error);
+    return NextResponse.json({ error: "Erro interno no servidor" }, { status: 500 });
   }
 }

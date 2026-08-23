@@ -16,21 +16,25 @@ export default function AdminUsuariosPage() {
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState({ tipo: '', texto: '' });
 
-  // Mapeia o Perfil selecionado para o texto que vai aparecer no Header
+  // Mapeia os perfis exatamente como definidos no Enum 'Role' do Prisma
   const obterNomePerfil = (perfilRole) => {
     switch (perfilRole) {
-      case 'OPERADOR_REGULA':
-        return 'Regulação de Exames';
-      case 'ADMIN_REGULA':
-        return 'Gestor da Regulação';
-      case 'ADMIN_FARMACIA':
-        return 'Câmara Técnica / Farmácia';
-      case 'OPERADOR_JUNTA':
-        return 'Junta Reguladora';
-      case 'VETERINARIO':
-        return 'Vigilância & Zoonoses (CCZ)';
       case 'ADMIN':
-        return 'Gestor do Sistema';
+        return 'Gestor Geral do Sistema';
+      case 'ADMIN_JUNTA':
+        return 'Gestor da Junta Reguladora';
+      case 'OPERADOR_JUNTA':
+        return 'Operador da Junta Reguladora';
+      case 'ADMIN_REGULA':
+        return 'Gestor da Regulação de Exames';
+      case 'OPERADOR_REGULA':
+        return 'Operador da Regulação de Exames';
+      case 'VETERINARIO':
+        return 'Veterinário / Operador CCZ';
+      case 'ADMIN_PROCESSO':
+        return 'Gestor de Processos (Câmara Técnica)';
+      case 'ADMIN_FARMACIA':
+        return 'Gestor da Farmácia Judicial';
       default:
         return 'Operador do Sistema';
     }
@@ -114,7 +118,6 @@ export default function AdminUsuariosPage() {
           tipo: 'sucesso',
           texto: `✅ Usuário cadastrado com sucesso como "${cargoFormatado}"!`,
         });
-        // Limpa a senha após o sucesso
         setSenha('');
       } else {
         setMensagem({ tipo: 'erro', texto: data.error || 'Erro ao salvar usuário.' });
@@ -215,7 +218,7 @@ export default function AdminUsuariosPage() {
           </div>
         </div>
 
-        {/* PERFIL / PERMISSÃO DE ACESSO */}
+        {/* PERFIL / PERMISSÃO DE ACESSO MAPEADO COM O ENUM 'ROLE' */}
         <div className={styles.inputGroup} style={{ marginTop: '1rem' }}>
           <label className={styles.label}>Perfil / Módulo de Acesso:</label>
           <select
@@ -223,11 +226,17 @@ export default function AdminUsuariosPage() {
             onChange={(e) => setRole(e.target.value)}
             className={styles.select}
           >
-            <option value="OPERADOR_REGULA">Regulação de Exames</option>
-            <option value="ADMIN_REGULA">Gestor da Regulação</option>
-            <option value="ADMIN_FARMACIA">Câmara Técnica / Farmácia</option>
-            <option value="OPERADOR_JUNTA">Junta Reguladora</option>
-            <option value="VETERINARIO">Vigilância & Zoonoses (CCZ)</option>
+            <option value="OPERADOR_REGULA">Regulação de Exames (Operador)</option>
+            <option value="ADMIN_REGULA">Regulação de Exames (Gestor)</option>
+
+            <option value="OPERADOR_JUNTA">Junta Reguladora (Operador)</option>
+            <option value="ADMIN_JUNTA">Junta Reguladora (Gestor)</option>
+
+            <option value="ADMIN_FARMACIA">Câmara Técnica / Farmácia Judicial</option>
+            <option value="ADMIN_PROCESSO">Câmara Técnica / Gestor de Processos</option>
+
+            <option value="VETERINARIO">Vigilância & Zoonoses / CCZ (Veterinário)</option>
+
             <option value="ADMIN">ADMIN (Gestor Geral do Sistema)</option>
           </select>
           <span style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', display: 'block' }}>

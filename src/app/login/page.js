@@ -14,27 +14,30 @@ export default function LoginPage() {
   const getDestinationByRole = (role) => {
     switch (role) {
       case 'ADMIN':
-        return '/'; // Gestor do Sistema vai para a Tela de Início / Módulos
+      case 'GESTOR':
+        return '/'; // Gestor/Admin vai para o Dashboard Geral
 
       case 'OPERADOR_REGULA':
       case 'ADMIN_REGULA':
-        return '/regulacao?tab=DASHBOARD'; // Dashboard de Regulação de Exames
+        return '/regulacao?tab=DASHBOARD';
 
       case 'ADMIN_FARMACIA':
-        return '/camara-tecnica/farmacia-judicial?tab=DASHBOARD'; // Farmácia Judicial
+      case 'OPERADOR_FARMACIA':
+        return '/camara-tecnica/farmacia-judicial?tab=DASHBOARD';
 
       case 'ADMIN_PROCESSO':
-        return '/camara-tecnica/processos'; // Processos da Câmara Técnica
+        return '/camara-tecnica/processos';
 
       case 'OPERADOR_JUNTA':
       case 'ADMIN_JUNTA':
-        return '/junta-reguladora?tab=CADASTRO'; // Junta Reguladora
+        return '/junta-reguladora?tab=CADASTRO';
 
       case 'VETERINARIO':
-        return '/ccz?tab=DASHBOARD'; // CCZ & Zoonoses
+      case 'OPERADOR_CCZ':
+        return '/ccz?tab=DASHBOARD';
 
       default:
-        return '/regulacao'; // Rota padrão de contingência
+        return '/regulacao';
     }
   };
 
@@ -52,7 +55,10 @@ export default function LoginPage() {
         localStorage.setItem('user_cpf', cpfDigitado);
       }
 
-      // Direciona o usuário para a página específica do seu perfil
+      // 1. Atualiza o cache de rotas do Next.js para reconhecer o cookie recém-criado
+      router.refresh();
+
+      // 2. Redireciona para o destino baseado no perfil
       const destination = getDestinationByRole(res.role);
       router.push(destination);
     } else {
