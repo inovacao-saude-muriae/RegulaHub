@@ -1,133 +1,193 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { getGlobalDashboardData } from "@/app/actions/dashboard";
 import styles from "./page.module.css";
-
-// SIMULAÇÃO DO USUÁRIO LOGADO (Substitua depois pela sua Context API / Auth Session)
-const currentUser = {
-  name: "Dr. João",
-  isDevAdmin: false, // 'true' para você (Admin) | 'false' para o usuário comum
-  allowedModules: [
-    {
-      title: "Regulação de Exames",
-      path: "/regulacao",
-      defaultTab: "DASHBOARD",
-    },
-  ],
-};
 
 const modules = [
   {
     title: "Regulação de Exames",
-    description: "Gestão e autorização de pedidos de Tomografia, Ressonância e Cintilografia.",
-    path: "/regulacao",
-    defaultTab: "DASHBOARD",
-    tag: "Alta Complexidade",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-      </svg>
-    ),
+    path: "/regulacao?tab=DASHBOARD",
+    tag: "Exames",
   },
   {
-    title: "Câmara Técnica",
-    description: "Análise de Farmácia Judicial, pareceres e acompanhamento de processos.",
-    path: "/camara-tecnica/farmacia-judicial",
-    defaultTab: "DASHBOARD",
-    tag: "Jurídico",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
-        <path d="m8.5 8.5 7 7" />
-      </svg>
-    ),
+    title: "Farmácia Judicial",
+    path: "/camara-tecnica/farmacia-judicial?tab=DASHBOARD",
+    tag: "Câmara Técnica",
   },
   {
     title: "Junta Reguladora",
-    description: "Avaliação médica conjunta e emissão de laudos de segunda opinião.",
-    path: "/junta-reguladora",
-    defaultTab: "CADASTRO",
-    tag: "Auditoria",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-      </svg>
-    ),
+    path: "/junta-reguladora?tab=CADASTRO",
+    tag: "Junta",
   },
   {
     title: "CCZ - Zoonoses",
-    description: "Controle de agravos, vetores e vigilância em saúde ambiental.",
-    path: "/ccz",
-    defaultTab: "DASHBOARD",
+    path: "/ccz?tab=DASHBOARD",
     tag: "Vigilância",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      </svg>
-    ),
   },
 ];
 
 export default function Home() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [metrics, setMetrics] = useState({
+    examesPendentes: 0,
+    examesLiberados: 0,
+    dispensacoesFarmacia: 0,
+    animaisCCZ: 0,
+  });
 
   useEffect(() => {
-    // REDIRECIONAMENTO AUTOMÁTICO:
-    // Se não for Admin e tiver permissão de 1 módulo, vai direto para o Dashboard dele.
-    if (!currentUser.isDevAdmin && currentUser.allowedModules.length === 1) {
-      const userModule = currentUser.allowedModules[0];
-      router.replace(`${userModule.path}?tab=${userModule.defaultTab}`);
+    async function loadDashboard() {
+      try {
+        // 1. Verifica autenticação e permissão
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          const userData = data.user;
+          setUser(userData);
+
+          // Se NÃO for ADMIN, redireciona diretamente para o módulo do usuário
+          if (userData?.role !== "ADMIN") {
+            switch (userData?.role) {
+              case "OPERADOR_REGULA":
+              case "ADMIN_REGULA":
+                router.replace("/regulacao?tab=DASHBOARD");
+                break;
+              case "ADMIN_FARMACIA":
+                router.replace("/camara-tecnica/farmacia-judicial?tab=DASHBOARD");
+                break;
+              case "OPERADOR_JUNTA":
+              case "ADMIN_JUNTA":
+                router.replace("/junta-reguladora?tab=CADASTRO");
+                break;
+              case "VETERINARIO":
+                router.replace("/ccz?tab=DASHBOARD");
+                break;
+              default:
+                router.replace("/regulacao");
+                break;
+            }
+            return;
+          }
+        }
+
+        // 2. Busca dados globais para o Gestor
+        const dashRes = await getGlobalDashboardData();
+        if (dashRes.success) {
+          setMetrics(dashRes.data.kpis);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar Dashboard Geral:", error);
+      } finally {
+        setLoading(false);
+      }
     }
+
+    loadDashboard();
   }, [router]);
 
-  // Se o usuário estiver sendo redirecionado, mostra um feedback simples na tela
-  if (!currentUser.isDevAdmin && currentUser.allowedModules.length === 1) {
+  if (loading) {
     return (
       <div className={styles.loadingContainer}>
-        <p>Redirecionando para o seu Dashboard...</p>
+        <p>Carregando Dashboard Geral...</p>
       </div>
     );
   }
 
   return (
     <div className={styles.container}>
+      {/* HEADER GERAL */}
       <header className={styles.welcomeHeader}>
-        <div className={styles.badgeGroup}>
-          <span className={styles.systemBadge}>RegulaHub • Sistema Integrado</span>
-          <span className={styles.devBadge}>Dev / System Admin</span>
-        </div>
-        <h1>Olá, {currentUser.name} 👋</h1>
-        <p>Você está no modo Administrador. Escolha um módulo para acessar o Dashboard ou gerenciar os dados.</p>
+        <span className={styles.systemBadge}>Painel de Controle • Visão Geral</span>
+        <h1 style={{ marginTop: "0.5rem", color: "#0f172a" }}>
+          Visão Geral do Sistema 👋
+        </h1>
+        <p style={{ color: "#64748b" }}>
+          Acompanhamento em tempo real de todos os módulos da saúde municipal.
+        </p>
       </header>
 
-      {/* VISÃO DE TODOS OS MÓDULOS (PARA VOCÊ COMO DEV) */}
-      <section className={styles.modulesSection}>
-        <h2 className={styles.sectionTitle}>Módulos do Sistema</h2>
+      {/* CARDS DE INDICADORES GLOBAIS (KPIs) */}
+      <section className={styles.kpiGrid}>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiTitle}>Exames Pendentes</div>
+          <div className={styles.kpiValue} style={{ color: "#d97706" }}>
+            {metrics.examesPendentes}
+          </div>
+          <Link href="/regulacao?tab=LISTA_ESPERA" className={styles.kpiFooter}>
+            Ver Fila de Espera →
+          </Link>
+        </div>
 
-        <div className={styles.grid}>
-          {modules.map((mod, idx) => (
-            <Link key={idx} href={`${mod.path}?tab=${mod.defaultTab}`} className={styles.card}>
-              <div className={styles.cardHeader}>
-                <div className={styles.iconWrapper}>{mod.icon}</div>
-                <span className={styles.tag}>{mod.tag}</span>
-              </div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiTitle}>Exames Liberados</div>
+          <div className={styles.kpiValue} style={{ color: "#16a34a" }}>
+            {metrics.examesLiberados}
+          </div>
+          <Link href="/regulacao?tab=LIBERADOS" className={styles.kpiFooter}>
+            Ver Autorizados →
+          </Link>
+        </div>
 
-              <div className={styles.cardBody}>
-                <h2>{mod.title}</h2>
-                <p>{mod.description}</p>
-              </div>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiTitle}>Atendimentos Farmácia</div>
+          <div className={styles.kpiValue} style={{ color: "#2563eb" }}>
+            {metrics.dispensacoesFarmacia}
+          </div>
+          <Link href="/camara-tecnica/farmacia-judicial?tab=DISPENSACAO" className={styles.kpiFooter}>
+            Ver Dispensações →
+          </Link>
+        </div>
 
-              <div className={styles.cardFooter}>
-                <span>Abrir Dashboard</span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
+        <div className={styles.kpiCard}>
+          <div className={styles.kpiTitle}>Animais em Acompanhamento</div>
+          <div className={styles.kpiValue} style={{ color: "#9333ea" }}>
+            {metrics.animaisCCZ}
+          </div>
+          <Link href="/ccz?tab=ANIMAIS" className={styles.kpiFooter}>
+            Ver Registros CCZ →
+          </Link>
+        </div>
+      </section>
+
+      {/* PAINEL INFERIOR: NAVEGAÇÃO RÁPIDA E ATALHOS */}
+      <section className={styles.dashboardGrid}>
+        <div className={styles.cardSection}>
+          <h2 className={styles.sectionTitle}>Módulos e Acessos Rápidos</h2>
+          <div className={styles.moduleList}>
+            {modules.map((mod, idx) => (
+              <Link key={idx} href={mod.path} className={styles.moduleItem}>
+                <div>
+                  <strong>{mod.title}</strong>
+                  <span style={{ fontSize: "0.8rem", color: "#64748b", marginLeft: "0.5rem" }}>
+                    • {mod.tag}
+                  </span>
+                </div>
+                <span style={{ color: "#2563eb", fontSize: "0.875rem", fontWeight: "600" }}>
+                  Acessar Painel
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.cardSection}>
+          <h2 className={styles.sectionTitle}>Ações Administrativas</h2>
+          <div className={styles.moduleList}>
+            <Link href="/admin/usuarios" className={styles.moduleItem}>
+              <div>
+                <strong>Gerenciar Usuários</strong>
+                <p style={{ margin: 0, fontSize: "0.75rem", color: "#64748b" }}>
+                  Cadastro e permissões do sistema
+                </p>
               </div>
+              <span style={{ color: "#2563eb" }}>→</span>
             </Link>
-          ))}
+          </div>
         </div>
       </section>
     </div>

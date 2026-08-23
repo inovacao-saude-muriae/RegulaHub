@@ -1,0 +1,183 @@
+.container {
+  max-width: 650px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.title {
+  font-size: 1.25rem;
+  margin-bottom: 1.5rem;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+/* Alert Messages */
+.message {
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.sucesso {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.alerta {
+  background-color: #fef9c3;
+  color: #854d0e;
+  border: 1px solid #fef08a;
+}
+
+.erro {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* Step 1: Search Form */
+.searchSection {
+  margin-bottom: 1.5rem;
+}
+
+.label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: #334155;
+  font-size: 0.9rem;
+}
+
+.searchGroup {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  border-color: #2563eb;
+}
+
+.searchButton {
+  padding: 0.5rem 1rem;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.searchButton:hover {
+  background: #1d4ed8;
+}
+
+.searchButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Step 2: Main Form */
+.form {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1.5rem;
+}
+
+.personBox {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 1rem;
+}
+
+.subtitle {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.inputGroup {
+  margin-bottom: 0.75rem;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+  color: #475569;
+}
+
+.gridTwoCols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+@media (max-width: 480px) {
+  .gridTwoCols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.personFoundBox {
+  padding: 0.75rem 1rem;
+  background: #f1f5f9;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  color: #1e293b;
+  font-size: 0.9rem;
+}
+
+.select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  outline: none;
+  background-color: #ffffff;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 0.75rem;
+  background: #16a34a;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 0.5rem;
+}
+
+.submitButton:hover {
+  background: #15803d;
+}
+
+.submitButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

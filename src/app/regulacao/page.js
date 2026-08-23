@@ -74,13 +74,6 @@ function RegulacaoPageContent() {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <div>
-          <h1>Módulo de Regulação de Exames</h1>
-          <p>Gerenciamento de solicitações, filas, liberações e custos</p>
-        </div>
-      </header>
-
       {(activeTab === "LISTA_ESPERA" || activeTab === "LIBERADOS") && (
         <FiltersBar
           filters={filters}

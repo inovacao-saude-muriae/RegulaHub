@@ -1,75 +1,123 @@
 'use client';
 
 import { useState } from 'react';
+import styles from './AdminUsuarios.module.css';
 
 export default function AdminUsuariosPage() {
   const [cpf, setCpf] = useState('');
-  const [pessoa, setPessoa] = useState(null);
-  const [loadingPessoa, setLoadingPessoa] = useState(false);
+  const [nomeCompleto, setNomeCompleto] = useState('');
+  const [dataNascimento, setDataNascimento] = useState('');
+  const [telefone, setTelefone] = useState('');
   const [role, setRole] = useState('OPERADOR_REGULA');
-  const [cargo, setCargo] = useState('');
   const [senha, setSenha] = useState('');
-  const [mensagem, setMensagem] = useState({ tipo: '', texto: '' });
-  const [salvando, setSalvando] = useState(false);
 
-  // Busca se a pessoa já existe na tabela `pessoa` pelo CPF
-  const handleBuscarPessoa = async () => {
-    if (!cpf || cpf.length < 11) {
+  const [pessoaExiste, setPessoaExiste] = useState(false);
+  const [buscandoCpf, setBuscandoCpf] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [mensagem, setMensagem] = useState({ tipo: '', texto: '' });
+
+  // Mapeia o Perfil selecionado para o texto que vai aparecer no Header
+  const obterNomePerfil = (perfilRole) => {
+    switch (perfilRole) {
+      case 'OPERADOR_REGULA':
+        return 'Regulação de Exames';
+      case 'ADMIN_REGULA':
+        return 'Gestor da Regulação';
+      case 'ADMIN_FARMACIA':
+        return 'Câmara Técnica / Farmácia';
+      case 'OPERADOR_JUNTA':
+        return 'Junta Reguladora';
+      case 'VETERINARIO':
+        return 'Vigilância & Zoonoses (CCZ)';
+      case 'ADMIN':
+        return 'Gestor do Sistema';
+      default:
+        return 'Operador do Sistema';
+    }
+  };
+
+  // Busca automática ao digitar os 11 dígitos do CPF
+  const handleCpfChange = async (e) => {
+    const valorLimpo = e.target.value.replace(/\D/g, '');
+    setCpf(valorLimpo);
+
+    if (valorLimpo.length === 11) {
+      setBuscandoCpf(true);
+      setMensagem({ tipo: '', texto: '' });
+
+      try {
+        const res = await fetch(`/api/pessoas/${valorLimpo}`);
+        const data = await res.json();
+
+        if (res.ok && data.pessoa) {
+          setPessoaExiste(true);
+          setNomeCompleto(data.pessoa.nomeCompleto || '');
+          setTelefone(data.pessoa.telefone || '');
+          setMensagem({
+            tipo: 'sucesso',
+            texto: 'Pessoa encontrada no sistema! Defina a senha e o perfil abaixo.',
+          });
+        } else {
+          setPessoaExiste(false);
+          setNomeCompleto('');
+          setTelefone('');
+          setMensagem({
+            tipo: 'alerta',
+            texto: 'CPF não encontrado. Preencha o nome completo para cadastrar a pessoa.',
+          });
+        }
+      } catch {
+        setMensagem({ tipo: 'erro', texto: 'Erro ao verificar o CPF.' });
+      } finally {
+        setBuscandoCpf(false);
+      }
+    } else {
+      setPessoaExiste(false);
+      if (valorLimpo.length < 11) {
+        setMensagem({ tipo: '', texto: '' });
+      }
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (cpf.length < 11) {
       setMensagem({ tipo: 'erro', texto: 'Informe um CPF válido com 11 dígitos.' });
       return;
     }
 
-    setLoadingPessoa(true);
-    setMensagem({ tipo: '', texto: '' });
-    setPessoa(null);
-
-    try {
-      const res = await fetch(`/api/pessoas/${cpf}`);
-      const data = await res.json();
-
-      if (res.ok && data.pessoa) {
-        setPessoa(data.pessoa);
-      } else {
-        setMensagem({
-          tipo: 'erro',
-          texto: 'Pessoa não encontrada no sistema. Cadastre-a antes de criar o usuário.'
-        });
-      }
-    } catch {
-      setMensagem({ tipo: 'erro', texto: 'Erro ao buscar dados da pessoa.' });
-    } finally {
-      setLoadingPessoa(false);
-    }
-  };
-
-  // Cria a conta de acesso para o usuário
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!pessoa) return;
-
     setSalvando(true);
     setMensagem({ tipo: '', texto: '' });
+
+    const cargoFormatado = obterNomePerfil(role);
 
     try {
       const res = await fetch('/api/admin/usuarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pessoaCpf: pessoa.cpf,
+          cpf,
+          nomeCompleto,
+          dataNascimento,
+          telefone,
           role,
-          cargo,
-          senha
-        })
+          cargo: cargoFormatado,
+          senha,
+        }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        setMensagem({ tipo: 'sucesso', texto: '✅ Usuário criado com sucesso!' });
+        setMensagem({
+          tipo: 'sucesso',
+          texto: `✅ Usuário cadastrado com sucesso como "${cargoFormatado}"!`,
+        });
+        // Limpa a senha após o sucesso
         setSenha('');
-        setCargo('');
       } else {
-        setMensagem({ tipo: 'erro', texto: data.error || 'Erro ao criar usuário.' });
+        setMensagem({ tipo: 'erro', texto: data.error || 'Erro ao salvar usuário.' });
       }
     } catch {
       setMensagem({ tipo: 'erro', texto: 'Erro de conexão com o servidor.' });
@@ -79,98 +127,136 @@ export default function AdminUsuariosPage() {
   };
 
   return (
-    <div style={{ maxWidth: '600px', margin: '2rem auto', padding: '1.5rem', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-      <h1 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', color: '#1a202c' }}>
-        Gerenciamento de Usuários
-      </h1>
+    <div className={styles.container}>
+      <h1 className={styles.title}>Cadastro de Usuários do Sistema</h1>
 
       {mensagem.texto && (
-        <div style={{ padding: '0.75rem', marginBottom: '1rem', borderRadius: '4px', background: mensagem.tipo === 'sucesso' ? '#d4edda' : '#f8d7da', color: mensagem.tipo === 'sucesso' ? '#155724' : '#721c24' }}>
+        <div className={`${styles.message} ${styles[mensagem.tipo]}`}>
           {mensagem.texto}
         </div>
       )}
 
-      {/* Busca de CPF */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>CPF do Colaborador:</label>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <input
-            type="text"
-            value={cpf}
-            onChange={(e) => setCpf(e.target.value.replace(/\D/g, ''))}
-            placeholder="Digite apenas números"
-            maxLength={11}
-            style={{ flex: 1, padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
-          />
-          <button
-            type="button"
-            onClick={handleBuscarPessoa}
-            disabled={loadingPessoa}
-            style={{ padding: '0.5rem 1rem', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-          >
-            {loadingPessoa ? 'Buscando...' : 'Buscar'}
-          </button>
-        </div>
-      </div>
-
-      {/* Formulário de Atribuição de Acesso */}
-      {pessoa && (
-        <form onSubmit={handleSubmit} style={{ borderTop: '1px solid #eee', paddingTop: '1.5rem' }}>
-          <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '4px', marginBottom: '1rem' }}>
-            <p><strong>Nome:</strong> {pessoa.nomeCompleto}</p>
-            <p><strong>CPF:</strong> {pessoa.cpf}</p>
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>Perfil de Acesso (Role):</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
-            >
-              <option value="OPERADOR_REGULA">OPERADOR_REGULA</option>
-              <option value="ADMIN_REGULA">ADMIN_REGULA</option>
-              <option value="VETERINARIO">VETERINARIO</option>
-              <option value="OPERADOR_JUNTA">OPERADOR_JUNTA</option>
-              <option value="ADMIN_JUNTA">ADMIN_JUNTA</option>
-              <option value="ADMIN_FARMACIA">ADMIN_FARMACIA</option>
-              <option value="ADMIN_PROCESSO">ADMIN_PROCESSO</option>
-              <option value="ADMIN">ADMIN (Acesso Total)</option>
-            </select>
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>Cargo / Função:</label>
+      <form onSubmit={handleSubmit} className={styles.form} autoComplete="off">
+        {/* CPF COM VALIDAÇÃO/BUSCA AUTOMÁTICA */}
+        <div className={styles.inputGroup}>
+          <label className={styles.label}>CPF de Acesso (Login):</label>
+          <div style={{ position: 'relative' }}>
             <input
               type="text"
-              value={cargo}
-              onChange={(e) => setCargo(e.target.value)}
-              placeholder="Ex: Regulador de Saúde, Médico Veterinário"
-              style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '0.5rem' }}>Senha Inicial:</label>
-            <input
-              type="password"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
               required
-              placeholder="Defina a senha de acesso"
-              style={{ width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+              value={cpf}
+              onChange={handleCpfChange}
+              placeholder="Digite os 11 dígitos do CPF"
+              maxLength={11}
+              autoComplete="off"
+              className={styles.input}
+            />
+            {buscandoCpf && (
+              <span
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: '0.8rem',
+                  color: '#2563eb',
+                }}
+              >
+                Buscando...
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* NOME COMPLETO */}
+        <div className={styles.inputGroup}>
+          <label className={styles.label}>
+            Nome Completo: {pessoaExiste && <small style={{ color: '#166534' }}>(Cadastrado)</small>}
+          </label>
+          <input
+            type="text"
+            required
+            disabled={pessoaExiste}
+            value={nomeCompleto}
+            onChange={(e) => setNomeCompleto(e.target.value)}
+            className={styles.input}
+            placeholder={pessoaExiste ? '' : 'Digite o nome do operador'}
+            autoComplete="off"
+            style={{ backgroundColor: pessoaExiste ? '#f1f5f9' : '#ffffff' }}
+          />
+        </div>
+
+        {/* DATA E TELEFONE */}
+        <div className={styles.gridTwoCols}>
+          <div>
+            <label className={styles.fieldLabel}>Data de Nascimento</label>
+            <input
+              type="date"
+              disabled={pessoaExiste}
+              value={dataNascimento}
+              onChange={(e) => setDataNascimento(e.target.value)}
+              className={styles.input}
+              autoComplete="off"
+              style={{ backgroundColor: pessoaExiste ? '#f1f5f9' : '#ffffff' }}
             />
           </div>
+          <div>
+            <label className={styles.fieldLabel}>Telefone</label>
+            <input
+              type="text"
+              disabled={pessoaExiste}
+              value={telefone}
+              onChange={(e) => setTelefone(e.target.value)}
+              placeholder="(00) 00000-0000"
+              className={styles.input}
+              autoComplete="off"
+              style={{ backgroundColor: pessoaExiste ? '#f1f5f9' : '#ffffff' }}
+            />
+          </div>
+        </div>
 
-          <button
-            type="submit"
-            disabled={salvando}
-            style={{ width: '100%', padding: '0.75rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}
+        {/* PERFIL / PERMISSÃO DE ACESSO */}
+        <div className={styles.inputGroup} style={{ marginTop: '1rem' }}>
+          <label className={styles.label}>Perfil / Módulo de Acesso:</label>
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className={styles.select}
           >
-            {salvando ? 'Salvando...' : 'Criar Conta de Usuário'}
-          </button>
-        </form>
-      )}
+            <option value="OPERADOR_REGULA">Regulação de Exames</option>
+            <option value="ADMIN_REGULA">Gestor da Regulação</option>
+            <option value="ADMIN_FARMACIA">Câmara Técnica / Farmácia</option>
+            <option value="OPERADOR_JUNTA">Junta Reguladora</option>
+            <option value="VETERINARIO">Vigilância & Zoonoses (CCZ)</option>
+            <option value="ADMIN">ADMIN (Gestor Geral do Sistema)</option>
+          </select>
+          <span style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+            Cargo exibido no sistema: <strong>{obterNomePerfil(role)}</strong>
+          </span>
+        </div>
+
+        {/* SENHA */}
+        <div className={styles.inputGroup}>
+          <label className={styles.label}>Senha de Acesso:</label>
+          <input
+            type="password"
+            required
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            placeholder="Digite a senha de login"
+            className={styles.input}
+            autoComplete="new-password"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={salvando || buscandoCpf}
+          className={styles.submitButton}
+        >
+          {salvando ? 'Salvando...' : 'Concluir Cadastro de Usuário'}
+        </button>
+      </form>
     </div>
   );
 }

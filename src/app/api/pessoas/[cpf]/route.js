@@ -1,35 +1,33 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma'; // Ou o caminho da sua instância do Prisma
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(request, { params }) {
   try {
     const { cpf } = await params;
+    const cpfLimpo = cpf?.replace(/\D/g, "");
 
     const pessoa = await prisma.pessoa.findUnique({
-      where: { cpf },
+      where: { cpf: cpfLimpo },
       select: {
         cpf: true,
         nomeCompleto: true,
-        dataNascimento: true,
-        nomeMae: true,
         telefone: true,
-        sexo: true,
+        usuario: {
+          select: {
+            role: true,
+            cargo: true,
+          },
+        },
       },
     });
 
     if (!pessoa) {
-      return NextResponse.json(
-        { error: 'Pessoa não encontrada no banco de dados' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Pessoa não encontrada" }, { status: 404 });
     }
 
-    return NextResponse.json({ pessoa }, { status: 200 });
+    return NextResponse.json({ pessoa });
   } catch (error) {
-    console.error('Erro ao buscar pessoa:', error);
-    return NextResponse.json(
-      { error: 'Erro interno no servidor' },
-      { status: 500 }
-    );
+    console.error("Erro ao buscar CPF:", error);
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }

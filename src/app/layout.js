@@ -1,5 +1,4 @@
-import Sidebar from '@/components/Sidebar.js';
-import Header from '@/components/Header.js';
+import ClientLayout from '@/components/ClientLayout';
 import './globals.css';
 
 export const metadata = {
@@ -11,19 +10,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR">
       <body suppressHydrationWarning>
-        <div style={{ display: 'flex' }}>
-          <Sidebar />
-          <div
-            style={{
-              marginLeft: 'var(--sidebar-width-collapsed)',
-              width: 'calc(100% - var(--sidebar-width-collapsed))',
-              transition: 'margin-left 0.3s ease, width 0.3s ease',
-            }}
-          >
-            <Header />
-            <main>{children}</main>
-          </div>
-        </div>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

@@ -16,7 +16,7 @@
   --text-secondary: #475569;
   --text-muted: #94a3b8;
   
-  /* Status & Alertas (Cores com transparência suave) */
+  /* Status & Alertas */
   --status-success-bg: #dcfce7;
   --status-success-text: #15803d;
   
@@ -41,9 +41,9 @@
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
 
   /* Dimensões Layout */
-  --sidebar-width-collapsed: 72px;
-  --sidebar-width-expanded: 250px;
-  --header-height: 64px;
+  --sidebar-width-collapsed: 68px;
+  --sidebar-width-expanded: 270px;
+  --header-height: 60px; /* ATUALIZADO: Agora alinhado aos 60px do Header */
 }
 
 * {
@@ -58,6 +58,12 @@ body {
   color: var(--text-main);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Compensação para o Header fixo de 60px + respiro das páginas */
+main {
+  padding-top: calc(var(--header-height) + 1.5rem);
+  width: 100%;
 }
 
 a {
