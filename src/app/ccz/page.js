@@ -5,16 +5,15 @@ import { useSearchParams, useRouter } from "next/navigation";
 
 import { getCCZDashboardData } from "./actions";
 
-import TabDashboardCCZ from "./components/Dashboard";
-import TabUsuarios from "./components/TabUsuarios";
-import TabCadastros from "./components/TabCadastros";
-import TabAnimaisCards from "./components/TabAnimaisCards";
-import TabProcedimentos from "./components/TabProcedimentos";
-import TabZoonoses from "./components/TabZoonoses";
-import TabExibirZoonoses from "./components/TabExibirZoonoses";
-import TabExibirEsporotricose from "./components/TabExibirEsporotricose";
-import TabEsporotricose from "./components/TabEsporotricose";
-import TabDenuncias from "./components/TabDenuncias";
+// Views de 1º Nível
+import Dashboard from "./views/Dashboard";
+import Cadastros from "./views/Cadastros";
+import Usuarios from "./views/Usuarios";
+import AnimaisCards from "./views/AnimaisCards";
+import Procedimentos from "./views/Procedimentos";
+import Denuncias from "./views/Denuncias";
+import Zoonoses from "./views/Zoonoses";
+import Esporotricose from "./views/Esporotricose";
 
 import styles from "./page.module.css";
 
@@ -62,20 +61,13 @@ function CCZPageContent() {
       </header>
 
       {loading ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "3rem",
-            color: "#64748b",
-            fontWeight: 500,
-          }}
-        >
+        <div style={{ textAlign: "center", padding: "3rem", color: "#64748b" }}>
           Carregando dados...
         </div>
       ) : (
         <>
           {activeTab === "DASHBOARD" && (
-            <TabDashboardCCZ
+            <Dashboard
               tutores={data.tutores}
               animais={data.animais}
               denuncias={data.denuncias}
@@ -84,48 +76,31 @@ function CCZPageContent() {
           )}
 
           {activeTab === "CADASTROS" && (
-            <TabCadastros
+            <Cadastros
               tutores={data.tutores}
               animais={data.animais}
               reloadData={reloadData}
             />
           )}
 
-          {activeTab === "ZOONOSES" && activeSubTab === "CADASTRO" && (
-            <TabZoonoses
-              tutores={data.tutores}
-              animais={data.animais}
+          {activeTab === "ZOONOSES" && (
+            <Zoonoses
+              subTab={activeSubTab}
+              data={data}
               reloadData={reloadData}
             />
           )}
 
-          {activeTab === "ZOONOSES" && activeSubTab === "EXIBIR_ZOONOSES" && (
-            <TabExibirZoonoses
-              zoonoses={data.zoonoses}
-              animais={data.animais}
+          {activeTab === "ESPOROTRICOSE" && (
+            <Esporotricose
+              subTab={activeSubTab}
+              data={data}
               reloadData={reloadData}
             />
           )}
-
-          {activeTab === "ESPOROTRICOSE" && activeSubTab === "CADASTRO" && (
-            <TabEsporotricose
-              tutores={data.tutores}
-              animais={data.animais}
-              reloadData={reloadData}
-            />
-          )}
-
-          {activeTab === "ESPOROTRICOSE" &&
-            activeSubTab === "EXIBIR_ESPOROTRICOSE" && (
-              <TabExibirEsporotricose
-                registros={data.esporotricoses}
-                animais={data.animais}
-                reloadData={reloadData}
-              />
-            )}
 
           {activeTab === "USUARIOS" && (
-            <TabUsuarios
+            <Usuarios
               tutores={data.tutores}
               animais={data.animais}
               reloadData={reloadData}
@@ -133,15 +108,15 @@ function CCZPageContent() {
           )}
 
           {activeTab === "ANIMAIS" && (
-            <TabAnimaisCards animais={data.animais} tutores={data.tutores} />
+            <AnimaisCards animais={data.animais} tutores={data.tutores} />
           )}
 
           {activeTab === "PROCEDIMENTOS" && (
-            <TabProcedimentos tutores={data.tutores} animais={data.animais} />
+            <Procedimentos tutores={data.tutores} animais={data.animais} />
           )}
 
           {activeTab === "DENUNCIAS" && (
-            <TabDenuncias
+            <Denuncias
               denuncias={data.denuncias}
               animais={data.animais}
               reloadData={reloadData}
@@ -155,20 +130,7 @@ function CCZPageContent() {
 
 export default function CCZPage() {
   return (
-    <Suspense
-      fallback={
-        <div
-          style={{
-            textAlign: "center",
-            padding: "3rem",
-            color: "#64748b",
-            fontWeight: 500,
-          }}
-        >
-          Carregando página...
-        </div>
-      }
-    >
+    <Suspense fallback={<div style={{ textAlign: "center", padding: "3rem" }}>Carregando...</div>}>
       <CCZPageContent />
     </Suspense>
   );

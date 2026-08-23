@@ -8,19 +8,19 @@ import { useRegulacaoData } from "./hooks/useRegulacaoData";
 import { useRegulacaoFilters } from "./hooks/useRegulacaoFilters";
 
 import FiltersBar from "./components/FiltersBar";
-import TabDashboard from "./components/Dashboard";
-import TabNovoPedido from "./components/TabNovoPedido";
-import TabListaEspera from "./components/TabListaEspera";
-import TabLiberados from "./components/TabLiberados";
-import TabFinanceiro from "./components/TabFinanceiro";
+import Dashboard from "./views/Dashboard";
+import NovoPedido from "./views/NovoPedido";
+import ListaEspera from "./views/ListaEspera";
+import Liberados from "./views/Liberados";
+import Financeiro from "./views/Financeiro";
 import TelaLiberarPedido from "./components/LiberarPedido";
 import TelaEditarPedido from "./components/EditarPedido";
 
 // 🎯 COMPONENTES DE CADASTRO DEDICADOS
-import TabCadastroPacientes from "./components/CadastroPacientes";
-import TabCadastroMedicos from "./components/CadastroMedicos";
-import TabCadastroUbs from "./components/CadastroUbs";
-import TabCadastroProcedimentos from "./components/CadastroProcedimentos";
+import CadastroPacientes from "./components/CadastroPacientes";
+import CadastroMedicos from "./components/CadastroMedicos";
+import CadastroUbs from "./components/CadastroUbs";
+import CadastroProcedimentos from "./components/CadastroProcedimentos";
 
 import ModalTetoFinanceiro from "./components/Modals/ModalTetoFinanceiro";
 import ModalSeletorCotas from "./components/Modals/ModalSeletorCotas";
@@ -93,7 +93,7 @@ function RegulacaoPageContent() {
       )}
 
       {activeTab === "DASHBOARD" && (
-        <TabDashboard
+        <Dashboard
           requests={data.requests}
           auxData={data.auxData}
           setActiveTab={(tab) => handleSetActiveTab(tab)}
@@ -101,7 +101,7 @@ function RegulacaoPageContent() {
       )}
 
       {activeTab === "NOVO_PEDIDO" && (
-        <TabNovoPedido
+        <NovoPedido
           newRequest={data.newRequest}
           setNewRequest={data.setNewRequest}
           handleCreateRequest={data.handleCreateRequest}
@@ -121,7 +121,7 @@ function RegulacaoPageContent() {
       )}
 
       {activeTab === "LISTA_ESPERA" && (
-        <TabListaEspera
+        <ListaEspera
           auxData={data.auxData}
           requests={data.requests}
           selectedQueueExam={data.selectedQueueExam}
@@ -175,7 +175,7 @@ function RegulacaoPageContent() {
       )}
 
       {activeTab === "LIBERADOS" && (
-        <TabLiberados
+        <Liberados
           auxData={data.auxData}
           requests={data.requests}
           selectedReleasedExam={data.selectedReleasedExam}
@@ -227,7 +227,7 @@ function RegulacaoPageContent() {
       )}
 
       {activeTab === "FINANCEIRO" && (
-        <TabFinanceiro
+        <Financeiro
           finMonth={data.finMonth}
           setFinMonth={data.setFinMonth}
           finYear={data.finYear}
@@ -239,7 +239,7 @@ function RegulacaoPageContent() {
 
       {/* 🎯 CADASTROS CONTROLADOS PELA SUB-TAB VINDA DA URL */}
       {activeTab === "CADASTROS" && activeSubTab === "PESSOAS" && (
-        <TabCadastroPacientes
+        <CadastroPacientes
           formPessoa={data.formPessoa}
           setFormPessoa={data.setFormPessoa}
           auxData={data.auxData}
@@ -248,7 +248,7 @@ function RegulacaoPageContent() {
       )}
 
       {activeTab === "CADASTROS" && activeSubTab === "MEDICOS" && (
-        <TabCadastroMedicos
+        <CadastroMedicos
           formMedico={data.formMedico}
           setFormMedico={data.setFormMedico}
           auxData={data.auxData}
@@ -257,7 +257,7 @@ function RegulacaoPageContent() {
       )}
 
       {activeTab === "CADASTROS" && activeSubTab === "UBS" && (
-        <TabCadastroUbs
+        <CadastroUbs
           formUbs={data.formUbs}
           setFormUbs={data.setFormUbs}
           auxData={data.auxData}
@@ -266,7 +266,7 @@ function RegulacaoPageContent() {
       )}
 
       {activeTab === "CADASTROS" && activeSubTab === "PROCEDIMENTOS" && (
-        <TabCadastroProcedimentos
+        <CadastroProcedimentos
           formProcedimento={data.formProcedimento}
           setFormProcedimento={data.setFormProcedimento}
           auxData={data.auxData}

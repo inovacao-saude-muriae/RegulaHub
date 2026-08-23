@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import st from "./TabAnimaisCards.module.css";
+import st from "./AnimaisCards.module.css";
 
 function especieEmoji(especie) {
   const map = {

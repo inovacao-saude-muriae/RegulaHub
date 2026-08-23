@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import styles from './TabFinanceiro.module.css';
+
+// Estilo local da View
+import styles from './Financeiro.module.css';
 
 // Lista de meses
 const DEFAULT_MONTHS_LIST = [
@@ -29,7 +31,7 @@ const LISTA_CIDADES = [
   'MANHUAÇU',
 ];
 
-export default function TabFinanceiro({
+export default function Financeiro({
   finMonth,
   setFinMonth = () => {},
   finYear,

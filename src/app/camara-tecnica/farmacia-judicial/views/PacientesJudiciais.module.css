@@ -1,0 +1,693 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+/* 🎯 CONTAINER UNIFICADO COM FUNDO BRANCO */
+.mainWrapper {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* SEPARADOR */
+.divider {
+  border: none;
+  border-top: 1px solid #f1f5f9;
+  margin: 0.25rem 0;
+}
+
+/* BARRA DE BUSCA */
+.searchBlock {
+  position: relative;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.searchLabel {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.searchBarRow {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.inputSearchWrapper {
+  position: relative;
+  flex: 1;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+  background-color: #ffffff;
+}
+
+.searchInput:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+/* BOTÕES DIVERSOS (44px x 44px) */
+.searchBtn {
+  background-color: #2563eb;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+}
+
+.searchBtn:hover {
+  background-color: #1d4ed8;
+}
+
+.iconBtn {
+  background-color: #059669;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease, transform 0.1s ease, opacity 0.2s ease;
+}
+
+.iconBtn:hover:not(:disabled) {
+  background-color: #047857;
+}
+
+.iconBtn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.iconBtn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.iconBtn img {
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.addBtn {
+  background-color: #059669;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+}
+
+.addBtn:hover {
+  background-color: #047857;
+}
+
+.searchBtn img,
+.addBtn img {
+  object-fit: contain;
+}
+
+/* AUTOCOMPLETAR */
+.suggestionsList {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  margin-top: 0.35rem;
+  max-height: 240px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0;
+}
+
+.suggestionItem {
+  padding: 0.85rem 1.1rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.875rem;
+  color: #334155;
+}
+
+.suggestionItem:hover {
+  background-color: #f8fafc;
+  color: #1d4ed8;
+}
+
+.loadingBox {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+/* FICHAS DO FORMULÁRIO */
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cardSection {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.sectionHeaderTitle {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* GRIDS DOS CAMPOS */
+.gridProcesso {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.gridPessoaisRow1 {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.gridPessoaisRow2 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+}
+
+.gridEnderecoRow1 {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.gridEnderecoRow2 {
+  display: grid;
+  grid-template-columns: 2fr 2fr 2fr 80px;
+  gap: 1rem;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fieldGroup label {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.fieldGroup input,
+.fieldGroup select {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #1e293b;
+  background-color: #ffffff;
+  outline: none;
+}
+
+/* ESTILO BLOQUEADO */
+.readOnlyInput {
+  background-color: #f1f5f9 !important;
+  color: #64748b !important;
+  border-color: #cbd5e1 !important;
+  cursor: not-allowed;
+}
+
+.treatmentGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 1rem;
+  align-items: flex-end;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.addRowBtn {
+  background-color: #ffffff;
+  color: #2563eb;
+  border: 1px dashed #93c5fd;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.removeRowBtn {
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: none;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.primaryBtn {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondaryBtn {
+  background-color: #ffffff;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+/* 🎯 CONTAINER UNIFICADO COM FUNDO BRANCO */
+.mainWrapper {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* SEPARADOR */
+.divider {
+  border: none;
+  border-top: 1px solid #f1f5f9;
+  margin: 0.25rem 0;
+}
+
+/* BARRA DE BUSCA */
+.searchBlock {
+  position: relative;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.searchLabel {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.searchBarRow {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.inputSearchWrapper {
+  position: relative;
+  flex: 1;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+  background-color: #ffffff;
+}
+
+.searchInput:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+/* BOTÕES DIVERSOS (44px x 44px) */
+.searchBtn {
+  background-color: #2563eb;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+}
+
+.searchBtn:hover {
+  background-color: #1d4ed8;
+}
+
+.iconBtn {
+  background-color: #059669;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease, transform 0.1s ease, opacity 0.2s ease;
+}
+
+.iconBtn:hover:not(:disabled) {
+  background-color: #047857;
+}
+
+.iconBtn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.iconBtn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.iconBtn img {
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.addBtn {
+  background-color: #059669;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+}
+
+.addBtn:hover {
+  background-color: #047857;
+}
+
+.searchBtn img,
+.addBtn img {
+  object-fit: contain;
+}
+
+/* AUTOCOMPLETAR */
+.suggestionsList {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  margin-top: 0.35rem;
+  max-height: 240px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0;
+}
+
+.suggestionItem {
+  padding: 0.85rem 1.1rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.875rem;
+  color: #334155;
+}
+
+.suggestionItem:hover {
+  background-color: #f8fafc;
+  color: #1d4ed8;
+}
+
+.loadingBox {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+/* FICHAS DO FORMULÁRIO */
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cardSection {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.sectionHeaderTitle {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* GRIDS DOS CAMPOS */
+.gridProcesso {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+/* AJUSTADO: Grid de 4 colunas para abrigar CPF, Nome, Sexo e Data de Nascimento */
+.gridPessoaisRow1 {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.gridPessoaisRow2 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+}
+
+.gridEnderecoRow1 {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.gridEnderecoRow2 {
+  display: grid;
+  grid-template-columns: 2fr 2fr 2fr 80px;
+  gap: 1rem;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fieldGroup label {
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.fieldGroup input,
+.fieldGroup select {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #1e293b;
+  background-color: #ffffff;
+  outline: none;
+}
+
+.fieldGroup select {
+  cursor: pointer;
+  appearance: auto;
+}
+
+/* ESTILO BLOQUEADO */
+.readOnlyInput {
+  background-color: #f1f5f9 !important;
+  color: #64748b !important;
+  border-color: #cbd5e1 !important;
+  cursor: not-allowed;
+}
+
+.treatmentGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 1rem;
+  align-items: flex-end;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.addRowBtn {
+  background-color: #ffffff;
+  color: #2563eb;
+  border: 1px dashed #93c5fd;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.removeRowBtn {
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: none;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.primaryBtn {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondaryBtn {
+  background-color: #ffffff;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .gridProcesso,
+  .gridPessoaisRow1,
+  .gridPessoaisRow2,
+  .gridEnderecoRow1,
+  .gridEnderecoRow2,
+  .treatmentGrid {
+    display: flex;
+    flex-direction: column;
+  }
+}

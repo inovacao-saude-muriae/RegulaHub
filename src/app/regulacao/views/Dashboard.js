@@ -2,7 +2,7 @@
 
 import styles from "./Dashboard.module.css";
 
-export default function TabDashboard({ requests = [], auxData = {}, setActiveTab }) {
+export default function Dashboard({ requests = [], auxData = {}, setActiveTab }) {
   // Métricas Principais
   const totalAguardando = requests.filter((r) => r.status === "Aguardando").length;
   const totalLiberados = requests.filter((r) => r.status === "Liberado").length;

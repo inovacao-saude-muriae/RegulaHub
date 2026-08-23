@@ -5,7 +5,7 @@ import styles from "./CadastroProcedimentos.module.css";
 import ModalConfirmacaoExclusao from "./Modals/ModalConfirmacaoExclusao";
 import { createProcedimento, updateProcedimento } from "../actions";
 
-export default function TabCadastroProcedimentos({
+export default function CadastroProcedimentos({
   formProcedimento,
   setFormProcedimento,
   auxData = { procedimentos: [], tiposExame: [] },

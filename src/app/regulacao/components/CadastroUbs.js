@@ -5,7 +5,7 @@ import styles from "./CadastroUbs.module.css";
 import ModalConfirmacaoExclusao from "./Modals/ModalConfirmacaoExclusao";
 import { createUbs, updateUbs, deleteUbs } from "../actions";
 
-export default function TabCadastroUbs({
+export default function CadastroUbs({
   formUbs,
   setFormUbs,
   auxData = { ubsList: [] },

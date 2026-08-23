@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import styles from "./Sidebar.module.css";
@@ -13,16 +13,11 @@ const menuSections = [
         name: "Início / Módulos",
         path: "/",
         icon: (
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-          >
-            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect width="7" height="7" x="3" y="3" rx="1" />
+            <rect width="7" height="7" x="14" y="3" rx="1" />
+            <rect width="7" height="7" x="14" y="14" rx="1" />
+            <rect width="7" height="7" x="3" y="14" rx="1" />
           </svg>
         ),
       },
@@ -36,16 +31,8 @@ const menuSections = [
         path: "/regulacao",
         isDropdown: true,
         icon: (
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 2a7 7 0 1 0 10 7" />
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
           </svg>
         ),
         subItems: [
@@ -77,14 +64,7 @@ const menuSections = [
         path: "/camara-tecnica/farmacia-judicial",
         isDropdown: true,
         icon: (
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-          >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
             <path d="m8.5 8.5 7 7" />
           </svg>
@@ -110,16 +90,11 @@ const menuSections = [
         name: "Processos",
         path: "/camara-tecnica/processos",
         icon: (
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-          >
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 7h-9" />
+            <path d="M14 17H5" />
+            <circle cx="17" cy="17" r="3" />
+            <circle cx="7" cy="7" r="3" />
           </svg>
         ),
       },
@@ -133,14 +108,7 @@ const menuSections = [
         path: "/junta-reguladora",
         isDropdown: true,
         icon: (
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-          >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
             <circle cx="9" cy="7" r="4" />
             <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
@@ -176,15 +144,9 @@ const menuSections = [
         path: "/ccz",
         isDropdown: true,
         icon: (
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-          >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <path d="m9 12 2 2 4-4" />
           </svg>
         ),
         subItems: [
@@ -218,244 +180,249 @@ const menuSections = [
   },
 ];
 
-function SidebarContent() {
+function MenuContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentTab = searchParams.get("tab") || "DASHBOARD";
   const currentSubTab = searchParams.get("subTab") || "";
 
-  const [openRegulacao, setOpenRegulacao] = useState(false);
-  const [openFarmacia, setOpenFarmacia] = useState(false);
-  const [openJunta, setOpenJunta] = useState(false);
-  const [openCCZ, setOpenCCZ] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState({});
+  const [openNested, setOpenNested] = useState({});
+  const [searchTerm, setSearchTerm] = useState("");
+  const menuRef = useRef(null);
 
-  // Mapeia o estado de abertura de cada submenu aninhado por chave do tab
-  const [openNestedMenus, setOpenNestedMenus] = useState({});
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-  const handleMouseLeaveSidebar = () => {
-    setOpenRegulacao(false);
-    setOpenFarmacia(false);
-    setOpenJunta(false);
-    setOpenCCZ(false);
-    setOpenNestedMenus({});
+  const toggleGroup = (path) => {
+    setOpenGroup((prev) => ({ ...prev, [path]: !prev[path] }));
   };
 
-  const getDropdownState = (path) => {
-    if (path === "/regulacao") return openRegulacao;
-    if (path === "/camara-tecnica/farmacia-judicial") return openFarmacia;
-    if (path === "/junta-reguladora") return openJunta;
-    if (path === "/ccz") return openCCZ;
-    return false;
+  const toggleNested = (tabKey) => {
+    setOpenNested((prev) => ({ ...prev, [tabKey]: !prev[tabKey] }));
   };
 
-  const toggleDropdownState = (path) => {
-    if (path === "/regulacao") setOpenRegulacao(!openRegulacao);
-    if (path === "/camara-tecnica/farmacia-judicial")
-      setOpenFarmacia(!openFarmacia);
-    if (path === "/junta-reguladora") setOpenJunta(!openJunta);
-    if (path === "/ccz") setOpenCCZ(!openCCZ);
-  };
-
-  const toggleNestedMenu = (tabKey) => {
-    setOpenNestedMenus((prev) => ({
-      ...prev,
-      [tabKey]: !prev[tabKey],
-    }));
+  const handleCloseMenu = () => {
+    setIsOpen(false);
   };
 
   return (
-    <aside className={styles.sidebar} onMouseLeave={handleMouseLeaveSidebar}>
-      <div className={styles.logo}>
-        <div className={styles.logoIcon}>
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-          >
-            <path d="M12 6v12M6 12h12" />
-          </svg>
-        </div>
-        <span className={styles.logoText}>RegulaHub</span>
-      </div>
+    <div ref={menuRef}>
+      {isOpen && (
+        <div className={styles.startMenu}>
+          <div className={styles.menuContentList}>
+            {menuSections.map((section, sIdx) => {
+              const filteredItems = section.items.filter((item) => {
+                if (!searchTerm) return true;
+                const matchMain = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchSub = item.subItems?.some(
+                  (sub) =>
+                    sub.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    sub.nestedItems?.some((nested) =>
+                      nested.name.toLowerCase().includes(searchTerm.toLowerCase())
+                    )
+                );
+                return matchMain || matchSub;
+              });
 
-      <nav className={styles.nav}>
-        {menuSections.map((section, idx) => (
-          <div key={idx} className={styles.sectionGroup}>
-            <span className={styles.sectionTitle}>{section.title}</span>
-            <ul className={styles.navList}>
-              {section.items.map((item) => {
-                if (item.isDropdown) {
-                  const isOpen = getDropdownState(item.path);
+              if (filteredItems.length === 0) return null;
 
-                  return (
-                    <li key={item.path} className={styles.dropdownContainer}>
-                      <button
-                        type="button"
-                        className={`${styles.navLink} ${styles.dropdownTrigger} ${
-                          pathname.includes(item.path)
-                            ? styles.activeParent
-                            : ""
-                        }`}
-                        onClick={() => toggleDropdownState(item.path)}
-                      >
-                        <span className={styles.icon}>{item.icon}</span>
-                        <span className={styles.label}>{item.name}</span>
-                        <svg
-                          className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ""}`}
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </button>
+              return (
+                <div key={sIdx} className={styles.sectionGroup}>
+                  <span className={styles.sectionTitle}>{section.title}</span>
+                  {filteredItems.map((item) => {
+                    const isDropdownOpen = Boolean(openGroup[item.path]) || Boolean(searchTerm);
 
-                      {isOpen && (
-                        <ul className={styles.submenuList}>
-                          {item.subItems.map((sub) => {
-                            if (sub.isNestedDropdown) {
-                              const defaultSubTab =
-                                sub.nestedItems[0]?.subTab || "";
-                              const isNestedOpen = Boolean(
-                                openNestedMenus[sub.tab],
-                              );
+                    if (item.isDropdown) {
+                      return (
+                        <div key={item.path}>
+                          <button
+                            type="button"
+                            className={styles.menuItemBtn}
+                            onClick={() => toggleGroup(item.path)}
+                          >
+                            <span className={styles.itemIcon}>{item.icon}</span>
+                            <span>{item.name}</span>
+                            <svg
+                              className={`${styles.arrowIcon} ${
+                                isDropdownOpen ? styles.arrowOpen : ""
+                              }`}
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                          </button>
 
-                              return (
-                                <li
-                                  key={sub.tab}
-                                  className={styles.nestedContainer}
-                                >
-                                  <div className={styles.nestedHeaderWrapper}>
+                          {isDropdownOpen && (
+                            <ul className={styles.subMenuList}>
+                              {item.subItems.map((sub) => {
+                                if (sub.isNestedDropdown) {
+                                  const isNestedOpen =
+                                    Boolean(openNested[sub.tab]) || Boolean(searchTerm);
+
+                                  return (
+                                    <li key={sub.tab}>
+                                      <button
+                                        type="button"
+                                        className={styles.nestedBtn}
+                                        onClick={() => toggleNested(sub.tab)}
+                                      >
+                                        <span>{sub.name}</span>
+                                        <svg
+                                          className={`${styles.arrowIcon} ${
+                                            isNestedOpen ? styles.arrowOpen : ""
+                                          }`}
+                                          width="12"
+                                          height="12"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        >
+                                          <polyline points="9 18 15 12 9 6" />
+                                        </svg>
+                                      </button>
+
+                                      {isNestedOpen && (
+                                        <ul className={styles.nestedMenuList}>
+                                          {sub.nestedItems.map((nested) => {
+                                            const isNestedActive =
+                                              pathname === item.path &&
+                                              currentTab === sub.tab &&
+                                              currentSubTab === nested.subTab;
+
+                                            return (
+                                              <li key={nested.subTab}>
+                                                <Link
+                                                  href={`${item.path}?tab=${sub.tab}&subTab=${nested.subTab}`}
+                                                  onClick={handleCloseMenu}
+                                                  className={`${styles.subMenuItemLink} ${
+                                                    isNestedActive ? styles.activeSubLink : ""
+                                                  }`}
+                                                >
+                                                  {nested.name}
+                                                </Link>
+                                              </li>
+                                            );
+                                          })}
+                                        </ul>
+                                      )}
+                                    </li>
+                                  );
+                                }
+
+                                const isSubActive =
+                                  pathname === item.path && currentTab === sub.tab;
+
+                                return (
+                                  <li key={sub.tab}>
                                     <Link
-                                      href={`${item.path}?tab=${sub.tab}&subTab=${defaultSubTab}`}
-                                      className={styles.nestedTriggerBtn}
+                                      href={`${item.path}?tab=${sub.tab}`}
+                                      onClick={handleCloseMenu}
+                                      className={`${styles.subMenuItemLink} ${
+                                        isSubActive ? styles.activeSubSubLink : ""
+                                      }`}
                                     >
                                       {sub.name}
                                     </Link>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    }
 
-                                    <button
-                                      type="button"
-                                      className={styles.chevronToggleBtn}
-                                      onClick={() => toggleNestedMenu(sub.tab)}
-                                    >
-                                      <svg
-                                        className={`${styles.chevron} ${
-                                          isNestedOpen ? styles.chevronOpen : ""
-                                        }`}
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                      >
-                                        <polyline points="6 9 12 15 18 9" />
-                                      </svg>
-                                    </button>
-                                  </div>
+                    const isActive = pathname === item.path;
 
-                                  {isNestedOpen && (
-                                    <ul className={styles.nestedSubmenuList}>
-                                      {sub.nestedItems.map((nested) => {
-                                        const isNestedActive =
-                                          currentTab === sub.tab &&
-                                          currentSubTab === nested.subTab;
-
-                                        return (
-                                          <li key={nested.subTab}>
-                                            <Link
-                                              href={`${item.path}?tab=${sub.tab}&subTab=${nested.subTab}`}
-                                              className={`${styles.nestedSubmenuLink} ${
-                                                isNestedActive
-                                                  ? styles.activeNestedSubmenu
-                                                  : ""
-                                              }`}
-                                            >
-                                              {nested.name}
-                                            </Link>
-                                          </li>
-                                        );
-                                      })}
-                                    </ul>
-                                  )}
-                                </li>
-                              );
-                            }
-
-                            const isSubActive =
-                              pathname === item.path && currentTab === sub.tab;
-
-                            return (
-                              <li key={sub.tab}>
-                                <Link
-                                  href={`${item.path}?tab=${sub.tab}`}
-                                  className={`${styles.submenuLink} ${
-                                    isSubActive ? styles.activeSubmenu : ""
-                                  }`}
-                                >
-                                  {sub.name}
-                                </Link>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </li>
-                  );
-                }
-
-                return (
-                  <li key={item.path}>
-                    <Link
-                      href={item.path}
-                      className={`${styles.navLink} ${
-                        pathname === item.path ? styles.active : ""
-                      }`}
-                    >
-                      <span className={styles.icon}>{item.icon}</span>
-                      <span className={styles.label}>{item.name}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+                    return (
+                      <div key={item.path}>
+                        <Link
+                          href={item.path}
+                          onClick={handleCloseMenu}
+                          className={`${styles.menuItemBtn} ${isActive ? styles.activeSubLink : ""}`}
+                        >
+                          <span className={styles.itemIcon}>{item.icon}</span>
+                          <span>{item.name}</span>
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
-        ))}
-      </nav>
-    </aside>
+
+          <div className={styles.searchContainer}>
+            <input
+              type="text"
+              placeholder="Buscar no sistema..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={styles.searchInput}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* BARRA INFERIOR (TASKBAR) COM ÍCONE DE LOGO ATUALIZADO */}
+      <div className={styles.taskbar}>
+        <button
+          type="button"
+          className={`${styles.startButton} ${isOpen ? styles.startButtonActive : ""}`}
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <div className={styles.logoIcon}>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="3" width="7" height="7" rx="1.5" />
+              <rect x="14" y="3" width="7" height="7" rx="1.5" />
+              <rect x="14" y="14" width="7" height="7" rx="1.5" />
+              <rect x="3" y="14" width="7" height="7" rx="1.5" />
+            </svg>
+          </div>
+          <span>Iniciar</span>
+        </button>
+
+        <div className={styles.activeAppBadge}>
+          <span className={styles.dot}></span>
+          RegulaHub System
+        </div>
+      </div>
+    </div>
   );
 }
 
-export default function Sidebar() {
+export default function TaskbarMenu() {
   return (
-    <Suspense
-      fallback={
-        <aside className={styles.sidebar}>
-          <div className={styles.logo}>
-            <div className={styles.logoIcon}>
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <path d="M12 6v12M6 12h12" />
-              </svg>
-            </div>
-            <span className={styles.logoText}>RegulaHub</span>
-          </div>
-        </aside>
-      }
-    >
-      <SidebarContent />
+    <Suspense fallback={null}>
+      <MenuContent />
     </Suspense>
   );
 }

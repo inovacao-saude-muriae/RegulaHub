@@ -160,7 +160,8 @@
   color: #475569;
 }
 
-.fieldGroup input {
+.fieldGroup input,
+.fieldGroup select {
   width: 100%;
   padding: 0.65rem 0.85rem;
   border: 1px solid #cbd5e1;
@@ -173,12 +174,19 @@
   box-sizing: border-box;
 }
 
-.fieldGroup input:focus {
+.fieldGroup select {
+  cursor: pointer;
+  appearance: auto;
+}
+
+.fieldGroup input:focus,
+.fieldGroup select:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
-.fieldGroup input:disabled {
+.fieldGroup input:disabled,
+.fieldGroup select:disabled {
   background-color: #f8fafc;
   color: #94a3b8;
   border-color: #e2e8f0;
@@ -187,7 +195,8 @@
 
 /* LARGURAS DAS COLUNAS */
 .colCpf { grid-column: span 3; }
-.colName { grid-column: span 6; }
+.colName { grid-column: span 4; }
+.colSexo { grid-column: span 2; }
 .colBirth { grid-column: span 3; }
 .colMother { grid-column: span 8; }
 .colPhone { grid-column: span 4; }
@@ -266,7 +275,7 @@
 .btnRedAction:hover { background-color: #b91c1c; }
 
 @media (max-width: 900px) {
-  .colCpf, .colBirth, .colPhone, .colNumber, .colCep, .colCity, .colUf {
+  .colCpf, .colBirth, .colPhone, .colNumber, .colCep, .colCity, .colUf, .colSexo {
     grid-column: span 6;
   }
   .colName, .colMother, .colStreet, .colComp, .colDistrict {

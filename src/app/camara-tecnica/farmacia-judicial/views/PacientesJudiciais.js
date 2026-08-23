@@ -25,6 +25,7 @@ export default function TabPacientesJudiciais({
     numeroProcesso: '',
     cpf: '',
     nomeCompleto: '',
+    sexo: 'Masculino',
     dataNascimento: '',
     nomeMae: '',
     telefone: '',
@@ -93,6 +94,7 @@ export default function TabPacientesJudiciais({
       numeroProcesso: pacienteExistente?.numeroProcesso || '',
       cpf: pessoa.cpf || '',
       nomeCompleto: pessoa.nomeCompleto || pessoa.nome || '',
+      sexo: pessoa.sexo || 'Masculino',
       dataNascimento: pessoa.dataNascimento ? pessoa.dataNascimento.split('T')[0] : '',
       nomeMae: pessoa.nomeMae || '',
       telefone: pessoa.telefone || '',
@@ -138,6 +140,7 @@ export default function TabPacientesJudiciais({
       numeroProcesso: '',
       cpf: '',
       nomeCompleto: '',
+      sexo: 'Masculino',
       dataNascimento: '',
       nomeMae: '',
       telefone: '',
@@ -189,7 +192,7 @@ export default function TabPacientesJudiciais({
     e.preventDefault();
     if (isReadOnly) return;
 
-    if (!form.numeroPasta || !form.numeroProcesso || !form.cpf || !form.nomeCompleto) {
+    if (!form.numeroPasta || !form.numeroProcesso || !form.cpf || !form.nomeCompleto || !form.sexo) {
       return alert('Preencha os campos obrigatórios do paciente e processo.');
     }
 
@@ -346,6 +349,20 @@ export default function TabPacientesJudiciais({
                   className={isReadOnly ? styles.readOnlyInput : ''}
                   required
                 />
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label>Sexo *</label>
+                <select
+                  value={form.sexo || 'Masculino'}
+                  onChange={(e) => setForm({ ...form, sexo: e.target.value })}
+                  disabled={isReadOnly}
+                  className={isReadOnly ? styles.readOnlyInput : ''}
+                  required
+                >
+                  <option value="Masculino">Masculino</option>
+                  <option value="Feminino">Feminino</option>
+                </select>
               </div>
 
               <div className={styles.fieldGroup}>

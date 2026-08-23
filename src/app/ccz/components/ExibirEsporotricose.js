@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useTransition } from "react";
-import styles from "./TabExibirZoonoses.module.css";
+import styles from "./ExibirZoonoses.module.css";
 import ModalConfirmacaoEsporotricose from "./Modals/ModalConfirmacaoEsporotricose";
 import ModalEditarEsporotricose from "./Modals/ModalEditarEsporotricose";
 import {

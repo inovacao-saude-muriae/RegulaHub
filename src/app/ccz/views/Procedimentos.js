@@ -1,9 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import s from "./shared.module.css";
-import ModalConfirmacaoCCZ from "./Modals/ModalConfirmacaoCCZ";
-import ModalMensagemCCZ from "./Modals/ModalMensagemCCZ";
+
+// Subir um nível para encontrar o shared.module.css na raiz do CCZ
+import s from "../shared.module.css";
+
+// Apontar para os Modais dentro da pasta components/
+import ModalConfirmacaoCCZ from "../components/Modals/ModalConfirmacaoCCZ";
+import ModalMensagemCCZ from "../components/Modals/ModalMensagemCCZ";
 
 const TIPOS_PROCEDIMENTO = [
   "Castração",
@@ -42,7 +46,7 @@ function statusBadgeClass(status) {
 
 let _nextId = 1;
 
-export default function TabProcedimentos({ tutores = [], animais = [] }) {
+export default function Procedimentos({ tutores = [], animais = [] }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
   const [registros, setRegistros] = useState([]);
@@ -57,7 +61,7 @@ export default function TabProcedimentos({ tutores = [], animais = [] }) {
     .filter((g) => g.animais.length > 0);
 
   const animalSelecionado = animais.find(
-    (a) => String(a.id) === String(form.animalId),
+    (a) => String(a.id) === String(form.animalId)
   );
   const tutorDoAnimal = animalSelecionado
     ? tutores.find((t) => t.cpf === animalSelecionado.tutorCpf)
@@ -70,17 +74,18 @@ export default function TabProcedimentos({ tutores = [], animais = [] }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!form.animalId || !form.tipoProcedimento || !form.dataProcedimento)
+    if (!form.animalId || !form.tipoProcedimento || !form.dataProcedimento) {
       setMessageConfig({
         type: "warning",
         title: "Dados incompletos",
         message: "Preencha o animal, tipo de procedimento e data.",
       });
-    return;
+      return;
+    }
 
     if (editingId !== null) {
       setRegistros((prev) =>
-        prev.map((r) => (r.id === editingId ? { ...r, ...form } : r)),
+        prev.map((r) => (r.id === editingId ? { ...r, ...form } : r))
       );
       setMessageConfig({
         type: "success",
@@ -314,7 +319,7 @@ export default function TabProcedimentos({ tutores = [], animais = [] }) {
             )}
             {registros.map((r) => {
               const animal = animais.find(
-                (a) => String(a.id) === String(r.animalId),
+                (a) => String(a.id) === String(r.animalId)
               );
               const tutor = animal
                 ? tutores.find((t) => t.cpf === animal.tutorCpf)
@@ -358,7 +363,7 @@ export default function TabProcedimentos({ tutores = [], animais = [] }) {
                           detalhe: `Data: ${formatDate(r.dataProcedimento)}`,
                           onConfirm: () => {
                             setRegistros((prev) =>
-                              prev.filter((x) => x.id !== r.id),
+                              prev.filter((x) => x.id !== r.id)
                             );
                             setMessageConfig({
                               type: "success",

@@ -5,7 +5,7 @@ import styles from "./CadastroMedicos.module.css";
 import ModalConfirmacaoExclusao from "./Modals/ModalConfirmacaoExclusao";
 import { createMedico, updateMedico, deleteMedico } from "../actions";
 
-export default function TabCadastroMedicos({
+export default function CadastroMedicos({
   formMedico,
   setFormMedico,
   auxData = { medicos: [] },

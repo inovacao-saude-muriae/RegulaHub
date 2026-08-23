@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import styles from "./CadastroPacientes.module.css";
-import ModalConfirmacaoExclusao from "./Modals/ModalConfirmacaoExclusao";
-import { createPessoa, updatePessoa, deletePessoa } from "../actions";
+import { createPessoa, updatePessoa } from "../actions";
 
 function maskCpf(value) {
   if (!value) return "";
@@ -40,18 +38,17 @@ function onlyDigits(value) {
   return value ? value.replace(/\D/g, "") : "";
 }
 
-export default function TabCadastroPacientes({
+export default function CadastroPacientes({
   formPessoa,
   setFormPessoa,
   auxData = { pessoas: [] },
-  reloadData = () => {},
+  reload = () => {},
 }) {
-  const [deleteConfig, setDeleteConfig] = useState(null);
-
   const resetFormPessoa = () => {
     setFormPessoa({
       cpf: "",
       nomeCompleto: "",
+      sexo: "Masculino",
       dataNascimento: "",
       nomeMae: "",
       telefone: "",
@@ -74,6 +71,7 @@ export default function TabCadastroPacientes({
     setFormPessoa({
       cpf: maskCpf(p.cpf),
       nomeCompleto: p.nomeCompleto || "",
+      sexo: p.sexo || "Masculino",
       dataNascimento: p.dataNascimento || "",
       nomeMae: p.nomeMae || "",
       telefone: p.telefone ? maskTelefone(p.telefone) : "",
@@ -94,15 +92,6 @@ export default function TabCadastroPacientes({
 
   return (
     <div className={styles.card}>
-      <ModalConfirmacaoExclusao
-        config={deleteConfig}
-        onConfirm={() => {
-          if (deleteConfig?.onConfirm) deleteConfig.onConfirm();
-          setDeleteConfig(null);
-        }}
-        onCancel={() => setDeleteConfig(null)}
-      />
-
       <div className={styles.searchSectionContainer}>
         <div className={styles.fieldGroup}>
           <label>Buscar Paciente no Banco (CPF ou Nome)</label>
@@ -201,31 +190,6 @@ export default function TabCadastroPacientes({
               <img src="/img/icon/mais.png" alt="Adicionar" className={styles.iconImg} />
             </button>
 
-            {formPessoa.isEditing && (
-              <button
-                type="button"
-                className={`${styles.iconSquareBtn} ${styles.btnRed}`}
-                title="Excluir Paciente"
-                onClick={() =>
-                  setDeleteConfig({
-                    tipo: "PESSOA",
-                    nome: formPessoa.nomeCompleto,
-                    detalhe: `CPF: ${maskCpf(formPessoa.cpf)}`,
-                    onConfirm: async () => {
-                      const res = await deletePessoa(onlyDigits(formPessoa.cpf));
-                      if (res.success) {
-                        alert("Paciente removido com sucesso!");
-                        reloadData();
-                        resetFormPessoa();
-                      } else alert("Erro ao excluir: " + res.error);
-                    },
-                  })
-                }
-              >
-                <img src="/img/icon/excluir.png" alt="Excluir" className={styles.iconImg} />
-              </button>
-            )}
-
             {(formPessoa.isFormActive || formPessoa.isEditing) && (
               <button type="button" className={`${styles.iconSquareBtn} ${styles.btnRed}`} title="Cancelar" onClick={resetFormPessoa}>
                 <img src="/img/icon/cancelar.png" alt="Cancelar" className={styles.iconImg} />
@@ -249,13 +213,13 @@ export default function TabCadastroPacientes({
             const res = await updatePessoa(cleanedData.cpf, cleanedData);
             if (res.success) {
               alert("Paciente atualizado com sucesso!");
-              reloadData();
+              reload();
             } else alert("Erro ao atualizar: " + res.error);
           } else {
             const res = await createPessoa(cleanedData);
             if (res.success) {
               alert("Paciente cadastrado com sucesso!");
-              reloadData();
+              reload();
             } else alert("Erro ao salvar: " + res.error);
           }
           resetFormPessoa();
@@ -287,6 +251,18 @@ export default function TabCadastroPacientes({
                 disabled={!formPessoa.isFormActive}
                 required
               />
+            </div>
+            <div className={`${styles.fieldGroup} ${styles.colSexo}`}>
+              <label>Sexo *</label>
+              <select
+                value={formPessoa.sexo || "Masculino"}
+                onChange={(e) => setFormPessoa({ ...formPessoa, sexo: e.target.value })}
+                disabled={!formPessoa.isFormActive}
+                required
+              >
+                <option value="Masculino">Masculino</option>
+                <option value="Feminino">Feminino</option>
+              </select>
             </div>
             <div className={`${styles.fieldGroup} ${styles.colBirth}`}>
               <label>Data de Nascimento *</label>

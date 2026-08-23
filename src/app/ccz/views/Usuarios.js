@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import s from "./shared.module.css";
-import ts from "./TabUsuarios.module.css";
+
+// Subir um nível para encontrar o shared.module.css na raiz do CCZ
+import s from "../shared.module.css";
+// Mudar de ./ para importar o CSS local da View Usuarios
+import ts from "./Usuarios.module.css";
 
 function maskCpf(v) {
   if (!v) return "";
@@ -13,6 +16,7 @@ function maskCpf(v) {
     .replace(/(\d{3})(\d)/, "$1.$2")
     .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
+
 function maskTel(v) {
   if (!v) return "";
   const d = v.replace(/\D/g, "").slice(0, 11);
@@ -24,11 +28,12 @@ function maskTel(v) {
     .replace(/(\d{2})(\d)/, "($1) $2")
     .replace(/(\d{5})(\d{1,4})$/, "$1-$2");
 }
+
 function onlyDigits(v) {
   return v ? v.replace(/\D/g, "") : "";
 }
 
-export default function TabUsuarios({
+export default function Usuarios({
   tutores = [],
   animais = [],
   reloadData,

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useTransition } from "react";
-import styles from "./TabExibirZoonoses.module.css";
+import styles from "./ExibirZoonoses.module.css";
 import ModalConfirmacaoCCZ from "./Modals/ModalConfirmacaoCCZ";
 import ModalEditarZoonose from "./Modals/ModalEditarZoonose";
 import { excluirZoonoseAction, salvarEdicaoZoonoseAction } from "../actions";

@@ -1,10 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import s from "./shared.module.css";
-import ts from "./TabCadastros.module.css";
-import ModalConfirmacaoCCZ from "./Modals/ModalConfirmacaoCCZ";
-import ModalMensagemCCZ from "./Modals/ModalMensagemCCZ";
+
+// Estilos ajustados para a estrutura views/
+import s from "../shared.module.css";
+import ts from "./Cadastros.module.css";
+
+// Modais importados da pasta components
+import ModalConfirmacaoCCZ from "../components/Modals/ModalConfirmacaoCCZ";
+import ModalMensagemCCZ from "../components/Modals/ModalMensagemCCZ";
+
+// Actions importadas da raiz do módulo ccz
 import {
   searchPessoasCCZ,
   vincularTutor,
@@ -84,7 +90,7 @@ const EMPTY_ANIMAL = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────
-export default function TabCadastros({
+export default function Cadastros({
   tutores = [],
   animais = [],
   reloadData,

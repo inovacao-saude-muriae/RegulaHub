@@ -1,9 +1,9 @@
 'use client';
 
-import styles from './TabNovoPedido.module.css';
+import styles from './NovoPedido.module.css';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 
-export default function TabNovoPedido({
+export default function NovoPedido({
   newRequest = {
     patientSearch: '',
     patientName: '',

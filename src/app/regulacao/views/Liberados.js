@@ -1,34 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import styles from "./TabListaEspera.module.css";
+import styles from "./Liberados.module.css";
 
-export default function TabListaEspera({
+export default function Liberados({
   auxData,
   requests,
-  selectedQueueExam,
-  setSelectedQueueExam,
+  selectedReleasedExam,
+  setSelectedReleasedExam,
   applyFilters,
-  handleUpdateCommunicationDate,
-  handleOpenReleaseModal,
+  handleUpdateBillingDate,
   handleEditOrder,
+  handleExportToExcelReleased,
   loading,
 }) {
   const [selectedIds, setSelectedIds] = useState([]);
 
-  // 1. Encontra o objeto do exame selecionado nas auxiliares para obter seu ID e Nome exatos
+  // 1. Localiza o objeto exato do exame selecionado nas auxiliares
   const selectedTypeObj = auxData?.tiposExame?.find(
     (t) =>
-      t.nome?.toLowerCase().trim() === selectedQueueExam?.toLowerCase().trim() ||
-      String(t.id) === String(selectedQueueExam)
+      t.nome?.toLowerCase().trim() === selectedReleasedExam?.toLowerCase().trim() ||
+      String(t.id) === String(selectedReleasedExam)
   );
 
-  // 2. Filtra estritamente por Status "Aguardando" E pelo Tipo de Exame ativo
-  const baseWaiting = requests.filter((item) => {
-    if (item.status !== "Aguardando") return false;
-    if (!selectedQueueExam) return true;
+  // 2. Filtra estritamente por Status "Liberado" E pelo Tipo de Exame ativo (sem vazamento por substring)
+  const baseReleased = requests.filter((item) => {
+    if (item.status !== "Liberado") return false;
+    if (!selectedReleasedExam) return true;
 
-    // A) Validação por ID do tipo de exame (Relacionamento seguro)
+    // A) Validação por ID do tipo de exame (Relacionamento Direto)
     if (selectedTypeObj && item.examTypeId) {
       return String(item.examTypeId) === String(selectedTypeObj.id);
     }
@@ -41,10 +41,10 @@ export default function TabListaEspera({
     return true;
   });
 
-  // 3. Aplica os filtros avançados da barra de filtros garantindo que o exame continue preso
-  const waitingList =
+  // 3. Aplica os filtros avançados garantindo a trava do exame ativo
+  const releasedList =
     typeof applyFilters === "function"
-      ? applyFilters(baseWaiting).filter((item) => {
+      ? applyFilters(baseReleased).filter((item) => {
           if (!selectedTypeObj) return true;
           if (item.examTypeId) {
             return String(item.examTypeId) === String(selectedTypeObj.id);
@@ -54,11 +54,11 @@ export default function TabListaEspera({
             selectedTypeObj.nome.toLowerCase().trim()
           );
         })
-      : baseWaiting;
+      : baseReleased;
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedIds(waitingList.map((item) => item.id));
+      setSelectedIds(releasedList.map((item) => item.id));
     } else {
       setSelectedIds([]);
     }
@@ -89,8 +89,8 @@ export default function TabListaEspera({
       <div className={styles.examTabs}>
         {auxData?.tiposExame?.map((tipo) => {
           const isActive =
-            selectedQueueExam?.toLowerCase().trim() === tipo.nome?.toLowerCase().trim() ||
-            String(selectedQueueExam) === String(tipo.id);
+            selectedReleasedExam?.toLowerCase().trim() === tipo.nome?.toLowerCase().trim() ||
+            String(selectedReleasedExam) === String(tipo.id);
 
           return (
             <button
@@ -100,7 +100,7 @@ export default function TabListaEspera({
                 isActive ? styles.activeExamTab : ""
               }`}
               onClick={() => {
-                setSelectedQueueExam(tipo.nome);
+                setSelectedReleasedExam(tipo.nome);
                 setSelectedIds([]);
               }}
             >
@@ -110,24 +110,33 @@ export default function TabListaEspera({
         })}
       </div>
 
-      {/* CABEÇALHO E RESUMO DA FILA */}
+      {/* CABEÇALHO E AÇÃO DE EXPORTAR */}
       <div className={styles.tableHeaderBar}>
         <div className={styles.infoGroup}>
           <h3>
-            Fila de Espera: <span>{selectedQueueExam || "Todos"}</span>
+            Pacientes Liberados: <span>{selectedReleasedExam || "Todos"}</span>
           </h3>
           <p>
-            Total aguardando: <strong>{waitingList.length}</strong> paciente(s)
+            Total de registros: <strong>{releasedList.length}</strong>
           </p>
         </div>
+
+        <button
+          type="button"
+          className={styles.exportBtn}
+          onClick={() => handleExportToExcelReleased(selectedIds)}
+          disabled={selectedIds.length === 0}
+        >
+          📊 Exportar Selecionados ({selectedIds.length}) para Excel
+        </button>
       </div>
 
       {/* TABELA DE DADOS */}
       {loading ? (
-        <div className={styles.loadingState}>Carregando fila de espera...</div>
-      ) : waitingList.length === 0 ? (
+        <div className={styles.loadingState}>Carregando pacientes liberados...</div>
+      ) : releasedList.length === 0 ? (
         <div className={styles.emptyState}>
-          Nenhum paciente aguardando na fila para <strong>{selectedQueueExam}</strong>.
+          Nenhum paciente liberado encontrado para <strong>{selectedReleasedExam}</strong>.
         </div>
       ) : (
         <div className={styles.tableContainer}>
@@ -139,8 +148,8 @@ export default function TabListaEspera({
                     type="checkbox"
                     onChange={handleSelectAll}
                     checked={
-                      waitingList.length > 0 &&
-                      selectedIds.length === waitingList.length
+                      releasedList.length > 0 &&
+                      selectedIds.length === releasedList.length
                     }
                   />
                 </th>
@@ -148,14 +157,20 @@ export default function TabListaEspera({
                 <th>Paciente</th>
                 <th>CPF</th>
                 <th>Procedimento</th>
-                <th>Data Pedido</th>
-                <th>Avisado Em</th>
+                <th>Data Liberação</th>
+                <th>Cota</th>
+                <th>Competência</th>
+                <th>Data Faturado</th>
                 <th style={{ textAlign: "center" }}>Ações</th>
               </tr>
             </thead>
             <tbody>
-              {waitingList.map((item) => {
+              {releasedList.map((item) => {
                 const isSelected = selectedIds.includes(item.id);
+                const competence =
+                  item.quotaCompetenceMonth && item.quotaCompetenceYear
+                    ? `${item.quotaCompetenceMonth}/${item.quotaCompetenceYear}`
+                    : "—";
 
                 return (
                   <tr
@@ -174,9 +189,7 @@ export default function TabListaEspera({
                     </td>
                     <td>
                       <div className={styles.patientHeader}>
-                        <span className={styles.patientName}>
-                          {item.patientName}
-                        </span>
+                        <span className={styles.patientName}>{item.patientName}</span>
                         <span
                           className={`${styles.riskTag} ${getRiskClass(
                             item.classification
@@ -188,28 +201,34 @@ export default function TabListaEspera({
                       <small className={styles.subText}>
                         Mãe: {item.motherName || "Não informada"}
                       </small>
+                      
+                      {/* EXIBIÇÃO DA OBSERVAÇÃO GERAL DA REGULAÇÃO */}
+                      {(item.generalObservation || item.justification) && (
+                        <div style={{ marginTop: "4px", fontSize: "0.8rem", color: "#475569" }}>
+                          <strong>Obs. Geral:</strong> {item.generalObservation || item.justification}
+                        </div>
+                      )}
                     </td>
                     <td>{item.cpf || "—"}</td>
                     <td>{item.procedure}</td>
-                    <td>{item.requestDate || "—"}</td>
+                    <td>{item.releaseDate || "—"}</td>
+                    <td>
+                      <span className={styles.quotaBadge}>
+                        {item.quota || "N/A"}
+                      </span>
+                    </td>
+                    <td>{competence}</td>
                     <td>
                       <input
                         type="date"
                         className={styles.dateInput}
-                        value={item.communicationDate || ""}
+                        value={item.billingDate || ""}
                         onChange={(e) =>
-                          handleUpdateCommunicationDate(item.id, e.target.value)
+                          handleUpdateBillingDate(item.id, e.target.value)
                         }
                       />
                     </td>
                     <td className={styles.actionsCell}>
-                      <button
-                        type="button"
-                        className={styles.releaseBtn}
-                        onClick={() => handleOpenReleaseModal(item)}
-                      >
-                        Liberar
-                      </button>
                       <button
                         type="button"
                         className={styles.iconBtn}

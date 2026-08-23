@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import s from "./shared.module.css";
-import ModalConfirmacaoCCZ from "./Modals/ModalConfirmacaoCCZ";
-import ModalMensagemCCZ from "./Modals/ModalMensagemCCZ";
+
+// Subir um nível para encontrar o CSS compartilhado na raiz do CCZ
+import s from "../shared.module.css";
+
+// Apontar para os Modais dentro da pasta components/
+import ModalConfirmacaoCCZ from "../components/Modals/ModalConfirmacaoCCZ";
+import ModalMensagemCCZ from "../components/Modals/ModalMensagemCCZ";
+
+// Server Actions importadas da raiz do módulo ccz
 import { createDenuncia, updateDenuncia, deleteDenuncia } from "../actions";
 
 const EMPTY_FORM = {
@@ -25,7 +31,7 @@ function updateField(setForm, field, value) {
   setForm((current) => ({ ...current, [field]: value }));
 }
 
-export default function TabDenuncias({
+export default function Denuncias({
   denuncias = [],
   animais = [],
   reloadData,

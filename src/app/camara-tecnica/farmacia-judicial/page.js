@@ -15,10 +15,10 @@ import {
   getRelatorioSaidas,
 } from "./actions";
 
-import TabDashboard from "./components/TabDashboard";
-import TabPacientesJudiciais from "./components/TabPacientesJudiciais";
-import TabDispensacao from "./components/TabDispensacao";
-import TabRelatorios from "./components/TabRelatorios";
+import TabDashboard from "./views/Dashboard";
+import TabPacientesJudiciais from "./components/PacientesJudiciais";
+import TabDispensacao from "./views/Dispensacao";
+import TabRelatorios from "./views/Relatorios";
 
 // 🎯 COMPONENTES DE ESTOQUE SEPARADOS E INDEPENDENTES
 import TabSaldoEstoque from "./components/SaldoEstoque";

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { createZoonose } from "../actions";
-import styles from "./TabZoonoses.module.css";
+import styles from "./Zoonoses.module.css";
 
 export default function TabZoonoses({ animais = [], reloadData }) {
   const [message, setMessage] = useState(null);

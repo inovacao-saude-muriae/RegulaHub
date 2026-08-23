@@ -2,7 +2,12 @@
 
 import { prisma } from '@/lib/prisma';
 
-/* ── 1. BUSCA DE PESSOAS NO BANCO (AUTOCOMPLETAR) ── */
+// Helper para converter BigInt e Objetos Date sem erro de serialização no Next.js
+function serializeData(data) {
+  return JSON.parse(JSON.stringify(data));
+}
+
+/* ── 1. BUSCA DE PESSOAS NO BANCO (SEM DUPLICAÇÃO DE DADOS) ── */
 export async function buscarPessoaExistente(termo) {
   if (!termo || String(termo).trim().length < 2) {
     return [];
@@ -34,6 +39,7 @@ export async function buscarPessoaExistente(termo) {
         cpf: p.cpf,
         nomeCompleto: p.nomeCompleto,
         nome: p.nomeCompleto,
+        sexo: p.sexo || 'Masculino',
         dataNascimento: p.dataNascimento,
         nomeMae: p.nomeMae,
         telefone: p.telefone,
@@ -66,6 +72,7 @@ export async function cadastrarPacienteJunta(data) {
     const {
       cpf,
       nomeCompleto,
+      sexo,
       dataNascimento,
       nomeMae,
       telefone,
@@ -81,15 +88,18 @@ export async function cadastrarPacienteJunta(data) {
     } = data;
 
     const cpfClean = (cpf || '').replace(/\D/g, '').slice(0, 11);
+    const sexoVal = sexo || 'Masculino';
 
     if (!cpfClean || cpfClean.length !== 11) {
       return { success: false, error: 'CPF inválido. Deve conter 11 dígitos.' };
     }
 
+    // 1. Upsert na tabela Pessoa
     await prisma.pessoa.upsert({
       where: { cpf: cpfClean },
       update: {
         nomeCompleto: nomeCompleto ? nomeCompleto.slice(0, 150) : undefined,
+        sexo: sexoVal,
         dataNascimento: dataNascimento ? new Date(dataNascimento) : undefined,
         nomeMae: nomeMae ? nomeMae.slice(0, 150) : undefined,
         telefone: telefone ? telefone.slice(0, 20) : undefined,
@@ -97,12 +107,14 @@ export async function cadastrarPacienteJunta(data) {
       create: {
         cpf: cpfClean,
         nomeCompleto: (nomeCompleto || '').slice(0, 150),
+        sexo: sexoVal,
         dataNascimento: dataNascimento ? new Date(dataNascimento) : new Date(),
         nomeMae: (nomeMae || 'NÃO INFORMADO').slice(0, 150),
         telefone: telefone ? telefone.slice(0, 20) : '',
       },
     });
 
+    // 2. Gravação do Endereço
     if (logradouro || bairro || cep) {
       const enderecoExistente = await prisma.endereco.findFirst({
         where: { pessoaCpf: cpfClean, enderecoAtual: true },
@@ -138,6 +150,7 @@ export async function cadastrarPacienteJunta(data) {
       }
     }
 
+    // 3. Cadastrar ou Atualizar o Paciente na Junta
     const pacienteJunta = await prisma.pacienteJunta.upsert({
       where: { pessoaCpf: cpfClean },
       update: { tipoDeficiencia },
@@ -147,10 +160,12 @@ export async function cadastrarPacienteJunta(data) {
       },
     });
 
+    // Limpa vínculos anteriores
     await prisma.pacienteJuntaServico.deleteMany({
       where: { pacienteJuntaId: pacienteJunta.id },
     });
 
+    // Cria novos vínculos
     if (locaisEncaminhados.length > 0) {
       const servicoIds = [];
 
@@ -181,12 +196,12 @@ export async function cadastrarPacienteJunta(data) {
 
     return { success: true, id: pacienteJunta.id };
   } catch (error) {
-    console.error('Erro ao cadastrar paciente na Junta via Prisma:', error);
+    console.error('Erro ao cadastrar paciente na Junta:', error);
     return { success: false, error: error.message };
   }
 }
 
-/* ── 3. LISTAR PACIENTES VINCULADOS A UM SERVIÇO (CORRIGIDO) ── */
+/* ── 3. LISTAR PACIENTES VINCULADOS A UM SERVIÇO ── */
 export async function getPacientesPorServico(servicoNome) {
   try {
     if (!servicoNome) return { success: true, data: [] };
@@ -206,7 +221,6 @@ export async function getPacientesPorServico(servicoNome) {
       return { success: true, data: [] };
     }
 
-    // Busca os vínculos e traz os dados da pessoa sem realizar o orderBy direto no Prisma
     const vinculos = await prisma.pacienteJuntaServico.findMany({
       where: {
         servicoId: servico.id,
@@ -221,17 +235,13 @@ export async function getPacientesPorServico(servicoNome) {
     const pacienteJuntaIds = vinculos.map((v) => v.pacienteJuntaId).filter(Boolean);
 
     const pacientesJunta = await prisma.pacienteJunta.findMany({
-      where: {
-        id: { in: pacienteJuntaIds },
-      },
+      where: { id: { in: pacienteJuntaIds } },
     });
 
     const pessoaCpfs = pacientesJunta.map((pj) => pj.pessoaCpf).filter(Boolean);
 
     const pessoas = await prisma.pessoa.findMany({
-      where: {
-        cpf: { in: pessoaCpfs },
-      },
+      where: { cpf: { in: pessoaCpfs } },
       include: {
         enderecos: {
           where: { enderecoAtual: true },
@@ -265,6 +275,7 @@ export async function getPacientesPorServico(servicoNome) {
           cpf: pessoa.cpf || '',
           nome: pessoa.nomeCompleto || '',
           nomeCompleto: pessoa.nomeCompleto || '',
+          sexo: pessoa.sexo || 'Masculino',
           nomeMae: pessoa.nomeMae || '',
           telefone: pessoa.telefone || '',
           tipo_deficiencia: pj.tipoDeficiencia || '',
@@ -279,7 +290,6 @@ export async function getPacientesPorServico(servicoNome) {
       })
       .filter(Boolean);
 
-    // Ordena alfabeticamente pelo nome do paciente em memória
     data.sort((a, b) => a.nomeCompleto.localeCompare(b.nomeCompleto));
 
     return { success: true, data };
@@ -308,13 +318,8 @@ export async function registrarAtendimentoServico(data) {
     const nomeDoServico = (servicoNome || servico || '').trim();
     const idDoPaciente = pacienteJuntaId || pacienteId;
 
-    if (!nomeDoServico) {
-      return { success: false, error: 'Nome do serviço não foi informado.' };
-    }
-
-    if (!idDoPaciente) {
-      return { success: false, error: 'Paciente não foi selecionado.' };
-    }
+    if (!nomeDoServico) return { success: false, error: 'Nome do serviço não informado.' };
+    if (!idDoPaciente) return { success: false, error: 'Paciente não selecionado.' };
 
     let juntaServico = await prisma.juntaServico.findFirst({
       where: { nome: { equals: nomeDoServico, mode: 'insensitive' } },
@@ -342,17 +347,18 @@ export async function registrarAtendimentoServico(data) {
 
     return { success: true };
   } catch (error) {
-    console.error('Erro ao registrar atendimento via Prisma:', error);
+    console.error('Erro ao registrar atendimento:', error);
     return { success: false, error: error.message };
   }
 }
 
-/* ── 5. CONSULTA DO PRONTUÁRIO UNIFICADO (AGRUPADO POR SERVIÇO E ESPECIALIDADE) ── */
+/* ── 5. CONSULTA DO PRONTUÁRIO UNIFICADO (100% PRISMA ORM DEFINITIVO) ── */
 export async function getProntuarioUnificado(termoBusca) {
   try {
     const termoClean = String(termoBusca).trim();
     const apenasNumeros = termoClean.replace(/\D/g, '');
 
+    // 1. Busca os dados primários da pessoa diretamente pelo Prisma ORM
     const pessoa = await prisma.pessoa.findFirst({
       where: {
         OR: [
@@ -372,6 +378,7 @@ export async function getProntuarioUnificado(termoBusca) {
       return { success: true, data: null };
     }
 
+    // 2. Busca cadastro da pessoa na Junta
     const pacienteJunta = await prisma.pacienteJunta.findFirst({
       where: { pessoaCpf: pessoa.cpf },
     });
@@ -380,11 +387,9 @@ export async function getProntuarioUnificado(termoBusca) {
     let servicosAgrupados = [];
 
     if (pacienteJunta) {
+      // 3. Busca serviços vinculados usando a relação do Prisma PacienteJuntaServico
       const vinculos = await prisma.pacienteJuntaServico.findMany({
-        where: {
-          pacienteJuntaId: pacienteJunta.id,
-          ativo: true,
-        },
+        where: { pacienteJuntaId: pacienteJunta.id, ativo: true },
       });
 
       if (vinculos.length > 0) {
@@ -395,6 +400,7 @@ export async function getProntuarioUnificado(termoBusca) {
         servicosAtivos = listaServicos.map((s) => s.nome);
       }
 
+      // 4. Histórico de Atendimentos
       const atendimentos = await prisma.juntaAtendimento.findMany({
         where: { pacienteJuntaId: pacienteJunta.id },
         orderBy: { dataAtendimento: 'desc' },
@@ -429,9 +435,10 @@ export async function getProntuarioUnificado(termoBusca) {
             };
           }
 
-          if (a.status === 'PRESENCA') gruposMap[chaveGrupo].presencas++;
-          else if (a.status === 'FALTA') gruposMap[chaveGrupo].faltas++;
-          else if (a.status === 'FALTA_JUSTIFICADA') gruposMap[chaveGrupo].faltasJustificadas++;
+          const st = (a.status || '').toUpperCase();
+          if (st === 'PRESENCA') gruposMap[chaveGrupo].presencas++;
+          else if (st === 'FALTA') gruposMap[chaveGrupo].faltas++;
+          else if (st === 'FALTA_JUSTIFICADA') gruposMap[chaveGrupo].faltasJustificadas++;
 
           gruposMap[chaveGrupo].datas.push({
             id: a.id,
@@ -452,6 +459,7 @@ export async function getProntuarioUnificado(termoBusca) {
       paciente_junta_id: pacienteJunta?.id || null,
       cpf: pessoa.cpf,
       nome: pessoa.nomeCompleto,
+      sexo: pessoa.sexo || 'Masculino',
       nomeMae: pessoa.nomeMae,
       data_nascimento: pessoa.dataNascimento,
       telefone: pessoa.telefone,
@@ -467,13 +475,13 @@ export async function getProntuarioUnificado(termoBusca) {
 
     return {
       success: true,
-      data: {
+      data: serializeData({
         paciente: pacienteFormatted,
         servicosAgrupados,
-      },
+      }),
     };
   } catch (error) {
-    console.error('Erro ao buscar prontuário via Prisma:', error);
+    console.error('Erro ao buscar prontuário:', error);
     return { success: false, error: error.message };
   }
 }

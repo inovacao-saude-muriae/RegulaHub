@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import styles from "./TabEsporotricose.module.css";
+import styles from "./Esporotricose.module.css";
 import { salvarEsporotricoseAction } from "../actions";
 
 const initialFormState = {

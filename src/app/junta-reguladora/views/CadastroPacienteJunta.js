@@ -28,6 +28,7 @@ export default function CadastroPacienteJunta({ onCadastrar }) {
   const [form, setForm] = useState({
     cpf: '',
     nomeCompleto: '',
+    sexo: 'Masculino',
     dataNascimento: '',
     nomeMae: '',
     telefone: '',
@@ -81,12 +82,18 @@ export default function CadastroPacienteJunta({ onCadastrar }) {
   };
 
   const handleSelectPessoa = (pessoa) => {
+    const nomeSelecionado = pessoa.nomeCompleto || pessoa.nome || '';
+
     setSelectedPatient(pessoa);
     setEditingId(pessoa.id || null);
+    
+    // Atualiza o input de busca para exibir o NOME do paciente selecionado
+    setSearchTerm(nomeSelecionado);
 
     setForm({
       cpf: pessoa.cpf || '',
-      nomeCompleto: pessoa.nomeCompleto || pessoa.nome || '',
+      nomeCompleto: nomeSelecionado,
+      sexo: pessoa.sexo || 'Masculino',
       dataNascimento: pessoa.dataNascimento
         ? new Date(pessoa.dataNascimento).toISOString().split('T')[0]
         : '',
@@ -119,6 +126,7 @@ export default function CadastroPacienteJunta({ onCadastrar }) {
     setForm({
       cpf: '',
       nomeCompleto: '',
+      sexo: 'Masculino',
       dataNascimento: '',
       nomeMae: '',
       telefone: '',
@@ -161,7 +169,7 @@ export default function CadastroPacienteJunta({ onCadastrar }) {
     e.preventDefault();
     if (isReadOnly) return;
 
-    if (!form.cpf || !form.nomeCompleto || !form.tipoDeficiencia) {
+    if (!form.cpf || !form.nomeCompleto || !form.tipoDeficiencia || !form.sexo) {
       return alert('Preencha os campos obrigatórios (*).');
     }
 
@@ -262,6 +270,19 @@ export default function CadastroPacienteJunta({ onCadastrar }) {
                 disabled={isReadOnly}
                 required
               />
+            </div>
+
+            <div className={`${styles.fieldGroup} ${styles.colSexo}`}>
+              <label>Sexo *</label>
+              <select
+                value={form.sexo}
+                onChange={(e) => setForm({ ...form, sexo: e.target.value })}
+                disabled={isReadOnly}
+                required
+              >
+                <option value="Masculino">Masculino</option>
+                <option value="Feminino">Feminino</option>
+              </select>
             </div>
 
             <div className={`${styles.fieldGroup} ${styles.colBirth}`}>

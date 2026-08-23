@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { buscarPessoaExistente } from '../actions';
@@ -11,6 +11,15 @@ export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
   const [sugestoes, setSugestoes] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+
+  // 🎯 LIMPEZA SILENCIOSA DOS CAMPOS AO DESMONTA/TROCAR DE ABA
+  useEffect(() => {
+    return () => {
+      setTermo('');
+      setSugestoes([]);
+      setShowDropdown(false);
+    };
+  }, []);
 
   const formatCPF = (cpf) => {
     if (!cpf) return '';
@@ -39,10 +48,15 @@ export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
   };
 
   const handleSelectPessoa = (pessoa) => {
-    setTermo(pessoa.cpf || pessoa.nomeCompleto);
+    const nomeSelecionado = pessoa.nomeCompleto || pessoa.nome || '';
+    
+    // Insere o NOME no campo visual do input
+    setTermo(nomeSelecionado);
     setShowDropdown(false);
+
+    // Dispara a consulta com o CPF do paciente selecionado
     if (onBuscar) {
-      onBuscar(pessoa.cpf);
+      onBuscar(pessoa.cpf || nomeSelecionado);
     }
   };
 
@@ -58,7 +72,6 @@ export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
   const paciente = prontuarioData?.paciente;
   const servicosAgrupados = prontuarioData?.servicosAgrupados || [];
 
-  // FUNÇÃO DE GERAÇÃO E DOWNLOAD DO DOCUMENTO PDF REAL
   const gerarPDFDownload = () => {
     if (!paciente) return;
 
@@ -70,8 +83,7 @@ export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
 
     const dataEmissao = `${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
 
-    // 1. Cabeçalho Oficial
-    doc.setFillColor(2, 132, 199); // Azul #0284c7
+    doc.setFillColor(2, 132, 199);
     doc.rect(0, 0, 210, 18, 'F');
 
     doc.setTextColor(255, 255, 255);
@@ -83,13 +95,11 @@ export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
     doc.setFont('helvetica', 'normal');
     doc.text(`Emissão: ${dataEmissao}`, 196, 12, { align: 'right' });
 
-    // Título do Documento
     doc.setTextColor(30, 41, 59);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.text('PRONTUÁRIO UNIFICADO E RELATÓRIO DE FREQUÊNCIAS', 14, 28);
 
-    // 2. Tabela de Dados Pessoais do Paciente
     autoTable(doc, {
       startY: 32,
       theme: 'grid',
@@ -119,7 +129,6 @@ export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
 
     let currentY = doc.lastAutoTable.finalY + 8;
 
-    // 3. Renderiza cada Serviço e Especialidade como Tabela Formatada
     if (servicosAgrupados.length === 0) {
       doc.setFontSize(9);
       doc.setFont('helvetica', 'italic');
@@ -127,13 +136,11 @@ export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
       doc.text('Nenhum registro de atendimento ou frequência gravado no sistema.', 14, currentY);
     } else {
       servicosAgrupados.forEach((grupo) => {
-        // Verifica quebra de página se o espaço for curto
         if (currentY > 250) {
           doc.addPage();
           currentY = 20;
         }
 
-        // Título da Seção do Serviço e Especialidade
         doc.setFillColor(241, 245, 249);
         doc.setDrawColor(203, 213, 225);
         doc.rect(14, currentY, 182, 10, 'FD');
@@ -153,7 +160,6 @@ export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
 
         currentY += 12;
 
-        // Tabela de Histórico de Frequência do Serviço
         const tableBody = grupo.datas.map((d) => {
           let statusText = 'Presença Confirmada';
           if (d.status === 'FALTA') statusText = 'Falta';
@@ -206,25 +212,19 @@ export default function ProntuarioRelatorio({ prontuarioData, onBuscar }) {
       });
     }
 
-    // Rodapé em todas as páginas
     const totalPages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
       doc.setFontSize(7);
       doc.setTextColor(148, 163, 184);
       doc.text(
-        `Página ${i} de ${totalPageCount(doc)} - Documento Gerado pelo Sistema RegulaHub`,
+        `Página ${i} de ${totalPages} - Documento Gerado pelo Sistema RegulaHub`,
         105,
         290,
         { align: 'center' }
       );
     }
 
-    function totalPageCount(pdfDoc) {
-      return pdfDoc.internal.getNumberOfPages();
-    }
-
-    // Salva o arquivo diretamente no computador
     const nomeLimpo = (paciente.nome || 'Paciente').replace(/[^a-zA-Z0-9]/g, '_');
     doc.save(`Prontuario_${nomeLimpo}.pdf`);
   };

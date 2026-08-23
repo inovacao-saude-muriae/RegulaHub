@@ -10,9 +10,9 @@ import {
   getProntuarioUnificado,
 } from "./actions";
 
-import CadastroPacienteJunta from "./components/CadastroPacienteJunta";
+import CadastroPacienteJunta from "./views/CadastroPacienteJunta";
 import AtendimentoServico from "./components/AtendimentoServico";
-import ProntuarioRelatorio from "./components/ProntuarioRelatorio";
+import ProntuarioRelatorio from "./views/ProntuarioRelatorio";
 
 import styles from "./page.module.css";
 
