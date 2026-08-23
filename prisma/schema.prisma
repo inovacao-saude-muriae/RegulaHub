@@ -6,16 +6,60 @@ datasource db {
   provider = "postgresql"
 }
 
+// ── ENUM DE PERFIS DE ACESSO ──────────────────────────────────────────────
+enum Role {
+  ADMIN
+  ADMIN_JUNTA
+  OPERADOR_JUNTA
+  ADMIN_REGULA
+  OPERADOR_REGULA
+  VETERINARIO
+  ADMIN_PROCESSO
+  ADMIN_FARMACIA
+}
+
+// ── AUTENTICAÇÃO E SESSÕES ────────────────────────────────────────────────
+model User {
+  id           String    @id @default(uuid())
+  pessoaCpf    String    @unique @map("pessoa_cpf") @db.VarChar(11)
+  senhaHash    String    @map("senha_hash") @db.VarChar(255)
+  cargo        String?   @db.VarChar(100)
+  role         Role      @default(OPERADOR_REGULA)
+  ativo        Boolean   @default(true)
+  ultimoAcesso DateTime? @map("ultimo_acesso") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  pessoa   Pessoa    @relation(fields: [pessoaCpf], references: [cpf], onDelete: Cascade)
+  sessions Session[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// ── MODELOS EXISTENTES DO SISTEMA ─────────────────────────────────────────
 model Pessoa {
   cpf            String        @id @db.VarChar(11)
   nomeCompleto   String        @map("nome_completo") @db.VarChar(150)
-  sexo           String     @default("Masculino") @db.VarChar(20)
+  sexo           String        @default("Masculino") @db.VarChar(20)
   dataNascimento DateTime      @map("data_nascimento") @db.Date
   nomeMae        String        @map("nome_mae") @db.VarChar(150)
   telefone       String        @db.VarChar(20)
   enderecos      Endereco[]
   pedidos        PedidoExame[]
   tutor          Tutor?
+  usuario        User?
 
   @@index([nomeCompleto, dataNascimento], map: "idx_pessoa_nome")
   @@map("pessoa")
@@ -272,7 +316,6 @@ model Animal {
   @@map("animal")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model cadastro_procedimento {
   id                  String    @id(map: "zoonoses_procedimento_pkey") @db.VarChar(50)
   animal_id           String    @db.VarChar(50)
@@ -283,13 +326,12 @@ model cadastro_procedimento {
   descricao           String?
   medicacao_prescrita String?
   data_retorno        DateTime? @db.Date
-  created_at          DateTime? @default(now()) @db.Timestamptz(6)
+  created_at          DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
   animal              Animal    @relation(fields: [animal_id], references: [id], onDelete: Cascade)
 
   @@index([animal_id], map: "idx_procedimento_animal")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model cadastro_zoonoses {
   id                        String    @id(map: "zoonoses_notificacao_pkey") @db.VarChar(50)
   animal_id                 String    @db.VarChar(50)
@@ -301,10 +343,9 @@ model cadastro_zoonoses {
   periodo_monitoramento     String    @db.VarChar(50)
   responsavel_monitoramento String?   @db.VarChar(150)
   observacao                String?
-  created_at                DateTime? @default(now()) @db.Timestamptz(6)
+  created_at                DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model denuncia_cao_agressivo {
   id            String    @id(map: "zoonoses_denuncia_pkey") @db.VarChar(50)
   data_denuncia DateTime? @default(now()) @db.Timestamptz(6)
@@ -315,7 +356,6 @@ model denuncia_cao_agressivo {
   causou_risco  String?   @default("Não") @db.VarChar(10)
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model esporotricose {
   id                        String    @id(map: "zoonoses_esporotricose_pkey") @db.VarChar(50)
   animal_id                 String?   @db.VarChar(50)
@@ -334,7 +374,7 @@ model esporotricose {
   acesso_rua                String?   @default("Não") @db.VarChar(10)
   uso_epi                   String?   @default("Sim") @db.VarChar(10)
   quais_epis                String?   @db.VarChar(150)
-  higienizacao_ambiente     String?
+  higienizacao_ambiente    String?
   outros_animais_residencia String?   @default("Não") @db.VarChar(10)
   outros_animais_descricao  String?
   pessoas_com_lesoes        String?   @default("Não") @db.VarChar(10)
@@ -345,5 +385,5 @@ model esporotricose {
   enc_ministerio_publico    Boolean?  @default(false)
   enc_outras_medidas        Boolean?  @default(false)
   outras_medidas_descricao  String?
-  created_at                DateTime? @default(now()) @db.Timestamptz(6)
+  created_at                DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 }
