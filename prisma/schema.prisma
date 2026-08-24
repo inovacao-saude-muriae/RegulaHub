@@ -20,17 +20,20 @@ enum Role {
 
 // ── AUTENTICAÇÃO E SESSÕES ────────────────────────────────────────────────
 model User {
-  id           String    @id @default(uuid())
-  pessoaCpf    String    @unique @map("pessoa_cpf") @db.VarChar(11)
-  senhaHash    String    @map("senha_hash") @db.VarChar(255)
-  cargo        String?   @db.VarChar(100)
-  role         Role      @default(OPERADOR_REGULA)
-  ativo        Boolean   @default(true)
-  ultimoAcesso DateTime? @map("ultimo_acesso") @db.Timestamptz(6)
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id            String    @id @default(uuid())
+  nome          String    @db.VarChar(150)
+  cpf           String?   @unique @db.VarChar(11)
+  pessoaCpf     String?   @unique @map("pessoa_cpf") @db.VarChar(11)
+  senhaHash     String    @map("senha_hash") @db.VarChar(255)
+  cargo         String?   @db.VarChar(100)
+  role          Role      @default(OPERADOR_REGULA)
+  ativo         Boolean   @default(true)
+  ultimoAcesso  DateTime? @map("ultimo_acesso") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  pessoa   Pessoa    @relation(fields: [pessoaCpf], references: [cpf], onDelete: Cascade)
+  // Relação agora torna-se opcional (?)
+  pessoa   Pessoa?   @relation(fields: [pessoaCpf], references: [cpf], onDelete: SetNull)
   sessions Session[]
 
   @@map("users")

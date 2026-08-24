@@ -143,7 +143,7 @@ export default function AdminUsuariosPage() {
         {/* CPF COM VALIDAÇÃO/BUSCA AUTOMÁTICA */}
         <div className={styles.inputGroup}>
           <label className={styles.label}>CPF de Acesso (Login):</label>
-          <div style={{ position: 'relative' }}>
+          <div className={styles.relativeWrapper}>
             <input
               type="text"
               required
@@ -154,27 +154,14 @@ export default function AdminUsuariosPage() {
               autoComplete="off"
               className={styles.input}
             />
-            {buscandoCpf && (
-              <span
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  fontSize: '0.8rem',
-                  color: '#2563eb',
-                }}
-              >
-                Buscando...
-              </span>
-            )}
+            {buscandoCpf && <span className={styles.searchingBadge}>Buscando...</span>}
           </div>
         </div>
 
         {/* NOME COMPLETO */}
         <div className={styles.inputGroup}>
           <label className={styles.label}>
-            Nome Completo: {pessoaExiste && <small style={{ color: '#166534' }}>(Cadastrado)</small>}
+            Nome Completo: {pessoaExiste && <small className={styles.registeredBadge}>(Cadastrado)</small>}
           </label>
           <input
             type="text"
@@ -182,10 +169,9 @@ export default function AdminUsuariosPage() {
             disabled={pessoaExiste}
             value={nomeCompleto}
             onChange={(e) => setNomeCompleto(e.target.value)}
-            className={styles.input}
+            className={`${styles.input} ${pessoaExiste ? styles.inputDisabled : ''}`}
             placeholder={pessoaExiste ? '' : 'Digite o nome do operador'}
             autoComplete="off"
-            style={{ backgroundColor: pessoaExiste ? '#f1f5f9' : '#ffffff' }}
           />
         </div>
 
@@ -198,9 +184,8 @@ export default function AdminUsuariosPage() {
               disabled={pessoaExiste}
               value={dataNascimento}
               onChange={(e) => setDataNascimento(e.target.value)}
-              className={styles.input}
+              className={`${styles.input} ${pessoaExiste ? styles.inputDisabled : ''}`}
               autoComplete="off"
-              style={{ backgroundColor: pessoaExiste ? '#f1f5f9' : '#ffffff' }}
             />
           </div>
           <div>
@@ -211,15 +196,14 @@ export default function AdminUsuariosPage() {
               value={telefone}
               onChange={(e) => setTelefone(e.target.value)}
               placeholder="(00) 00000-0000"
-              className={styles.input}
+              className={`${styles.input} ${pessoaExiste ? styles.inputDisabled : ''}`}
               autoComplete="off"
-              style={{ backgroundColor: pessoaExiste ? '#f1f5f9' : '#ffffff' }}
             />
           </div>
         </div>
 
-        {/* PERFIL / PERMISSÃO DE ACESSO MAPEADO COM O ENUM 'ROLE' */}
-        <div className={styles.inputGroup} style={{ marginTop: '1rem' }}>
+        {/* PERFIL / PERMISSÃO DE ACESSO */}
+        <div className={`${styles.inputGroup} ${styles.roleInputGroup}`}>
           <label className={styles.label}>Perfil / Módulo de Acesso:</label>
           <select
             value={role}
@@ -239,7 +223,7 @@ export default function AdminUsuariosPage() {
 
             <option value="ADMIN">ADMIN (Gestor Geral do Sistema)</option>
           </select>
-          <span style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+          <span className={styles.roleSubtext}>
             Cargo exibido no sistema: <strong>{obterNomePerfil(role)}</strong>
           </span>
         </div>

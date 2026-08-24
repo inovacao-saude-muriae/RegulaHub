@@ -1,76 +1,69 @@
-"use server";
+'use server';
 
-import { cookies } from "next/headers";
-import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
+import { cookies } from 'next/headers';
+import crypto from 'crypto';
 
 export async function loginAction(formData) {
-  const cpf = formData.get("cpf")?.replace(/\D/g, "");
-  const senha = formData.get("senha");
+  try {
+    const cpf = formData.get('cpf')?.replace(/\D/g, '');
+    const senha = formData.get('senha');
 
-  if (!cpf || !senha) {
-    return { success: false, error: "Preencha o CPF e a senha." };
+    if (!cpf || cpf.length !== 11) {
+      return { error: 'Informe um CPF válido com 11 dígitos.' };
+    }
+
+    if (!senha) {
+      return { error: 'Informe a sua senha de acesso.' };
+    }
+
+    // 1. Busca o operador diretamente na tabela User
+    const user = await prisma.user.findUnique({
+      where: { cpf },
+    });
+
+    if (!user || !user.ativo) {
+      return { error: 'Usuário não encontrado ou inativo no sistema.' };
+    }
+
+    // 2. Valida o hash da senha
+    const senhaValida = await bcrypt.compare(senha, user.senhaHash);
+    if (!senhaValida) {
+      return { error: 'Senha incorreta. Tente novamente.' };
+    }
+
+    // 3. Gera o token e cria a sessão no banco
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000); // 8 horas de sessão
+
+    await prisma.session.create({
+      data: {
+        userId: user.id,
+        token,
+        expiresAt,
+      },
+    });
+
+    // 4. Atualiza o registro do último acesso
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { ultimoAcesso: new Date() },
+    });
+
+    // 5. Salva o Cookie HTTP-Only
+    const cookieStore = await cookies();
+    cookieStore.set('session_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      expires: expiresAt,
+      path: '/',
+    });
+
+    return { success: true, role: user.role };
+  } catch (error) {
+    console.error('Erro na ação de login:', error);
+    return { error: 'Erro interno ao tentar realizar login.' };
   }
-
-  // 1. Busca o usuário vinculado ao CPF na tabela 'pessoa'
-  const user = await prisma.user.findUnique({
-    where: { pessoaCpf: cpf },
-    include: { pessoa: true },
-  });
-
-  if (!user || !user.ativo) {
-    return { success: false, error: "Credenciais inválidas ou usuário inativo." };
-  }
-
-  // 2. Valida a senha enviada com o Hash do banco
-  const senhaValida = await bcrypt.compare(senha, user.senhaHash);
-  if (!senhaValida) {
-    return { success: false, error: "Credenciais inválidas." };
-  }
-
-  // 3. Gera token e cria a sessão
-  const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000); // Validade de 8 horas
-
-  await prisma.session.create({
-    data: {
-      userId: user.id,
-      token,
-      expiresAt,
-    },
-  });
-
-  // 4. Registra a data/hora do último acesso
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { ultimoAcesso: new Date() },
-  });
-
-  // 5. Salva o token no Cookie HTTP-Only seguro
-  const cookieStore = await cookies();
-  cookieStore.set("session_token", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    expires: expiresAt,
-    sameSite: "lax",
-    path: "/",
-  });
-
-  return { 
-    success: true, 
-    role: user.role, 
-    nome: user.pessoa.nomeCompleto 
-  };
-}
-
-export async function logoutAction() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("session_token")?.value;
-
-  if (token) {
-    await prisma.session.deleteMany({ where: { token } }).catch(() => {});
-    cookieStore.delete("session_token");
-  }
-
-  return { success: true };
 }

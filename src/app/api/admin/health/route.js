@@ -4,7 +4,6 @@ import { cookies } from 'next/headers';
 
 export async function GET() {
   try {
-    // 1. Validação de Acesso (ADMIN ou GESTOR podem ver a telemetria)
     const cookieStore = await cookies();
     const token = cookieStore.get('session_token')?.value;
 
@@ -17,35 +16,34 @@ export async function GET() {
       include: { user: true },
     });
 
-    const isGestorOuAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'GESTOR';
+    const rolesAdministrativas = [
+      'ADMIN',
+      'ADMIN_JUNTA',
+      'ADMIN_REGULA',
+      'ADMIN_PROCESSO',
+      'ADMIN_FARMACIA',
+    ];
 
-    if (!session || !isGestorOuAdmin) {
+    if (!session || !rolesAdministrativas.includes(session.user.role)) {
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
     }
 
-    // 2. Consulta o Tamanho Real do PostgreSQL (bytes formatados pelo próprio banco)
     const dbSizeResult = await prisma.$queryRaw`
       SELECT pg_size_pretty(pg_database_size(current_database())) as size;
     `;
     const tamanhoBanco = dbSizeResult[0]?.size || 'Indisponível';
 
-    // 3. Teste de Ping e Conexão Real
     const startPing = performance.now();
     await prisma.$queryRaw`SELECT 1`;
     const endPing = performance.now();
     const pingMs = Math.round(endPing - startPing);
 
-    // 4. Contagem de Sessões Ativas e Válidas
     const sessoesAtivas = await prisma.session.count({
-      where: {
-        expiresAt: { gt: new Date() },
-      },
+      where: { expiresAt: { gt: new Date() } },
     });
 
-    // 5. Total de Usuários Cadastrados
     const totalUsuarios = await prisma.user.count();
 
-    // 6. Últimas Sessões Criadas no Sistema
     const ultimosAcessos = await prisma.session.findMany({
       take: 5,
       orderBy: { id: 'desc' },
@@ -62,15 +60,8 @@ export async function GET() {
     return NextResponse.json(
       {
         status: 'OK',
-        database: {
-          status: 'ONLINE',
-          pingMs,
-          tamanhoBanco, // Novo campo adicionado!
-        },
-        metrics: {
-          sessoesAtivas,
-          totalUsuarios,
-        },
+        database: { status: 'ONLINE', pingMs, tamanhoBanco },
+        metrics: { sessoesAtivas, totalUsuarios },
         logs: ultimosAcessos.map((s) => ({
           id: s.id,
           usuario: s.user.pessoa.nomeCompleto,
