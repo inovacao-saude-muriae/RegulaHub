@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import styles from "./Liberados.module.css";
+
+// Lista padrão caso os dados auxiliares do banco estejam vazios/carregando
+const DEFAULT_TIPOS_EXAME = [
+  { id: "1", nome: "Ressonância Magnética" },
+  { id: "2", nome: "Tomografia Computadorizada" },
+  { id: "3", nome: "Cintilografia" },
+];
 
 export default function Liberados({
   auxData,
@@ -16,24 +24,28 @@ export default function Liberados({
 }) {
   const [selectedIds, setSelectedIds] = useState([]);
 
+  // Garante que a lista de tipos de exames nunca fique undefined
+  const tiposExameLista =
+    auxData?.tiposExame && auxData.tiposExame.length > 0
+      ? auxData.tiposExame
+      : DEFAULT_TIPOS_EXAME;
+
   // 1. Localiza o objeto exato do exame selecionado nas auxiliares
-  const selectedTypeObj = auxData?.tiposExame?.find(
+  const selectedTypeObj = tiposExameLista.find(
     (t) =>
       t.nome?.toLowerCase().trim() === selectedReleasedExam?.toLowerCase().trim() ||
       String(t.id) === String(selectedReleasedExam)
   );
 
-  // 2. Filtra estritamente por Status "Liberado" E pelo Tipo de Exame ativo (sem vazamento por substring)
-  const baseReleased = requests.filter((item) => {
+  // 2. Filtra estritamente por Status "Liberado" E pelo Tipo de Exame ativo
+  const baseReleased = (requests || []).filter((item) => {
     if (item.status !== "Liberado") return false;
     if (!selectedReleasedExam) return true;
 
-    // A) Validação por ID do tipo de exame (Relacionamento Direto)
     if (selectedTypeObj && item.examTypeId) {
       return String(item.examTypeId) === String(selectedTypeObj.id);
     }
 
-    // B) Validação por Nome do tipo de exame (Fallback)
     if (item.examType && selectedTypeObj) {
       return item.examType.toLowerCase().trim() === selectedTypeObj.nome.toLowerCase().trim();
     }
@@ -41,7 +53,7 @@ export default function Liberados({
     return true;
   });
 
-  // 3. Aplica os filtros avançados garantindo a trava do exame ativo
+  // 3. Aplica os filtros avançados
   const releasedList =
     typeof applyFilters === "function"
       ? applyFilters(baseReleased).filter((item) => {
@@ -87,7 +99,7 @@ export default function Liberados({
     <div className={styles.container}>
       {/* ABAS SELETORAS DE TIPO DE EXAME */}
       <div className={styles.examTabs}>
-        {auxData?.tiposExame?.map((tipo) => {
+        {tiposExameLista.map((tipo) => {
           const isActive =
             selectedReleasedExam?.toLowerCase().trim() === tipo.nome?.toLowerCase().trim() ||
             String(selectedReleasedExam) === String(tipo.id);
@@ -202,7 +214,6 @@ export default function Liberados({
                         Mãe: {item.motherName || "Não informada"}
                       </small>
                       
-                      {/* EXIBIÇÃO DA OBSERVAÇÃO GERAL DA REGULAÇÃO */}
                       {(item.generalObservation || item.justification) && (
                         <div style={{ marginTop: "4px", fontSize: "0.8rem", color: "#475569" }}>
                           <strong>Obs. Geral:</strong> {item.generalObservation || item.justification}
@@ -235,7 +246,7 @@ export default function Liberados({
                         onClick={() => handleEditOrder(item)}
                         title="Editar Pedido"
                       >
-                        <img
+                        <Image
                           src="/img/icon/editar.png"
                           alt="Editar"
                           width={16}

@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import styles from "./ListaEspera.module.css";
+
+// Lista padrão de segurança para garantir a exibição dos botões
+const DEFAULT_TIPOS_EXAME = [
+  { id: "1", nome: "Ressonância Magnética" },
+  { id: "2", nome: "Tomografia Computadorizada" },
+  { id: "3", nome: "Cintilografia" },
+];
 
 export default function ListaEspera({
   auxData,
@@ -16,24 +24,28 @@ export default function ListaEspera({
 }) {
   const [selectedIds, setSelectedIds] = useState([]);
 
-  // 1. Encontra o objeto do exame selecionado nas auxiliares para obter seu ID e Nome exatos
-  const selectedTypeObj = auxData?.tiposExame?.find(
+  // Garante que a lista de tipos de exames nunca fique undefined
+  const tiposExameLista =
+    auxData?.tiposExame && auxData.tiposExame.length > 0
+      ? auxData.tiposExame
+      : DEFAULT_TIPOS_EXAME;
+
+  // 1. Encontra o objeto do exame selecionado nas auxiliares
+  const selectedTypeObj = tiposExameLista.find(
     (t) =>
       t.nome?.toLowerCase().trim() === selectedQueueExam?.toLowerCase().trim() ||
       String(t.id) === String(selectedQueueExam)
   );
 
   // 2. Filtra estritamente por Status "Aguardando" E pelo Tipo de Exame ativo
-  const baseWaiting = requests.filter((item) => {
+  const baseWaiting = (requests || []).filter((item) => {
     if (item.status !== "Aguardando") return false;
     if (!selectedQueueExam) return true;
 
-    // A) Validação por ID do tipo de exame (Relacionamento seguro)
     if (selectedTypeObj && item.examTypeId) {
       return String(item.examTypeId) === String(selectedTypeObj.id);
     }
 
-    // B) Validação por Nome do tipo de exame (Fallback)
     if (item.examType && selectedTypeObj) {
       return item.examType.toLowerCase().trim() === selectedTypeObj.nome.toLowerCase().trim();
     }
@@ -41,7 +53,7 @@ export default function ListaEspera({
     return true;
   });
 
-  // 3. Aplica os filtros avançados da barra de filtros garantindo que o exame continue preso
+  // 3. Aplica os filtros avançados
   const waitingList =
     typeof applyFilters === "function"
       ? applyFilters(baseWaiting).filter((item) => {
@@ -87,7 +99,7 @@ export default function ListaEspera({
     <div className={styles.container}>
       {/* ABAS SELETORAS DE TIPO DE EXAME */}
       <div className={styles.examTabs}>
-        {auxData?.tiposExame?.map((tipo) => {
+        {tiposExameLista.map((tipo) => {
           const isActive =
             selectedQueueExam?.toLowerCase().trim() === tipo.nome?.toLowerCase().trim() ||
             String(selectedQueueExam) === String(tipo.id);
@@ -216,7 +228,7 @@ export default function ListaEspera({
                         onClick={() => handleEditOrder(item)}
                         title="Editar Pedido"
                       >
-                        <img
+                        <Image
                           src="/img/icon/editar.png"
                           alt="Editar"
                           width={16}

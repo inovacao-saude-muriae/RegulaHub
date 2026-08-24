@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import Image from 'next/image';
 import styles from './FiltersBar.module.css';
 
 export default function FiltersBar({
@@ -11,13 +12,15 @@ export default function FiltersBar({
   setShowAdvancedFilters,
   allProceduresList = []
 }) {
-  // Estado local para armazenar os filtros temporariamente antes de clicar em "Filtrar"
-  const [draftFilters, setDraftFilters] = useState({ ...filters });
+  // Estado local para os filtros
+  const [draftFilters, setDraftFilters] = useState(filters);
+  const [prevFilters, setPrevFilters] = useState(filters);
 
-  // Sincroniza o rascunho se os filtros externos forem limpos/resetados
-  useEffect(() => {
-    setDraftFilters({ ...filters });
-  }, [filters]);
+  // Sincronização padrão recomendada pelo React (sem acionar cascading render em useEffect)
+  if (filters !== prevFilters) {
+    setPrevFilters(filters);
+    setDraftFilters(filters);
+  }
 
   const handleDraftChange = (field, value) => {
     setDraftFilters((prev) => ({
@@ -26,7 +29,7 @@ export default function FiltersBar({
     }));
   };
 
-  // Aplica todos os filtros de uma vez ao clicar em "Filtrar"
+  // Aplica todos os filtros ao clicar em "Filtrar"
   const handleApplyFilters = () => {
     Object.keys(draftFilters).forEach((key) => {
       handleFilterChange(key, draftFilters[key]);
@@ -44,13 +47,13 @@ export default function FiltersBar({
       <div className={styles.filterBarTop}>
         <div className={styles.mainSearchBox}>
           <div className={styles.lupaIconContainer}>
-            <img
+            <Image
               src="/img/icon/lupa.png"
               alt="Buscar"
+              width={18}
+              height={18}
               className={styles.searchIconImg}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
+              style={{ objectFit: 'contain' }}
             />
           </div>
           <input
@@ -258,7 +261,6 @@ export default function FiltersBar({
             </div>
           </div>
 
-          {/* BOTÃO FILTRAR SEM ÍCONE NO RODAPÉ */}
           <div className={styles.bottomFilterActions}>
             <button
               type="button"
