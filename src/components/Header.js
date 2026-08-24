@@ -14,41 +14,30 @@ export default function Header() {
   useEffect(() => {
     async function fetchUserData() {
       try {
-        // Pega o CPF do localStorage de forma segura
-        const cpfLogado =
-          typeof window !== "undefined"
-            ? localStorage.getItem("user_cpf") || "12912453674"
-            : "12912453674";
-
-        const res = await fetch(`/api/auth/${cpfLogado}`);
+        // Consulta a sessão real do usuário logado via cookie HTTP
+        const res = await fetch("/api/me");
 
         if (res.ok) {
           const data = await res.json();
-          const pessoa = data.pessoa;
-
-          if (pessoa) {
+          if (data?.user) {
             setUserData({
-              name: pessoa.nomeCompleto || "Jefinny de Paula",
-              role:
-                pessoa.usuario?.cargo ||
-                pessoa.usuario?.role ||
-                "Gestor do Sistema",
+              name: data.user.nomeCompleto || "Usuário do Sistema",
+              role: data.user.cargo || data.user.role || "Operador",
             });
             return;
           }
         }
 
-        // Se a API não retornar OK ou não achar a pessoa
+        // Se a sessão for inválida/expirada
         setUserData({
-          name: "Jefinny de Paula",
-          role: "Gestor do Sistema",
+          name: "Sessão Expirada",
+          role: "Não Autenticado",
         });
       } catch (error) {
-        console.error("Erro ao carregar dados do usuário:", error);
-        // Em caso de erro na requisição, define o usuário padrão para destravar
+        console.error("Erro ao carregar dados do usuário no Header:", error);
         setUserData({
-          name: "Jefinny de Paula",
-          role: "Gestor do Sistema",
+          name: "Erro de Conexão",
+          role: "-",
         });
       }
     }
@@ -56,7 +45,7 @@ export default function Header() {
     fetchUserData();
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem("user_cpf");
     }
