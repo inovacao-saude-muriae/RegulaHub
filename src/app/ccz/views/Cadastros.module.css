@@ -18,7 +18,9 @@
   cursor: pointer;
   white-space: nowrap;
   font-family: inherit;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 .subNavActive {
@@ -62,7 +64,9 @@
   color: #1e293b;
   outline: none;
   background-color: #ffffff;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   box-sizing: border-box;
   font-family: inherit;
 }
@@ -105,8 +109,12 @@
   transition: background-color 0.15s;
 }
 
-.dropdown li:last-child { border-bottom: none; }
-.dropdown li:hover { background-color: #eff6ff; }
+.dropdown li:last-child {
+  border-bottom: none;
+}
+.dropdown li:hover {
+  background-color: #eff6ff;
+}
 
 .dropName {
   font-size: 0.9rem;
@@ -144,14 +152,25 @@
   cursor: pointer;
   flex-shrink: 0;
   color: #ffffff;
-  transition: opacity 0.15s, transform 0.15s;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
 }
 
-.iconBtn:hover  { opacity: 0.88; transform: translateY(-1px); }
-.iconBtn:active { transform: translateY(0); }
+.iconBtn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+.iconBtn:active {
+  transform: translateY(0);
+}
 
-.btnBlue { background-color: #2563eb; }
-.btnGray { background-color: #64748b; }
+.btnBlue {
+  background-color: #2563eb;
+}
+.btnGray {
+  background-color: #64748b;
+}
 
 /* ── Card de pessoa selecionada ───────────────────────────── */
 .personCard {
@@ -268,7 +287,9 @@
   color: #1e293b;
   outline: none;
   background-color: #ffffff;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   box-sizing: border-box;
   font-family: inherit;
 }
@@ -281,11 +302,21 @@
 }
 
 /* Colunas */
-.col3  { grid-column: span 3; }
-.col4  { grid-column: span 4; }
-.col6  { grid-column: span 6; }
-.col8  { grid-column: span 8; }
-.col12 { grid-column: span 12; }
+.col3 {
+  grid-column: span 3;
+}
+.col4 {
+  grid-column: span 4;
+}
+.col6 {
+  grid-column: span 6;
+}
+.col8 {
+  grid-column: span 8;
+}
+.col12 {
+  grid-column: span 12;
+}
 
 /* Botões */
 .formActions {
@@ -306,7 +337,9 @@
   transition: background-color 0.2s;
   font-family: inherit;
 }
-.primaryBtn:hover { background-color: #1d4ed8; }
+.primaryBtn:hover {
+  background-color: #1d4ed8;
+}
 
 .secondaryBtn {
   background-color: #f1f5f9;
@@ -320,9 +353,73 @@
   transition: background-color 0.2s;
   font-family: inherit;
 }
-.secondaryBtn:hover { background-color: #e2e8f0; }
+.secondaryBtn:hover {
+  background-color: #e2e8f0;
+}
 
 /* Responsivo */
 @media (max-width: 700px) {
-  .col3, .col4, .col6, .col8 { grid-column: span 12; }
+  .col3,
+  .col4,
+  .col6,
+  .col8 {
+    grid-column: span 12;
+  }
+}
+
+.searchContainer {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.searchHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.searchTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.25rem 0;
+}
+
+.searchSubtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.btnNovoTutor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+}
+
+.btnNovoTutor:hover {
+  background-color: #1d4ed8;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+  transform: translateY(-1px);
+}
+
+.btnNovoTutor:active {
+  transform: translateY(0);
 }

@@ -381,18 +381,40 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
       {subTab === "TUTORES" && (
         <>
           {/* Busca de pessoa */}
-          <div className={ts.searchBox}>
-            <p className={ts.searchLabel}>
-              Busque uma pessoa já cadastrada no sistema e vincule-a como
-              responsável pelo CCZ.
-            </p>
-            <button
-              type="button"
-              className={ts.primaryBtn}
-              onClick={iniciarNovoTutor}
-            >
-              + Cadastrar novo tutor
-            </button>
+          <div className={ts.searchContainer}>
+            <div className={ts.searchHeader}>
+              <div>
+                <h3 className={ts.searchTitle}>Vincular ou Cadastrar Tutor</h3>
+                <p className={ts.searchSubtitle}>
+                  Busque uma pessoa cadastrada para vinculá-la como responsável
+                  no CCZ ou cadastre um novo tutor.
+                </p>
+              </div>
+
+              {!modoNovoTutor && (
+                <button
+                  type="button"
+                  className={ts.btnNovoTutor}
+                  onClick={iniciarNovoTutor}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  <span>Novo Tutor</span>
+                </button>
+              )}
+            </div>
+
             <div className={ts.searchRow} ref={dropRef}>
               <div className={ts.autocompleteWrap}>
                 <input
@@ -401,7 +423,8 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
                   value={search}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   onFocus={() => sugestoes.length > 0 && setShowDrop(true)}
-                  placeholder="Digite o nome ou CPF da pessoa..."
+                  placeholder="Digite o nome ou CPF da pessoa para buscar..."
+                  disabled={modoNovoTutor}
                 />
                 {searching && (
                   <span className={ts.searchSpinner}>Buscando...</span>
@@ -424,7 +447,7 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
                 )}
               </div>
 
-              {/* Botão buscar */}
+              {/* Botão Buscar */}
               <button
                 type="button"
                 className={`${ts.iconBtn} ${ts.btnBlue}`}
@@ -440,13 +463,15 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
                   <circle cx="11" cy="11" r="8" />
                   <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
               </button>
 
-              {/* Limpar */}
+              {/* Botão Limpar Seleção */}
               {pessoaSel && (
                 <button
                   type="button"
@@ -461,6 +486,8 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   >
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
