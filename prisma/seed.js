@@ -16,29 +16,12 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   const cpfAdmin = "12912453674";
-  const NOVA_SENHA = "regula@saude_2026";
+  const NOME_ADMIN = "Jefinny de Paula Dias Souza";
 
-  // 1. Busca ou cria a Pessoa
-  let pessoa = await prisma.pessoa.findUnique({ where: { cpf: cpfAdmin } });
+  // 1. Criptografa a senha diretamente
+  const senhaHash = await bcrypt.hash("regula@saude_2026", 10);
 
-  if (!pessoa) {
-    pessoa = await prisma.pessoa.create({
-      data: {
-        cpf: cpfAdmin,
-        nomeCompleto: "Jefinny de Paula Dias Souza",
-        dataNascimento: new Date("1993-12-26"),
-        nomeMae: "Sirlei Maria de Paula",
-        telefone: "32998265629",
-        sexo: "Feminino",
-      },
-    });
-    console.log("👤 Cadastro de Pessoa criado.");
-  }
-
-  // 2. Criptografa a nova senha
-  const senhaHash = await bcrypt.hash(NOVA_SENHA, 10);
-
-  // 3. Mapeia a tabela 'user' ou 'users' de forma segura
+  // 2. Mapeia a tabela 'user' ou 'users' de forma segura
   const userModel = prisma.user || prisma.users;
 
   if (!userModel) {
@@ -47,22 +30,30 @@ async function main() {
     );
   }
 
-  // 4. Atualiza ou cria o Usuário com a nova senha
-  await userModel.upsert({
-    where: { pessoaCpf: cpfAdmin },
+  // 3. Atualiza ou cria o Usuário ADMIN diretamente pela tabela User
+  const adminUser = await userModel.upsert({
+    where: { cpf: cpfAdmin },
     update: {
+      nome: NOME_ADMIN,
       senhaHash: senhaHash,
+      role: "ADMIN",
+      cargo: "Gestor Geral do Sistema",
+      ativo: true,
     },
     create: {
-      pessoaCpf: pessoa.cpf,
+      cpf: cpfAdmin,
+      nome: NOME_ADMIN,
       senhaHash: senhaHash,
-      cargo: "Gestor do Sistema",
+      cargo: "Gestor Geral do Sistema",
       role: "ADMIN",
       ativo: true,
     },
   });
 
   console.log("✅ Usuário ADMIN configurado/atualizado com sucesso!");
+  console.log(`👤 Nome: ${adminUser.nome}`);
+  console.log(`🆔 CPF/Login: ${adminUser.cpf}`);
+  console.log(`🔑 Permissão: ${adminUser.role}`);
 }
 
 main()
