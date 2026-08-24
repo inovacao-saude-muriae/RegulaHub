@@ -48,10 +48,10 @@ model Session {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("sessions")
+  @@map("user_sessions")
 }
 
-// ── MODELOS DE PESSOA E ENDEREÇO ──────────────────────────────────────────
+// ── MODELOS BASE (PESSOAS E ENDEREÇOS) ──────────────────────────────────
 model Pessoa {
   cpf            String   @id @db.VarChar(11)
   nomeCompleto   String   @map("nome_completo") @db.VarChar(150)
@@ -87,16 +87,16 @@ model Endereco {
   pessoa Pessoa @relation(fields: [pessoaCpf], references: [cpf], onDelete: NoAction, onUpdate: NoAction, map: "fk_endereco_pessoa")
 
   @@index([pessoaCpf], map: "pessoa_cpf_idx")
-  @@map("endereco")
+  @@map("pessoa_endereco")
 }
 
-// ── MÓDULO DE REGULAÇÃO ───────────────────────────────────────────────────
+// ── MÓDULO: REGULAÇÃO (`regula_`) ────────────────────────────────────────
 model TipoExame {
   id            Int            @id @default(autoincrement())
   nome          String         @db.VarChar(50)
   procedimentos Procedimento[]
 
-  @@map("tipo_exame")
+  @@map("regula_tipo_exame")
 }
 
 model Procedimento {
@@ -109,7 +109,7 @@ model Procedimento {
   tipoExame TipoExame @relation(fields: [tipoExameId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_procedimentos_tipo_exames")
 
   @@index([tipoExameId], map: "exame_id_idx")
-  @@map("procedimentos")
+  @@map("regula_procedimentos")
 }
 
 model Medico {
@@ -125,7 +125,7 @@ model Medico {
   pedidosSolicitados PedidoExame[] @relation("medico_solicitante")
 
   @@unique([crm, ufCrm], map: "idx_medico_crm")
-  @@map("medicos")
+  @@map("regula_medicos")
 }
 
 model Ubs {
@@ -136,7 +136,7 @@ model Ubs {
   createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   pedidos   PedidoExame[]
 
-  @@map("ubs")
+  @@map("regula_ubs")
 }
 
 model PedidoExame {
@@ -170,7 +170,7 @@ model PedidoExame {
   @@index([medicoSolicitanteId], map: "fk_pedidos_med_solic_idx")
   @@index([medicoResponsavelId], map: "fk_pedidos_med_resp_idx")
   @@index([ubsResponsavelId], map: "fk_pedidos_ubs_idx")
-  @@map("pedidos_exames")
+  @@map("regula_pedidos_exames")
 }
 
 model CotaFinanceira {
@@ -182,10 +182,10 @@ model CotaFinanceira {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@unique([tipoCota, mes, ano], map: "idx_cota_competencia_unica")
-  @@map("cotas_financeiras")
+  @@map("regula_cotas_financeiras")
 }
 
-// ── MÓDULO DE FARMÁCIA JUDICIAL ───────────────────────────────────────────
+// ── MÓDULO: FARMÁCIA JUDICIAL (`farmacia_`) ──────────────────────────────
 model PacienteFarmaciaJudicial {
   numeroPasta    String    @id @map("numero_pasta") @db.VarChar(50)
   pessoaCpf      String    @unique @map("pessoa_cpf") @db.VarChar(11)
@@ -197,7 +197,7 @@ model PacienteFarmaciaJudicial {
   tratamentos  TratamentoPaciente[]
   dispensacoes DispensacaoMedicamento[]
 
-  @@map("paciente_farmacia_judicial")
+  @@map("farmacia_pacientes")
 }
 
 model Medicamento {
@@ -211,7 +211,7 @@ model Medicamento {
   lotes       LoteMedicamento[]
   tratamentos TratamentoPaciente[]
 
-  @@map("medicamento")
+  @@map("farmacia_medicamentos")
 }
 
 model LoteMedicamento {
@@ -228,7 +228,7 @@ model LoteMedicamento {
   medicamento  Medicamento              @relation(fields: [medicamentoId], references: [id], onDelete: Cascade)
   dispensacoes DispensacaoMedicamento[]
 
-  @@map("lote_medicamento")
+  @@map("farmacia_lotes_medicamentos")
 }
 
 model TratamentoPaciente {
@@ -242,7 +242,7 @@ model TratamentoPaciente {
   paciente    PacienteFarmaciaJudicial @relation(fields: [pacientePasta], references: [numeroPasta], onDelete: Cascade)
   medicamento Medicamento              @relation(fields: [medicamentoId], references: [id], onDelete: Cascade)
 
-  @@map("tratamento_paciente")
+  @@map("farmacia_tratamentos_pacientes")
 }
 
 model DispensacaoMedicamento {
@@ -256,10 +256,10 @@ model DispensacaoMedicamento {
   paciente PacienteFarmaciaJudicial @relation(fields: [pacientePasta], references: [numeroPasta], onDelete: Cascade)
   lote     LoteMedicamento          @relation(fields: [loteMedicamentoId], references: [id], onDelete: Cascade)
 
-  @@map("dispensacao_medicamento")
+  @@map("farmacia_dispensacoes_medicamentos")
 }
 
-// ── MÓDULO DE JUNTA MÉDICA ────────────────────────────────────────────────
+// ── MÓDULO: JUNTA MÉDICA (`junta_`) ─────────────────────────────────────
 model PacienteJunta {
   id              Int       @id @default(autoincrement())
   pessoaCpf       String    @unique @map("pessoa_cpf") @db.VarChar(11)
@@ -271,7 +271,7 @@ model PacienteJunta {
   servicos     PacienteJuntaServico[]
   atendimentos JuntaAtendimento[]
 
-  @@map("paciente_junta")
+  @@map("junta_pacientes")
 }
 
 model JuntaServico {
@@ -297,7 +297,7 @@ model PacienteJuntaServico {
   servico               JuntaServico  @relation(fields: [servicoId], references: [id], onDelete: Cascade)
 
   @@id([pacienteJuntaId, servicoId])
-  @@map("paciente_junta_servicos")
+  @@map("junta_paciente_servicos")
 }
 
 model JuntaAtendimento {
@@ -317,7 +317,7 @@ model JuntaAtendimento {
   @@map("junta_atendimentos")
 }
 
-// ── MÓDULO DE CASTRAÇÃO E ZOONOSES ─────────────────────────────────────────
+// ── MÓDULO: CCZ / ZOONOSES (`ccz_`) ─────────────────────────────────────
 model Tutor {
   pessoaCpf          String    @id(map: "tutor_zoonoses_pkey") @map("pessoa_cpf") @db.VarChar(11)
   rg                 String?   @db.VarChar(20)
@@ -331,7 +331,7 @@ model Tutor {
   pessoa  Pessoa   @relation(fields: [pessoaCpf], references: [cpf], onDelete: Cascade)
   animais Animal[]
 
-  @@map("tutor")
+  @@map("ccz_tutores")
 }
 
 model Animal {
@@ -360,7 +360,7 @@ model Animal {
   denuncias     DenunciaCaoAgressivo[]
   esporotricose Esporotricose[]
 
-  @@map("animal")
+  @@map("ccz_animais")
 }
 
 model CadastroProcedimento {
@@ -378,7 +378,7 @@ model CadastroProcedimento {
   animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
 
   @@index([animalId], map: "idx_procedimento_animal")
-  @@map("cadastro_procedimento")
+  @@map("ccz_procedimentos")
 }
 
 model CadastroZoonoses {
@@ -396,12 +396,12 @@ model CadastroZoonoses {
 
   animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
 
-  @@map("cadastro_zoonoses")
+  @@map("ccz_zoonoses_notificacoes")
 }
 
 model DenunciaCaoAgressivo {
   id           String    @id(map: "zoonoses_denuncia_pkey") @db.VarChar(50)
-  dataDenuncia DateTime? @default(now()) @map("data_denuncia") @db.Timestamptz(6)
+  dataDenuncia DateTime? @default(now()) @db.Timestamptz(6)
   localizacao  String
   descricaoCao String    @map("descricao_cao")
   relato       String
@@ -410,31 +410,31 @@ model DenunciaCaoAgressivo {
 
   animal Animal? @relation(fields: [animalId], references: [id], onDelete: SetNull)
 
-  @@map("denuncia_cao_agressivo")
+  @@map("ccz_denuncias")
 }
 
 model Esporotricose {
   id                       String    @id(map: "zoonoses_esporotricose_pkey") @db.VarChar(50)
   animalId                 String?   @map("animal_id") @db.VarChar(50)
   numeroProtocolo          String?   @map("numero_protocolo") @db.VarChar(50)
-  dataVisita               DateTime  @default(dbgenerated("CURRENT_DATE")) @map("data_visita") @db.Date
+  dataVisita               DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
   fiscalResponsavel        String?   @map("fiscal_responsavel") @db.VarChar(150)
-  apresentaLesoes          String?   @default("Sim") @map("apresenta_lesoes") @db.VarChar(10)
+  apresentaLesoes          String?   @default("Sim") @db.VarChar(10)
   descricaoLesoes          String?   @map("descricao_lesoes")
-  emTratamentoContinuo     String?   @default("Sim") @map("em_tratamento_continuo") @db.VarChar(10)
+  emTratamentoContinuo     String?   @default("Sim") @db.VarChar(10)
   profissionalServicoRef   String?   @map("profissional_servico_ref") @db.VarChar(150)
   medicamentosPrescritos   String?   @map("medicamentos_prescritos")
-  interrupcaoTratamento    String?   @default("Não") @map("interrupcao_tratamento") @db.VarChar(10)
-  retornoVeterinario       String?   @default("Sim") @map("retorno_veterinario") @db.VarChar(10)
-  isolamentoDomiciliar     String?   @default("Sim") @map("isolamento_domiciliar") @db.VarChar(10)
+  interrupcaoTratamento    String?   @default("Não") @db.VarChar(10)
+  retornoVeterinario       String?   @default("Sim") @db.VarChar(10)
+  isolamentoDomiciliar     String?   @default("Sim") @db.VarChar(10)
   observacoesIsolamento    String?   @map("observacoes_isolamento")
-  acessoRua                String?   @default("Não") @map("acesso_rua") @db.VarChar(10)
-  usoEpi                   String?   @default("Sim") @map("uso_epi") @db.VarChar(10)
+  acessoRua                String?   @default("Não") @db.VarChar(10)
+  usoEpi                   String?   @default("Sim") @db.VarChar(10)
   quaisEpis                String?   @map("quais_epis") @db.VarChar(150)
   higienizacaoAmbiente     String?   @map("higienizacao_ambiente")
-  outrosAnimaisResidencia  String?   @default("Não") @map("outros_animais_residencia") @db.VarChar(10)
+  outrosAnimaisResidencia  String?   @default("Não") @db.VarChar(10)
   outrosAnimaisDescricao   String?   @map("outros_animais_descricao")
-  pessoasComLesoes         String?   @default("Não") @map("pessoas_com_lesoes") @db.VarChar(10)
+  pessoasComLesoes         String?   @default("Não") @db.VarChar(10)
   pessoasLesoesDescricao   String?   @map("pessoas_lesoes_descricao")
   conclusaoTecnica         String?   @map("conclusao_tecnica")
   encAcompanhamentoCcz     Boolean?  @default(false) @map("enc_acompanhamento_ccz")
@@ -446,5 +446,5 @@ model Esporotricose {
 
   animal Animal? @relation(fields: [animalId], references: [id], onDelete: SetNull)
 
-  @@map("esporotricose")
+  @@map("ccz_esporotricose")
 }
