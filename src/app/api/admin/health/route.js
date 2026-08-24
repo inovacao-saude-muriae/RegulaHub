@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 
 export async function GET() {
   try {
+    // 1. Validação de Acesso
     const cookieStore = await cookies();
     const token = cookieStore.get('session_token')?.value;
 
@@ -24,32 +25,42 @@ export async function GET() {
       'ADMIN_FARMACIA',
     ];
 
-    if (!session || !rolesAdministrativas.includes(session.user.role)) {
+    const eAdministrador = session?.user && rolesAdministrativas.includes(session.user.role);
+
+    if (!session || !eAdministrador) {
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
     }
 
+    // 2. Consulta o Tamanho Real do PostgreSQL
     const dbSizeResult = await prisma.$queryRaw`
       SELECT pg_size_pretty(pg_database_size(current_database())) as size;
     `;
     const tamanhoBanco = dbSizeResult[0]?.size || 'Indisponível';
 
+    // 3. Teste de Ping
     const startPing = performance.now();
     await prisma.$queryRaw`SELECT 1`;
     const endPing = performance.now();
     const pingMs = Math.round(endPing - startPing);
 
+    // 4. Contagem de Sessões Ativas e Válidas
     const sessoesAtivas = await prisma.session.count({
-      where: { expiresAt: { gt: new Date() } },
+      where: {
+        expiresAt: { gt: new Date() },
+      },
     });
 
+    // 5. Total de Usuários Cadastrados
     const totalUsuarios = await prisma.user.count();
 
+    // 6. Últimas Sessões Criadas no Sistema (Ajustado para o novo campo 'nome' do User)
     const ultimosAcessos = await prisma.session.findMany({
       take: 5,
       orderBy: { id: 'desc' },
       include: {
         user: {
           select: {
+            nome: true,
             role: true,
             pessoa: { select: { nomeCompleto: true } },
           },
@@ -60,12 +71,19 @@ export async function GET() {
     return NextResponse.json(
       {
         status: 'OK',
-        database: { status: 'ONLINE', pingMs, tamanhoBanco },
-        metrics: { sessoesAtivas, totalUsuarios },
+        database: {
+          status: 'ONLINE',
+          pingMs,
+          tamanhoBanco,
+        },
+        metrics: {
+          sessoesAtivas,
+          totalUsuarios,
+        },
         logs: ultimosAcessos.map((s) => ({
           id: s.id,
-          usuario: s.user.pessoa.nomeCompleto,
-          role: s.user.role,
+          usuario: s.user?.nome || s.user?.pessoa?.nomeCompleto || 'Usuário Sem Nome',
+          role: s.user?.role || 'N/A',
           data: new Date(s.expiresAt.getTime() - 8 * 60 * 60 * 1000).toLocaleTimeString('pt-BR', {
             hour: '2-digit',
             minute: '2-digit',
