@@ -45,8 +45,8 @@ function pessoaToTutor(pessoa) {
 function animalToFront(a) {
   return {
     id: a.id,
-    pessoa_cpf: a.pessoa_cpf || "",
-    tutorCpf: a.pessoa_cpf || "", // alias para compatibilidade
+    pessoa_cpf: a.pessoaCpf || "",
+    tutorCpf: a.pessoaCpf || "", // alias para compatibilidade
     tutorNome: a.tutor?.pessoa?.nomeCompleto || "",
     nome: a.nome || "",
     especie: a.especie || "",
@@ -55,16 +55,75 @@ function animalToFront(a) {
     idade: a.idade || "",
     castrado: a.castrado || "Não",
     fotoUrl: a.fotoUrl || null,
-    doenca_cronica: a.doenca_cronica || "Não",
-    sintomas_vomito_diarreia: a.sintomas_vomito_diarreia || "Não",
-    apetite_normal: a.apetite_normal || "Sim",
-    em_tratamento: a.em_tratamento || "Não",
-    qual_tratamento: a.qual_tratamento || "",
+    doenca_cronica: a.doencaCronica || "Não",
+    sintomas_vomito_diarreia: a.sintomasVomitoDiarreia || "Não",
+    apetite_normal: a.apetiteNormal || "Sim",
+    em_tratamento: a.emTratamento || "Não",
+    qual_tratamento: a.qualTratamento || "",
     observacoes: a.observacoes || "",
-    possui_responsavel: a.possui_responsavel || "Sim",
-    endereco_recolhimento: a.endereco_recolhimento || "",
-    data_cadastro: a.data_cadastro || null,
+    possui_responsavel: a.possuiResponsavel || "Sim",
+    endereco_recolhimento: a.enderecoRecolhimento || "",
+    data_cadastro: a.dataCadastro || null,
   };
+}
+
+function zoonoseToFront(z) {
+  return {
+    ...z,
+    animal_id: z.animalId,
+    data_identificacao: z.dataIdentificacao,
+    grau_risco: z.grauRisco,
+    risco_vida: z.riscoVida,
+    formas_contaminacao: z.formasContaminacao,
+    periodo_monitoramento: z.periodoMonitoramento,
+    responsavel_monitoramento: z.responsavelMonitoramento,
+  };
+}
+
+function denunciaToFront(d) {
+  return {
+    ...d,
+    data_denuncia: d.dataDenuncia,
+    descricao_cao: d.descricaoCao,
+    animal_id: d.animalId,
+    causou_risco: d.causouRisco,
+  };
+}
+
+function esporotricoseToFront(e) {
+  const aliases = {};
+  for (const [camel, snake] of Object.entries({
+    animalId: "animal_id",
+    numeroProtocolo: "numero_protocolo",
+    dataVisita: "data_visita",
+    fiscalResponsavel: "fiscal_responsavel",
+    apresentaLesoes: "apresenta_lesoes",
+    descricaoLesoes: "descricao_lesoes",
+    emTratamentoContinuo: "em_tratamento_continuo",
+    profissionalServicoRef: "profissional_servico_ref",
+    medicamentosPrescritos: "medicamentos_prescritos",
+    interrupcaoTratamento: "interrupcao_tratamento",
+    retornoVeterinario: "retorno_veterinario",
+    isolamentoDomiciliar: "isolamento_domiciliar",
+    observacoesIsolamento: "observacoes_isolamento",
+    acessoRua: "acesso_rua",
+    usoEpi: "uso_epi",
+    quaisEpis: "quais_epis",
+    higienizacaoAmbiente: "higienizacao_ambiente",
+    outrosAnimaisResidencia: "outros_animais_residencia",
+    outrosAnimaisDescricao: "outros_animais_descricao",
+    pessoasComLesoes: "pessoas_com_lesoes",
+    pessoasLesoesDescricao: "pessoas_lesoes_descricao",
+    conclusaoTecnica: "conclusao_tecnica",
+    encAcompanhamentoCcz: "enc_acompanhamento_ccz",
+    encNotificacaoTutor: "enc_notificacao_tutor",
+    encMinisterioPublico: "enc_ministerio_publico",
+    encOutrasMedidas: "enc_outras_medidas",
+    outrasMedidasDescricao: "outras_medidas_descricao",
+  })) {
+    aliases[snake] = e[camel];
+  }
+  return { ...e, ...aliases };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -122,25 +181,25 @@ export async function getCCZDashboardData() {
               },
             },
           },
-          orderBy: { data_cadastro: "desc" },
+          orderBy: { dataCadastro: "desc" },
         }),
-        prisma.denuncia_cao_agressivo.findMany({
-          orderBy: { data_denuncia: "desc" },
+        prisma.denunciaCaoAgressivo.findMany({
+          orderBy: { dataDenuncia: "desc" },
         }),
-        prisma.cadastro_zoonoses.findMany({
-          orderBy: { created_at: "desc" },
+        prisma.cadastroZoonoses.findMany({
+          orderBy: { createdAt: "desc" },
         }),
         prisma.esporotricose.findMany({
-          orderBy: { data_visita: "desc" },
+          orderBy: { dataVisita: "desc" },
         }),
       ]);
 
     return {
       tutores,
       animais: animais.map(animalToFront),
-      denuncias,
-      zoonoses,
-      esporotricoses,
+      denuncias: denuncias.map(denunciaToFront),
+      zoonoses: zoonoses.map(zoonoseToFront),
+      esporotricoses: esporotricoses.map(esporotricoseToFront),
     };
   } catch (error) {
     console.error("Erro ao buscar dados CCZ:", error);
@@ -248,6 +307,63 @@ export async function vincularTutor(cpf, dados) {
   }
 }
 
+export async function cadastrarTutor(dados) {
+  try {
+    const cpf = String(dados.cpf || "").replace(/\D/g, "");
+    const nomeCompleto = String(dados.nomeCompleto || "").trim();
+    const nomeMae = String(dados.nomeMae || "").trim();
+    const telefone = String(dados.telefone || "").replace(/\D/g, "");
+
+    if (cpf.length !== 11) {
+      return { success: false, error: "Informe um CPF válido com 11 dígitos." };
+    }
+    if (!nomeCompleto || !dados.dataNascimento || !nomeMae || !telefone) {
+      return {
+        success: false,
+        error: "Preencha nome, data de nascimento, nome da mãe e telefone.",
+      };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.pessoa.create({
+        data: {
+          cpf,
+          nomeCompleto,
+          sexo: dados.sexo || "Não informado",
+          dataNascimento: new Date(`${dados.dataNascimento}T00:00:00.000Z`),
+          nomeMae,
+          telefone,
+        },
+      });
+      await tx.tutor.create({
+        data: {
+          pessoaCpf: cpf,
+          rg: dados.rg || null,
+          sexo: dados.sexo || null,
+          profissao: dados.profissao || null,
+          telefoneSecundario: dados.telefoneSecundario
+            ? String(dados.telefoneSecundario).replace(/\D/g, "")
+            : null,
+          pontoReferencia: dados.pontoReferencia || null,
+          observacoes: dados.observacoes || null,
+        },
+      });
+    });
+
+    revalidatePath("/ccz");
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao cadastrar tutor:", error);
+    if (error?.code === "P2002") {
+      return {
+        success: false,
+        error: "Já existe uma pessoa cadastrada com este CPF.",
+      };
+    }
+    return { success: false, error: error.message };
+  }
+}
+
 export async function desvincularTutor(cpf) {
   try {
     await prisma.tutor.delete({ where: { pessoaCpf: cpf } });
@@ -269,7 +385,7 @@ export async function createAnimal(data) {
     const record = await prisma.animal.create({
       data: {
         id: animalId,
-        pessoa_cpf:
+        pessoaCpf:
           data.possui_responsavel === "Sim" ? data.tutorCpf || null : null,
         nome: data.nome || null,
         fotoUrl: data.fotoUrl || null,
@@ -279,14 +395,14 @@ export async function createAnimal(data) {
         idade: data.idade || null,
         castrado:
           data.castrado === "Sim" || data.castrado === true ? "Sim" : "Não",
-        doenca_cronica: data.doenca_cronica || "Não",
-        sintomas_vomito_diarreia: data.sintomas_vomito_diarreia || "Não",
-        apetite_normal: data.apetite_normal || "Sim",
-        em_tratamento: data.em_tratamento || "Não",
-        qual_tratamento: data.qual_tratamento || null,
+        doencaCronica: data.doenca_cronica || "Não",
+        sintomasVomitoDiarreia: data.sintomas_vomito_diarreia || "Não",
+        apetiteNormal: data.apetite_normal || "Sim",
+        emTratamento: data.em_tratamento || "Não",
+        qualTratamento: data.qual_tratamento || null,
         observacoes: data.observacoes || null,
-        possui_responsavel: data.possui_responsavel === "Sim" ? "Sim" : "Não",
-        endereco_recolhimento: data.endereco_recolhimento || null,
+        possuiResponsavel: data.possui_responsavel === "Sim" ? "Sim" : "Não",
+        enderecoRecolhimento: data.endereco_recolhimento || null,
       },
     });
     revalidatePath("/ccz");
@@ -302,7 +418,7 @@ export async function updateAnimal(id, data) {
     const record = await prisma.animal.update({
       where: { id: String(id) },
       data: {
-        pessoa_cpf:
+        pessoaCpf:
           data.possui_responsavel === "Sim" ? data.tutorCpf || null : null,
         nome: data.nome || null,
         fotoUrl: data.fotoUrl || null,
@@ -312,14 +428,14 @@ export async function updateAnimal(id, data) {
         idade: data.idade || null,
         castrado:
           data.castrado === "Sim" || data.castrado === true ? "Sim" : "Não",
-        doenca_cronica: data.doenca_cronica || "Não",
-        sintomas_vomito_diarreia: data.sintomas_vomito_diarreia || "Não",
-        apetite_normal: data.apetite_normal || "Sim",
-        em_tratamento: data.em_tratamento || "Não",
-        qual_tratamento: data.qual_tratamento || null,
+        doencaCronica: data.doenca_cronica || "Não",
+        sintomasVomitoDiarreia: data.sintomas_vomito_diarreia || "Não",
+        apetiteNormal: data.apetite_normal || "Sim",
+        emTratamento: data.em_tratamento || "Não",
+        qualTratamento: data.qual_tratamento || null,
         observacoes: data.observacoes || null,
-        possui_responsavel: data.possui_responsavel === "Sim" ? "Sim" : "Não",
-        endereco_recolhimento: data.endereco_recolhimento || null,
+        possuiResponsavel: data.possui_responsavel === "Sim" ? "Sim" : "Não",
+        enderecoRecolhimento: data.endereco_recolhimento || null,
       },
     });
     revalidatePath("/ccz");
@@ -346,17 +462,17 @@ export async function deleteAnimal(id) {
 // ─────────────────────────────────────────────────────────────
 export async function createProcedimento(data) {
   try {
-    const record = await prisma.cadastro_procedimento.create({
+    const record = await prisma.cadastroProcedimento.create({
       data: {
         id: randomUUID(),
-        animal_id: data.animal_id,
+        animalId: data.animal_id,
         tipo: data.tipo,
-        data_procedimento: new Date(data.data_procedimento),
+        dataProcedimento: new Date(data.data_procedimento),
         veterinario: data.veterinario || null,
         status: data.status || "Realizado",
         descricao: data.descricao || null,
-        medicacao_prescrita: data.medicacao_prescrita || null,
-        data_retorno: data.data_retorno ? new Date(data.data_retorno) : null,
+        medicacaoPrescrita: data.medicacao_prescrita || null,
+        dataRetorno: data.data_retorno ? new Date(data.data_retorno) : null,
       },
     });
     revalidatePath("/ccz");
@@ -369,17 +485,17 @@ export async function createProcedimento(data) {
 
 export async function updateProcedimento(id, data) {
   try {
-    const record = await prisma.cadastro_procedimento.update({
+    const record = await prisma.cadastroProcedimento.update({
       where: { id: String(id) },
       data: {
-        animal_id: data.animal_id,
+        animalId: data.animal_id,
         tipo: data.tipo,
-        data_procedimento: new Date(data.data_procedimento),
+        dataProcedimento: new Date(data.data_procedimento),
         veterinario: data.veterinario || null,
         status: data.status || "Realizado",
         descricao: data.descricao || null,
-        medicacao_prescrita: data.medicacao_prescrita || null,
-        data_retorno: data.data_retorno ? new Date(data.data_retorno) : null,
+        medicacaoPrescrita: data.medicacao_prescrita || null,
+        dataRetorno: data.data_retorno ? new Date(data.data_retorno) : null,
       },
     });
     revalidatePath("/ccz");
@@ -392,7 +508,7 @@ export async function updateProcedimento(id, data) {
 
 export async function deleteProcedimento(id) {
   try {
-    await prisma.cadastro_procedimento.delete({ where: { id: String(id) } });
+    await prisma.cadastroProcedimento.delete({ where: { id: String(id) } });
     revalidatePath("/ccz");
     return { success: true };
   } catch (error) {
@@ -403,9 +519,9 @@ export async function deleteProcedimento(id) {
 
 export async function getProcedimentosByAnimal(animalId) {
   try {
-    return await prisma.cadastro_procedimento.findMany({
-      where: { animal_id: String(animalId) },
-      orderBy: { data_procedimento: "desc" },
+    return await prisma.cadastroProcedimento.findMany({
+      where: { animalId: String(animalId) },
+      orderBy: { dataProcedimento: "desc" },
     });
   } catch (error) {
     console.error("Erro ao buscar procedimentos:", error);
@@ -418,17 +534,17 @@ export async function getProcedimentosByAnimal(animalId) {
 // ─────────────────────────────────────────────────────────────
 export async function createZoonose(data) {
   try {
-    const record = await prisma.cadastro_zoonoses.create({
+    const record = await prisma.cadastroZoonoses.create({
       data: {
         id: randomUUID(),
-        animal_id: String(data.animal_id),
+        animalId: String(data.animal_id),
         doenca: data.doenca,
-        data_identificacao: new Date(data.data_identificacao),
-        grau_risco: data.grau_risco,
-        risco_vida: data.risco_vida || "Não",
-        formas_contaminacao: data.formas_contaminacao || null,
-        periodo_monitoramento: data.periodo_monitoramento || "Não informado",
-        responsavel_monitoramento: data.responsavel_monitoramento || null,
+        dataIdentificacao: new Date(data.data_identificacao),
+        grauRisco: data.grau_risco,
+        riscoVida: data.risco_vida || "Não",
+        formasContaminacao: data.formas_contaminacao || null,
+        periodoMonitoramento: data.periodo_monitoramento || "Não informado",
+        responsavelMonitoramento: data.responsavel_monitoramento || null,
         observacao: data.observacao || null,
       },
     });
@@ -445,14 +561,14 @@ export async function createZoonose(data) {
 // ─────────────────────────────────────────────────────────────
 export async function createDenuncia(data) {
   try {
-    const record = await prisma.denuncia_cao_agressivo.create({
+    const record = await prisma.denunciaCaoAgressivo.create({
       data: {
         id: randomUUID(),
         localizacao: data.localizacao,
-        descricao_cao: data.descricao_cao,
+        descricaoCao: data.descricao_cao,
         relato: data.relato,
-        animal_id: data.animal_id || null,
-        causou_risco: data.causou_risco || "Não",
+        animalId: data.animal_id || null,
+        causouRisco: data.causou_risco || "Não",
       },
     });
     revalidatePath("/ccz");
@@ -465,14 +581,14 @@ export async function createDenuncia(data) {
 
 export async function updateDenuncia(id, data) {
   try {
-    const record = await prisma.denuncia_cao_agressivo.update({
+    const record = await prisma.denunciaCaoAgressivo.update({
       where: { id: String(id) },
       data: {
         localizacao: data.localizacao,
-        descricao_cao: data.descricao_cao,
+        descricaoCao: data.descricao_cao,
         relato: data.relato,
-        animal_id: data.animal_id || null,
-        causou_risco: data.causou_risco || "Não",
+        animalId: data.animal_id || null,
+        causouRisco: data.causou_risco || "Não",
       },
     });
     revalidatePath("/ccz");
@@ -485,7 +601,7 @@ export async function updateDenuncia(id, data) {
 
 export async function deleteDenuncia(id) {
   try {
-    await prisma.denuncia_cao_agressivo.delete({ where: { id: String(id) } });
+    await prisma.denunciaCaoAgressivo.delete({ where: { id: String(id) } });
     revalidatePath("/ccz");
     return { success: true };
   } catch (error) {
@@ -500,7 +616,7 @@ export async function excluirZoonoseAction(id) {
   }
 
   try {
-    await prisma.cadastro_zoonoses.delete({ where: { id: String(id) } });
+    await prisma.cadastroZoonoses.delete({ where: { id: String(id) } });
     revalidatePath("/ccz");
 
     return { success: true };
@@ -524,17 +640,17 @@ export async function salvarEdicaoZoonoseAction(id, dados) {
   }
 
   try {
-    const record = await prisma.cadastro_zoonoses.update({
+    const record = await prisma.cadastroZoonoses.update({
       where: { id: String(id) },
       data: {
-        animal_id: String(dados.animal_id),
+        animalId: String(dados.animal_id),
         doenca: dados.doenca,
-        data_identificacao: new Date(dados.data_identificacao),
-        grau_risco: dados.grau_risco,
-        risco_vida: dados.risco_vida || "Não",
-        formas_contaminacao: dados.formas_contaminacao || null,
-        periodo_monitoramento: dados.periodo_monitoramento || "Não informado",
-        responsavel_monitoramento: dados.responsavel_monitoramento || null,
+        dataIdentificacao: new Date(dados.data_identificacao),
+        grauRisco: dados.grau_risco,
+        riscoVida: dados.risco_vida || "Não",
+        formasContaminacao: dados.formas_contaminacao || null,
+        periodoMonitoramento: dados.periodo_monitoramento || "Não informado",
+        responsavelMonitoramento: dados.responsavel_monitoramento || null,
         observacao: dados.observacao || null,
       },
     });
@@ -554,33 +670,33 @@ export async function salvarEdicaoZoonoseAction(id, dados) {
 export async function salvarEsporotricoseAction(dados, id = null) {
   try {
     const payload = {
-      animal_id: dados.animal_id || null,
-      numero_protocolo: dados.numero_protocolo || null,
-      data_visita: dados.data_visita ? new Date(dados.data_visita) : new Date(),
-      fiscal_responsavel: dados.fiscal_responsavel || null,
-      apresenta_lesoes: dados.apresenta_lesoes || "Sim",
-      descricao_lesoes: dados.descricao_lesoes || null,
-      em_tratamento_continuo: dados.em_tratamento_continuo || "Sim",
-      profissional_servico_ref: dados.profissional_servico_ref || null,
-      medicamentos_prescritos: dados.medicamentos_prescritos || null,
-      interrupcao_tratamento: dados.interrupcao_tratamento || "Não",
-      retorno_veterinario: dados.retorno_veterinario || "Sim",
-      isolamento_domiciliar: dados.isolamento_domiciliar || "Sim",
-      observacoes_isolamento: dados.observacoes_isolamento || null,
-      acesso_rua: dados.acesso_rua || "Não",
-      uso_epi: dados.uso_epi || "Sim",
-      quais_epis: dados.quais_epis || null,
-      higienizacao_ambiente: dados.higienizacao_ambiente || null,
-      outros_animais_residencia: dados.outros_animais_residencia || "Não",
-      outros_animais_descricao: dados.outros_animais_descricao || null,
-      pessoas_com_lesoes: dados.pessoas_com_lesoes || "Não",
-      pessoas_lesoes_descricao: dados.pessoas_lesoes_descricao || null,
-      conclusao_tecnica: dados.conclusao_tecnica || null,
-      enc_acompanhamento_ccz: Boolean(dados.enc_acompanhamento_ccz),
-      enc_notificacao_tutor: Boolean(dados.enc_notificacao_tutor),
-      enc_ministerio_publico: Boolean(dados.enc_ministerio_publico),
-      enc_outras_medidas: Boolean(dados.enc_outras_medidas),
-      outras_medidas_descricao: dados.outras_medidas_descricao || null,
+      animalId: dados.animal_id || null,
+      numeroProtocolo: dados.numero_protocolo || null,
+      dataVisita: dados.data_visita ? new Date(dados.data_visita) : new Date(),
+      fiscalResponsavel: dados.fiscal_responsavel || null,
+      apresentaLesoes: dados.apresenta_lesoes || "Sim",
+      descricaoLesoes: dados.descricao_lesoes || null,
+      emTratamentoContinuo: dados.em_tratamento_continuo || "Sim",
+      profissionalServicoRef: dados.profissional_servico_ref || null,
+      medicamentosPrescritos: dados.medicamentos_prescritos || null,
+      interrupcaoTratamento: dados.interrupcao_tratamento || "Não",
+      retornoVeterinario: dados.retorno_veterinario || "Sim",
+      isolamentoDomiciliar: dados.isolamento_domiciliar || "Sim",
+      observacoesIsolamento: dados.observacoes_isolamento || null,
+      acessoRua: dados.acesso_rua || "Não",
+      usoEpi: dados.uso_epi || "Sim",
+      quaisEpis: dados.quais_epis || null,
+      higienizacaoAmbiente: dados.higienizacao_ambiente || null,
+      outrosAnimaisResidencia: dados.outros_animais_residencia || "Não",
+      outrosAnimaisDescricao: dados.outros_animais_descricao || null,
+      pessoasComLesoes: dados.pessoas_com_lesoes || "Não",
+      pessoasLesoesDescricao: dados.pessoas_lesoes_descricao || null,
+      conclusaoTecnica: dados.conclusao_tecnica || null,
+      encAcompanhamentoCcz: Boolean(dados.enc_acompanhamento_ccz),
+      encNotificacaoTutor: Boolean(dados.enc_notificacao_tutor),
+      encMinisterioPublico: Boolean(dados.enc_ministerio_publico),
+      encOutrasMedidas: Boolean(dados.enc_outras_medidas),
+      outrasMedidasDescricao: dados.outras_medidas_descricao || null,
     };
 
     if (id) {

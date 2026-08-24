@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import TabExibirEsporotricose from "../components/ExibirEsporotricose";
 import styles from "./Esporotricose.module.css";
 import { salvarEsporotricoseAction } from "../actions";
 
@@ -36,6 +37,8 @@ const initialFormState = {
 
 export default function TabEsporotricose({
   animais = [],
+  data = {},
+  subTab,
   registroEdicao = null,
   onCancel,
   onSaveSuccess,
@@ -106,6 +109,16 @@ export default function TabEsporotricose({
       setSaving(false);
     }
   };
+
+  if (subTab === "EXIBIR_ESPOROTRICOSE") {
+    return (
+      <TabExibirEsporotricose
+        registros={data.esporotricoses || []}
+        animais={animais}
+        reloadData={reloadData}
+      />
+    );
+  }
 
   return (
     <div className={styles.container}>

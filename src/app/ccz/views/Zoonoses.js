@@ -2,9 +2,15 @@
 
 import React, { useState } from "react";
 import { createZoonose } from "../actions";
+import TabExibirZoonoses from "../components/ExibirZoonoses";
 import styles from "./Zoonoses.module.css";
 
-export default function TabZoonoses({ animais = [], reloadData }) {
+export default function TabZoonoses({
+  animais = [],
+  data = {},
+  reloadData,
+  subTab,
+}) {
   const [message, setMessage] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -70,6 +76,17 @@ export default function TabZoonoses({ animais = [], reloadData }) {
     });
     reloadData?.();
   };
+
+  if (subTab === "EXIBIR_ZOONOSES") {
+    return (
+      <TabExibirZoonoses
+        zoonoses={data.zoonoses || []}
+        animais={animais}
+        reloadData={reloadData}
+      />
+    );
+  }
+
   return (
     <div className={styles.container}>
       {/* Cabeçalho */}

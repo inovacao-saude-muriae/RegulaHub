@@ -14,6 +14,7 @@ import ModalMensagemCCZ from "../components/Modals/ModalMensagemCCZ";
 import {
   searchPessoasCCZ,
   vincularTutor,
+  cadastrarTutor,
   desvincularTutor,
   createAnimal,
   updateAnimal,
@@ -69,6 +70,15 @@ const EMPTY_TUTOR_EXTRA = {
   observacoes: "",
 };
 
+const EMPTY_NOVO_TUTOR = {
+  cpf: "",
+  nomeCompleto: "",
+  sexo: "",
+  dataNascimento: "",
+  nomeMae: "",
+  telefone: "",
+};
+
 const EMPTY_ANIMAL = {
   id: "",
   possui_responsavel: "",
@@ -90,11 +100,7 @@ const EMPTY_ANIMAL = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────
-export default function Cadastros({
-  tutores = [],
-  animais = [],
-  reloadData,
-}) {
+export default function Cadastros({ tutores = [], animais = [], reloadData }) {
   const [subTab, setSubTab] = useState("TUTORES");
 
   // ── TUTORES ──────────────────────────────────────────────────────────
@@ -104,6 +110,8 @@ export default function Cadastros({
   const [searching, setSearching] = useState(false);
   const [pessoaSel, setPessoaSel] = useState(null); // pessoa carregada
   const [tutorExtra, setTutorExtra] = useState(EMPTY_TUTOR_EXTRA);
+  const [novoTutor, setNovoTutor] = useState(EMPTY_NOVO_TUTOR);
+  const [modoNovoTutor, setModoNovoTutor] = useState(false);
   const [deleteConfig, setDeleteConfig] = useState(null);
   const [messageConfig, setMessageConfig] = useState(null);
   const dropRef = useRef(null);
@@ -159,8 +167,42 @@ export default function Cadastros({
     setTutorExtra(EMPTY_TUTOR_EXTRA);
   };
 
+  const iniciarNovoTutor = () => {
+    setModoNovoTutor(true);
+    setPessoaSel(null);
+    setSearch("");
+    setSugestoes([]);
+    setTutorExtra(EMPTY_TUTOR_EXTRA);
+    setNovoTutor(EMPTY_NOVO_TUTOR);
+  };
+
+  const cancelarNovoTutor = () => {
+    setModoNovoTutor(false);
+    setNovoTutor(EMPTY_NOVO_TUTOR);
+    setTutorExtra(EMPTY_TUTOR_EXTRA);
+  };
+
   const handleVincular = async (e) => {
     e.preventDefault();
+    if (modoNovoTutor) {
+      const res = await cadastrarTutor({ ...novoTutor, ...tutorExtra });
+      if (res.success) {
+        setMessageConfig({
+          type: "success",
+          title: "Tutor cadastrado",
+          message: "O tutor foi cadastrado em Pessoa e Tutor com sucesso.",
+        });
+        cancelarNovoTutor();
+        reloadData();
+      } else {
+        setMessageConfig({
+          type: "error",
+          title: "Não foi possível cadastrar",
+          message: res.error,
+        });
+      }
+      return;
+    }
     if (!pessoaSel) {
       setMessageConfig({
         type: "warning",
@@ -339,11 +381,40 @@ export default function Cadastros({
       {subTab === "TUTORES" && (
         <>
           {/* Busca de pessoa */}
-          <div className={ts.searchBox}>
-            <p className={ts.searchLabel}>
-              Busque uma pessoa já cadastrada no sistema e vincule-a como
-              responsável pelo CCZ.
-            </p>
+          <div className={ts.searchContainer}>
+            <div className={ts.searchHeader}>
+              <div>
+                <h3 className={ts.searchTitle}>Vincular ou Cadastrar Tutor</h3>
+                <p className={ts.searchSubtitle}>
+                  Busque uma pessoa cadastrada para vinculá-la como responsável
+                  no CCZ ou cadastre um novo tutor.
+                </p>
+              </div>
+
+              {!modoNovoTutor && (
+                <button
+                  type="button"
+                  className={ts.btnNovoTutor}
+                  onClick={iniciarNovoTutor}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  <span>Novo Tutor</span>
+                </button>
+              )}
+            </div>
+
             <div className={ts.searchRow} ref={dropRef}>
               <div className={ts.autocompleteWrap}>
                 <input
@@ -352,7 +423,8 @@ export default function Cadastros({
                   value={search}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   onFocus={() => sugestoes.length > 0 && setShowDrop(true)}
-                  placeholder="Digite o nome ou CPF da pessoa..."
+                  placeholder="Digite o nome ou CPF da pessoa para buscar..."
+                  disabled={modoNovoTutor}
                 />
                 {searching && (
                   <span className={ts.searchSpinner}>Buscando...</span>
@@ -375,7 +447,7 @@ export default function Cadastros({
                 )}
               </div>
 
-              {/* Botão buscar */}
+              {/* Botão Buscar */}
               <button
                 type="button"
                 className={`${ts.iconBtn} ${ts.btnBlue}`}
@@ -391,13 +463,15 @@ export default function Cadastros({
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
                   <circle cx="11" cy="11" r="8" />
                   <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
               </button>
 
-              {/* Limpar */}
+              {/* Botão Limpar Seleção */}
               {pessoaSel && (
                 <button
                   type="button"
@@ -412,6 +486,8 @@ export default function Cadastros({
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   >
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
@@ -420,6 +496,177 @@ export default function Cadastros({
               )}
             </div>
           </div>
+
+          {modoNovoTutor && (
+            <form onSubmit={handleVincular} className={ts.formContainer}>
+              <div className={ts.formSection}>
+                <div className={ts.sectionHeader}>
+                  <h4>Dados do novo tutor</h4>
+                </div>
+                <div className={ts.formGrid}>
+                  <div className={`${ts.field} ${ts.col4}`}>
+                    <label>CPF *</label>
+                    <input
+                      required
+                      value={maskCpf(novoTutor.cpf)}
+                      onChange={(e) =>
+                        setNovoTutor({
+                          ...novoTutor,
+                          cpf: onlyDigits(e.target.value),
+                        })
+                      }
+                      placeholder="000.000.000-00"
+                    />
+                  </div>
+                  <div className={`${ts.field} ${ts.col8}`}>
+                    <label>Nome completo *</label>
+                    <input
+                      required
+                      value={novoTutor.nomeCompleto}
+                      onChange={(e) =>
+                        setNovoTutor({
+                          ...novoTutor,
+                          nomeCompleto: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className={`${ts.field} ${ts.col4}`}>
+                    <label>Sexo *</label>
+                    <select
+                      required
+                      value={novoTutor.sexo}
+                      onChange={(e) =>
+                        setNovoTutor({ ...novoTutor, sexo: e.target.value })
+                      }
+                    >
+                      <option value="">Selecione</option>
+                      <option value="Masculino">Masculino</option>
+                      <option value="Feminino">Feminino</option>
+                      <option value="Outro">Outro</option>
+                    </select>
+                  </div>
+                  <div className={`${ts.field} ${ts.col4}`}>
+                    <label>Data de nascimento *</label>
+                    <input
+                      required
+                      type="date"
+                      value={novoTutor.dataNascimento}
+                      onChange={(e) =>
+                        setNovoTutor({
+                          ...novoTutor,
+                          dataNascimento: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className={`${ts.field} ${ts.col4}`}>
+                    <label>Telefone *</label>
+                    <input
+                      required
+                      value={maskTel(novoTutor.telefone)}
+                      onChange={(e) =>
+                        setNovoTutor({
+                          ...novoTutor,
+                          telefone: onlyDigits(e.target.value),
+                        })
+                      }
+                      placeholder="(32) 99999-0000"
+                    />
+                  </div>
+                  <div className={`${ts.field} ${ts.col12}`}>
+                    <label>Nome da mãe *</label>
+                    <input
+                      required
+                      value={novoTutor.nomeMae}
+                      onChange={(e) =>
+                        setNovoTutor({ ...novoTutor, nomeMae: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className={ts.formSection}>
+                <div className={ts.sectionHeader}>
+                  <h4>Dados complementares CCZ</h4>
+                </div>
+                <div className={ts.formGrid}>
+                  <div className={`${ts.field} ${ts.col4}`}>
+                    <label>RG</label>
+                    <input
+                      value={tutorExtra.rg}
+                      onChange={(e) =>
+                        setTutorExtra({ ...tutorExtra, rg: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className={`${ts.field} ${ts.col8}`}>
+                    <label>Profissão</label>
+                    <input
+                      value={tutorExtra.profissao}
+                      onChange={(e) =>
+                        setTutorExtra({
+                          ...tutorExtra,
+                          profissao: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className={`${ts.field} ${ts.col4}`}>
+                    <label>Telefone secundário</label>
+                    <input
+                      value={maskTel(tutorExtra.telefoneSecundario)}
+                      onChange={(e) =>
+                        setTutorExtra({
+                          ...tutorExtra,
+                          telefoneSecundario: onlyDigits(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className={`${ts.field} ${ts.col8}`}>
+                    <label>Ponto de referência</label>
+                    <input
+                      value={tutorExtra.pontoReferencia}
+                      onChange={(e) =>
+                        setTutorExtra({
+                          ...tutorExtra,
+                          pontoReferencia: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className={`${ts.field} ${ts.col12}`}>
+                    <label>Observações</label>
+                    <textarea
+                      rows={2}
+                      value={tutorExtra.observacoes}
+                      onChange={(e) =>
+                        setTutorExtra({
+                          ...tutorExtra,
+                          observacoes: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className={ts.formActions}>
+                <button
+                  type="button"
+                  className={ts.secondaryBtn}
+                  onClick={cancelarNovoTutor}
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className={ts.primaryBtn}>
+                  Cadastrar tutor
+                </button>
+              </div>
+            </form>
+          )}
 
           {/* Preview + formulário de dados extras do tutor */}
           {pessoaSel && (
