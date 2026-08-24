@@ -3,19 +3,31 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-// Função auxiliar para formatar YYYY-MM-DD em DD/MM/YYYY
+// Função auxiliar com fuso horário seguro para formatar DATE em DD/MM/YYYY
 function formatDateToBR(dateObjOrString) {
-  if (!dateObjOrString) return "";
-  const isoStr =
-    dateObjOrString instanceof Date
-      ? dateObjOrString.toISOString().split("T")[0]
-      : String(dateObjOrString).split("T")[0];
+  if (!dateObjOrString) return "-";
 
-  const parts = isoStr.split("-");
-  if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  try {
+    if (typeof dateObjOrString === "string") {
+      const cleanStr = dateObjOrString.split("T")[0];
+      const parts = cleanStr.split("-");
+      if (parts.length === 3) {
+        return `${parts[2].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${parts[0]}`;
+      }
+      return cleanStr;
+    }
+
+    if (dateObjOrString instanceof Date && !isNaN(dateObjOrString.getTime())) {
+      const day = String(dateObjOrString.getUTCDate()).padStart(2, "0");
+      const month = String(dateObjOrString.getUTCMonth() + 1).padStart(2, "0");
+      const year = dateObjOrString.getUTCFullYear();
+      return `${day}/${month}/${year}`;
+    }
+  } catch (err) {
+    console.error("Erro ao formatar data:", err);
   }
-  return isoStr;
+
+  return "-";
 }
 
 // 1. Buscar todos os pedidos relacionando as tabelas pessoa, procedimento, ubs e medicos
@@ -42,11 +54,8 @@ export async function getPedidosExames() {
         ? item.dataSolicitacao.toISOString().split("T")[0]
         : "";
 
-      // Extrai o nome do exame ou define um padrão
       const examName = item.procedimento?.tipoExame?.nome || "EXA";
-      // Pega as 3 primeiras letras em maiúsculo (ex: TOM, RES, CIN)
       const prefix = examName.trim().substring(0, 3).toUpperCase();
-      // Código personalizado combinando o prefixo + ID do banco de dados
       const customCode = `${prefix}${item.id}`;
 
       return {
@@ -62,7 +71,6 @@ export async function getPedidosExames() {
         cpf: item.pessoaCpf,
         susCard: item.cnsPaciente || "",
 
-        // Data formatada para DD/MM/YYYY e a original ISO para inputs/filtros
         requestDate: formatDateToBR(dataSolicitacaoRaw),
         requestDateRaw: dataSolicitacaoRaw,
 
@@ -121,7 +129,7 @@ export async function getAuxiliaryData() {
         prisma.pessoa.findMany({
           include: { enderecos: { where: { enderecoAtual: true } } },
           orderBy: { nomeCompleto: "asc" },
-          take: 50,
+          take: 100,
         }),
       ]);
 
@@ -150,9 +158,7 @@ export async function getAuxiliaryData() {
           nomeCompleto: p.nomeCompleto,
           nomeMae: p.nomeMae,
           telefone: p.telefone,
-          dataNascimento: p.dataNascimento
-            ? formatDateToBR(p.dataNascimento)
-            : "",
+          dataNascimento: formatDateToBR(p.dataNascimento),
           logradouro: endereco?.logradouro || "",
           numero: endereco?.numero || "",
           complemento: endereco?.complemento || "",
@@ -175,42 +181,57 @@ export async function getAuxiliaryData() {
   }
 }
 
-// 3. Buscar uma pessoa específica por CPF ou Nome
+// 3. Buscar uma pessoa específica por CPF ou Nome (Suporta CPF limpo ou formatado)
 export async function searchPessoa(term) {
   try {
-    return await prisma.pessoa.findFirst({
+    if (!term) return null;
+    const cleanTerm = term.replace(/\D/g, "");
+
+    const pessoa = await prisma.pessoa.findFirst({
       where: {
         OR: [
           { cpf: term },
+          ...(cleanTerm ? [{ cpf: cleanTerm }] : []),
           { nomeCompleto: { contains: term, mode: "insensitive" } },
         ],
       },
     });
+
+    if (!pessoa) return null;
+
+    return {
+      ...pessoa,
+      dataNascimento: formatDateToBR(pessoa.dataNascimento),
+    };
   } catch (error) {
     console.error("Erro ao buscar pessoa:", error);
     return null;
   }
 }
 
-// 4. Autocomplete de Pessoas
+// 4. Autocomplete de Pessoas (Suporta CPF limpo ou formatado)
 export async function searchPessoasAutocomplete(term) {
   if (!term || term.trim().length < 2) return [];
 
   try {
+    const cleanTerm = term.replace(/\D/g, "");
+
     const pessoas = await prisma.pessoa.findMany({
       where: {
         OR: [
           { cpf: { contains: term } },
+          ...(cleanTerm ? [{ cpf: { contains: cleanTerm } }] : []),
           { nomeCompleto: { contains: term, mode: "insensitive" } },
         ],
       },
-      take: 5,
+      take: 10,
     });
 
     return pessoas.map((p) => ({
       cpf: p.cpf,
       nomeCompleto: p.nomeCompleto,
       nomeMae: p.nomeMae,
+      dataNascimento: formatDateToBR(p.dataNascimento),
     }));
   } catch (error) {
     console.error("Erro no autocomplete de pessoa:", error);
@@ -297,12 +318,16 @@ export async function createPessoa(data) {
     const cleanCpf = data.cpf.replace(/\D/g, "");
     const cleanCep = data.cep ? data.cep.replace(/\D/g, "") : null;
 
+    const birthDate = data.dataNascimento
+      ? new Date(`${data.dataNascimento}T00:00:00Z`)
+      : new Date();
+
     const result = await prisma.$transaction(async (tx) => {
       const pessoa = await tx.pessoa.create({
         data: {
           cpf: cleanCpf,
           nomeCompleto: data.nomeCompleto,
-          dataNascimento: new Date(data.dataNascimento),
+          dataNascimento: birthDate,
           nomeMae: data.nomeMae,
           telefone: data.telefone,
         },
@@ -582,12 +607,16 @@ export async function deleteMedico(id) {
 // 19. Atualizar Pessoa / Paciente
 export async function updatePessoa(cpf, data) {
   try {
+    const birthDate = data.dataNascimento
+      ? new Date(`${data.dataNascimento}T00:00:00Z`)
+      : new Date();
+
     const result = await prisma.$transaction(async (tx) => {
       const pessoa = await tx.pessoa.update({
         where: { cpf },
         data: {
           nomeCompleto: data.nomeCompleto,
-          dataNascimento: new Date(data.dataNascimento),
+          dataNascimento: birthDate,
           nomeMae: data.nomeMae,
           telefone: data.telefone,
         },

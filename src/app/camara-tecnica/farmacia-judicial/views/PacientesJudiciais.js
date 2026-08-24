@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { buscarPessoaExistente } from '../actions';
-import styles from './TabPacientesJudiciais.module.css';
+import styles from './PacientesJudiciais.module.css';
 
 export default function TabPacientesJudiciais({
   pacientes = [],
@@ -244,7 +245,7 @@ export default function TabPacientesJudiciais({
             </div>
 
             <button type="button" className={styles.searchBtn} title="Buscar">
-              <img src="/img/icon/lupa.png" alt="Buscar" width={20} height={20} />
+              <Image src="/img/icon/lupa.png" alt="Buscar" width={20} height={20} />
             </button>
 
             <button
@@ -254,7 +255,7 @@ export default function TabPacientesJudiciais({
               disabled={!selectedPatient && !form.cpf}
               title={selectedPatient || form.cpf ? 'Habilitar Edição dos Campos' : 'Selecione um paciente para editar'}
             >
-              <img src="/img/icon/editar.png" alt="Editar" width={18} height={18} />
+              <Image src="/img/icon/editar.png" alt="Editar" width={18} height={18} />
             </button>
 
             <button
@@ -263,7 +264,7 @@ export default function TabPacientesJudiciais({
               onClick={handleNewRegistration}
               title="Novo Cadastro Limpo"
             >
-              <img src="/img/icon/mais.png" alt="Novo" width={20} height={20} />
+              <Image src="/img/icon/mais.png" alt="Novo" width={20} height={20} />
             </button>
           </div>
 

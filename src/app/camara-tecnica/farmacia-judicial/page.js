@@ -15,15 +15,15 @@ import {
   getRelatorioSaidas,
 } from "./actions";
 
-import TabDashboard from "./views/Dashboard";
-import TabPacientesJudiciais from "./components/PacientesJudiciais";
-import TabDispensacao from "./views/Dispensacao";
-import TabRelatorios from "./views/Relatorios";
+import Dashboard from "./views/Dashboard";
+import PacientesJudiciais from "./components/PacientesJudiciais";
+import Dispensacao from "./views/Dispensacao";
+import Relatorios from "./views/Relatorios";
 
 // 🎯 COMPONENTES DE ESTOQUE SEPARADOS E INDEPENDENTES
-import TabSaldoEstoque from "./components/SaldoEstoque";
-import TabRegistrarEntrada from "./components/RegistrarEntrada";
-import TabCadastrarMedicamento from "./components/CadastrarMedicamentos";
+import SaldoEstoque from "./components/SaldoEstoque";
+import RegistrarEntrada from "./components/RegistrarEntrada";
+import CadastrarMedicamento from "./components/CadastrarMedicamentos";
 
 import styles from "./page.module.css";
 
@@ -31,7 +31,13 @@ function FarmaciaJudicialPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const activeTab = searchParams.get("tab") || "DASHBOARD";
+  // 1. Tratamento seguro de parâmetro de abas
+  let rawTab = searchParams.get("tab") || "DASHBOARD";
+  if (rawTab === "FARMACIA_JUDICIAL") {
+    rawTab = "PACIENTES";
+  }
+
+  const activeTab = rawTab;
   const activeSubTab = searchParams.get("subTab") || "SALDO";
 
   const [loading, setLoading] = useState(true);
@@ -42,6 +48,7 @@ function FarmaciaJudicialPageContent() {
   const [catalogo, setCatalogo] = useState([]);
   const [metrics, setMetrics] = useState({});
 
+  // Função para recarregar dados manualmente após ações (cadastros, dispensações, etc.)
   const reloadData = async () => {
     setLoading(true);
     try {
@@ -67,17 +74,54 @@ function FarmaciaJudicialPageContent() {
     }
   };
 
+  // Carregamento inicial limpo no useEffect que previne re-renderizações em cascata
   useEffect(() => {
-    reloadData();
+    let isMounted = true;
+
+    const loadInitialData = async () => {
+      setLoading(true);
+      try {
+        const [pacData, estData, catData, metData, entData, saiData] =
+          await Promise.all([
+            getPacientesJudiciais(),
+            getMedicamentosEEstoque(),
+            getCatalogoMedicamentos(),
+            getDashboardMetrics(),
+            getRelatorioEntradas(),
+            getRelatorioSaidas(),
+          ]);
+
+        if (isMounted) {
+          setPacientes(pacData || []);
+          setEstoqueLotes(estData || []);
+          setCatalogo(catData || []);
+          setMetrics(metData || {});
+          setRelatorioEntradas(entData || []);
+          setRelatorioSaidas(saiData || []);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadInitialData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
+  // 2. Navegação garantindo o caminho completo da subpasta do módulo
   const handleNavigate = (tab, subTab) => {
+    const baseUrl = "/camara-tecnica/farmacia-judicial";
     if (subTab) {
-      router.push(
-        `/camara-tecnica/farmacia-judicial?tab=${tab}&subTab=${subTab}`,
-      );
+      router.push(`${baseUrl}?tab=${tab}&subTab=${subTab}`);
     } else {
-      router.push(`/camara-tecnica/farmacia-judicial?tab=${tab}`);
+      router.push(`${baseUrl}?tab=${tab}`);
     }
   };
 
@@ -129,9 +173,9 @@ function FarmaciaJudicialPageContent() {
         </div>
       </header>
 
-      {/* ROUTING DIRETO POR COMPONENTE */}
+      {/* ROTEAMENTO DIRETO POR COMPONENTE */}
       {activeTab === "DASHBOARD" && (
-        <TabDashboard
+        <Dashboard
           metrics={metrics}
           onNavigate={handleNavigate}
           loading={loading}
@@ -140,7 +184,7 @@ function FarmaciaJudicialPageContent() {
       )}
 
       {activeTab === "PACIENTES" && (
-        <TabPacientesJudiciais
+        <PacientesJudiciais
           pacientes={pacientes}
           catalogo={catalogo}
           onCreatePaciente={handleCreatePaciente}
@@ -149,7 +193,7 @@ function FarmaciaJudicialPageContent() {
       )}
 
       {activeTab === "DISPENSACAO" && (
-        <TabDispensacao
+        <Dispensacao
           pacientes={pacientes}
           estoqueLotes={estoqueLotes}
           onConfirmarDispensacao={handleConfirmarDispensacao}
@@ -158,24 +202,24 @@ function FarmaciaJudicialPageContent() {
 
       {/* ROTEAMENTO DE ESTOQUE DEDICADO */}
       {activeTab === "ESTOQUE" && activeSubTab === "SALDO" && (
-        <TabSaldoEstoque estoqueLotes={estoqueLotes} loading={loading} />
+        <SaldoEstoque estoqueLotes={estoqueLotes} loading={loading} />
       )}
 
       {activeTab === "ESTOQUE" && activeSubTab === "ENTRADA" && (
-        <TabRegistrarEntrada
+        <RegistrarEntrada
           catalogo={catalogo}
           onCreateLote={handleCreateLote}
         />
       )}
 
       {activeTab === "ESTOQUE" && activeSubTab === "CADASTRAR" && (
-        <TabCadastrarMedicamento
+        <CadastrarMedicamento
           onCreateMedicamento={handleCreateMedicamento}
         />
       )}
 
       {activeTab === "RELATORIOS" && (
-        <TabRelatorios entradas={relatorioEntradas} saidas={relatorioSaidas} />
+        <Relatorios entradas={relatorioEntradas} saidas={relatorioSaidas} />
       )}
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import * as XLSX from 'xlsx';
-import styles from './TabRelatorios.module.css';
+import styles from './Relatorios.module.css';
 
 export default function TabRelatorios({ 
   entradas = [], 
@@ -298,7 +298,7 @@ export default function TabRelatorios({
               {!relatorioGerado ? (
                 <tr>
                   <td colSpan="7" className={styles.emptyTd}>
-                    👉 Selecione o período acima e clique em <strong>"Gerar Relatório"</strong> para exibir os registros de entrada.
+                    👉 Selecione o período acima e clique em <strong>&quot;Gerar Relatório&quot;</strong> para exibir os registros de entrada.
                   </td>
                 </tr>
               ) : entradasFiltradas.length === 0 ? (
@@ -371,7 +371,7 @@ export default function TabRelatorios({
               {!relatorioGerado ? (
                 <tr>
                   <td colSpan="6" className={styles.emptyTd}>
-                    👉 Selecione o período acima e clique em <strong>"Gerar Relatório"</strong> para exibir os registros de saída.
+                    👉 Selecione o período acima e clique em <strong>&quot;Gerar Relatório&quot;</strong> para exibir os registros de saída.
                   </td>
                 </tr>
               ) : saidasFiltradas.length === 0 ? (

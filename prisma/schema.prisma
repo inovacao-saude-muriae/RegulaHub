@@ -24,7 +24,7 @@ model User {
   id           String    @id @default(uuid())
   nome         String    @db.VarChar(150)
   cpf          String?   @unique @db.VarChar(11)
-  pessoaCpf    String?   @unique @map("pessoa_cpf") @db.VarChar(11)
+  pessoaCpf    String?   @unique @map("pessoa_cpf") @db.VarChar(11) // OPCIONAL: chave de vínculo
   senhaHash    String    @map("senha_hash") @db.VarChar(255)
   cargo        String?   @db.VarChar(100)
   role         Role      @default(OPERADOR_REGULA)
@@ -55,17 +55,18 @@ model Session {
 model Pessoa {
   cpf            String   @id @db.VarChar(11)
   nomeCompleto   String   @map("nome_completo") @db.VarChar(150)
-  sexo           String   @default("Masculino") @db.VarChar(20)
+  sexo           String   @db.VarChar(20)
   dataNascimento DateTime @map("data_nascimento") @db.Date
   nomeMae        String   @map("nome_mae") @db.VarChar(150)
   telefone       String   @db.VarChar(20)
+  cns            String?  @db.VarChar(15)
 
-  enderecos         Endereco[]
-  pedidos           PedidoExame[]
-  tutor             Tutor?
-  usuario           User?
-  pacienteFarmacia  PacienteFarmaciaJudicial?
-  pacienteJunta     PacienteJunta?
+  enderecos        Endereco[]
+  pedidos          PedidoExame[]
+  tutor            Tutor?
+  usuario          User?
+  pacienteFarmacia PacienteFarmaciaJudicial?
+  pacienteJunta    PacienteJunta?
 
   @@index([nomeCompleto, dataNascimento], map: "idx_pessoa_nome")
   @@map("pessoa")
@@ -84,7 +85,7 @@ model Endereco {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   enderecoAtual Boolean  @default(true) @map("endereco_atual")
 
-  pessoa Pessoa @relation(fields: [pessoaCpf], references: [cpf], onDelete: NoAction, onUpdate: NoAction, map: "fk_endereco_pessoa")
+  pessoa Pessoa @relation(fields: [pessoaCpf], references: [cpf], onDelete: Cascade, onUpdate: Cascade, map: "fk_endereco_pessoa")
 
   @@index([pessoaCpf], map: "pessoa_cpf_idx")
   @@map("pessoa_endereco")
@@ -159,7 +160,7 @@ model PedidoExame {
 
   medicoResponsavel Medico?      @relation("medico_responsavel", fields: [medicoResponsavelId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_med_resp")
   medicoSolicitante Medico?      @relation("medico_solicitante", fields: [medicoSolicitanteId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_med_solic")
-  pessoa            Pessoa       @relation(fields: [pessoaCpf], references: [cpf], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_pessoa")
+  pessoa            Pessoa       @relation(fields: [pessoaCpf], references: [cpf], onDelete: Cascade, onUpdate: Cascade, map: "fk_pedidos_pessoa")
   procedimento      Procedimento @relation(fields: [procedimentoId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_procedimento")
   ubs               Ubs?         @relation(fields: [ubsResponsavelId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pedidos_ubs")
 
@@ -354,7 +355,7 @@ model Animal {
   enderecoRecolhimento   String?   @map("endereco_recolhimento")
   dataCadastro           DateTime? @default(now()) @map("data_cadastro") @db.Timestamptz(6)
 
-  tutor         Tutor?                  @relation(fields: [pessoaCpf], references: [pessoaCpf], onDelete: SetNull)
+  tutor         Tutor?                 @relation(fields: [pessoaCpf], references: [pessoaCpf], onDelete: SetNull)
   procedimentos CadastroProcedimento[]
   zoonoses      CadastroZoonoses[]
   denuncias     DenunciaCaoAgressivo[]
@@ -414,35 +415,35 @@ model DenunciaCaoAgressivo {
 }
 
 model Esporotricose {
-  id                       String    @id(map: "zoonoses_esporotricose_pkey") @db.VarChar(50)
-  animalId                 String?   @map("animal_id") @db.VarChar(50)
-  numeroProtocolo          String?   @map("numero_protocolo") @db.VarChar(50)
-  dataVisita               DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
-  fiscalResponsavel        String?   @map("fiscal_responsavel") @db.VarChar(150)
-  apresentaLesoes          String?   @default("Sim") @db.VarChar(10)
-  descricaoLesoes          String?   @map("descricao_lesoes")
-  emTratamentoContinuo     String?   @default("Sim") @db.VarChar(10)
-  profissionalServicoRef   String?   @map("profissional_servico_ref") @db.VarChar(150)
-  medicamentosPrescritos   String?   @map("medicamentos_prescritos")
-  interrupcaoTratamento    String?   @default("Não") @db.VarChar(10)
-  retornoVeterinario       String?   @default("Sim") @db.VarChar(10)
-  isolamentoDomiciliar     String?   @default("Sim") @db.VarChar(10)
-  observacoesIsolamento    String?   @map("observacoes_isolamento")
-  acessoRua                String?   @default("Não") @db.VarChar(10)
-  usoEpi                   String?   @default("Sim") @db.VarChar(10)
-  quaisEpis                String?   @map("quais_epis") @db.VarChar(150)
-  higienizacaoAmbiente     String?   @map("higienizacao_ambiente")
-  outrosAnimaisResidencia  String?   @default("Não") @db.VarChar(10)
-  outrosAnimaisDescricao   String?   @map("outros_animais_descricao")
-  pessoasComLesoes         String?   @default("Não") @db.VarChar(10)
-  pessoasLesoesDescricao   String?   @map("pessoas_lesoes_descricao")
-  conclusaoTecnica         String?   @map("conclusao_tecnica")
-  encAcompanhamentoCcz     Boolean?  @default(false) @map("enc_acompanhamento_ccz")
-  encNotificacaoTutor      Boolean?  @default(false) @map("enc_notificacao_tutor")
-  encMinisterioPublico     Boolean?  @default(false) @map("enc_ministerio_publico")
-  encOutrasMedidas         Boolean?  @default(false) @map("enc_outras_medidas")
-  outrasMedidasDescricao   String?   @map("outras_medidas_descricao")
-  createdAt                DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                      String    @id(map: "zoonoses_esporotricose_pkey") @db.VarChar(50)
+  animalId                String?   @map("animal_id") @db.VarChar(50)
+  numeroProtocolo         String?   @map("numero_protocolo") @db.VarChar(50)
+  dataVisita              DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
+  fiscalResponsavel       String?   @map("fiscal_responsavel") @db.VarChar(150)
+  apresentaLesoes         String?   @default("Sim") @db.VarChar(10)
+  descricaoLesoes         String?   @map("descricao_lesoes")
+  emTratamentoContinuo    String?   @default("Sim") @db.VarChar(10)
+  profissionalServicoRef  String?   @map("profissional_servico_ref") @db.VarChar(150)
+  medicamentosPrescritos  String?   @map("medicamentos_prescritos")
+  interrupcaoTratamento   String?   @default("Não") @db.VarChar(10)
+  retornoVeterinario      String?   @default("Sim") @db.VarChar(10)
+  isolamentoDomiciliar    String?   @default("Sim") @db.VarChar(10)
+  observacoesIsolamento   String?   @map("observacoes_isolamento")
+  acessoRua               String?   @default("Não") @db.VarChar(10)
+  usoEpi                  String?   @default("Sim") @db.VarChar(10)
+  quaisEpis               String?   @map("quais_epis") @db.VarChar(150)
+  higienizacaoAmbiente    String?   @map("higienizacao_ambiente")
+  outrosAnimaisResidencia String?   @default("Não") @db.VarChar(10)
+  outrosAnimaisDescricao  String?   @map("outros_animais_descricao")
+  pessoasComLesoes        String?   @default("Não") @db.VarChar(10)
+  pessoasLesoesDescricao  String?   @map("pessoas_lesoes_descricao")
+  conclusaoTecnica        String?   @map("conclusao_tecnica")
+  encAcompanhamentoCcz    Boolean?  @default(false) @map("enc_acompanhamento_ccz")
+  encNotificacaoTutor     Boolean?  @default(false) @map("enc_notificacao_tutor")
+  encMinisterioPublico    Boolean?  @default(false) @map("enc_ministerio_publico")
+  encOutrasMedidas        Boolean?  @default(false) @map("enc_outras_medidas")
+  outrasMedidasDescricao  String?   @map("outras_medidas_descricao")
+  createdAt               DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
 
   animal Animal? @relation(fields: [animalId], references: [id], onDelete: SetNull)
 

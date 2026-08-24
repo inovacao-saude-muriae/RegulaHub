@@ -1,6 +1,6 @@
 'use client';
 
-import styles from './TabDashboard.module.css';
+import styles from './Dashboard.module.css';
 
 export default function TabDashboard({
   metrics = {},

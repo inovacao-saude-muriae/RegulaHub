@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import styles from './TabDispensacao.module.css';
+import styles from './Dispensacao.module.css';
 
 export default function TabDispensacao({
   pacientes = [],

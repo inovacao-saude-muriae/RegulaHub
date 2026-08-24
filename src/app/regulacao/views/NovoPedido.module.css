@@ -43,38 +43,120 @@
   margin: 0;
 }
 
-/* ── Busca de Paciente / Autocomplete ── */
+/* ── Busca de Paciente / Select com Tabela Integrada ── */
 .searchSectionContainer {
   margin-bottom: 1.25rem;
 }
 
-.searchActionRow {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.autocompleteWrapper {
+.inputWrapperWithIcon {
   position: relative;
-  flex: 1;
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 
-.autocompleteWrapper input {
+.selectLikeInput {
   width: 100%;
-  padding: 0.65rem 0.85rem;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: #1e293b;
-  outline: none;
-  background-color: #ffffff;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  padding: 0.65rem 2rem 0.65rem 0.85rem !important;
+  background-color: #fffde7 !important; /* Cor amarelada suave do print */
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  font-size: 0.9rem !important;
+  color: #1e293b !important;
   box-sizing: border-box;
 }
 
-.autocompleteWrapper input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+.selectLikeInput:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08) !important;
+}
+
+.arrowIcon {
+  position: absolute;
+  right: 0.85rem;
+  font-size: 0.75rem;
+  color: #64748b;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ── Container do Dropdown em Tabela ── */
+.tableDropdownMenu {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
+  z-index: 100;
+}
+
+.tableContainerScroll {
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid #f1f5f9;
+  border-radius: 6px;
+}
+
+.patientTableDropdown {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.825rem;
+  text-align: left;
+}
+
+.patientTableDropdown thead {
+  position: sticky;
+  top: 0;
+  background-color: #f8fafc;
+  z-index: 10;
+}
+
+.patientTableDropdown th {
+  padding: 0.6rem 0.75rem;
+  color: #475569;
+  font-weight: 700;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.patientTableDropdown td {
+  padding: 0.6rem 0.75rem;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.patientTableDropdown tbody tr:hover {
+  background-color: #2563eb;
+}
+
+.patientTableDropdown tbody tr:hover td {
+  color: #ffffff;
+}
+
+.boldName {
+  font-weight: 600;
+}
+
+.selectedRow {
+  background-color: #eff6ff;
+}
+
+.noDataTd {
+  text-align: center;
+  padding: 1.5rem !important;
+  color: #94a3b8;
+  cursor: default !important;
+}
+
+.noDataTd:hover {
+  background-color: transparent !important;
+  color: #94a3b8 !important;
 }
 
 .loadingSpinner {
@@ -82,99 +164,6 @@
   color: #2563eb;
   font-weight: 600;
   margin-top: 0.35rem;
-}
-
-/* Dropdown de Sugestões */
-.suggestionsList {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background-color: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin-top: 0.25rem;
-  max-height: 220px;
-  overflow-y: auto;
-  z-index: 50;
-  list-style: none;
-  padding: 0;
-}
-
-.suggestionItem {
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  border-bottom: 1px solid #f1f5f9;
-  transition: background-color 0.15s;
-}
-
-.suggestionItem:last-child {
-  border-bottom: none;
-}
-
-.suggestionItem:hover {
-  background-color: #eff6ff;
-}
-
-.suggestionName {
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: #1e293b;
-}
-
-.suggestionDetails {
-  font-size: 0.78rem;
-  color: #64748b;
-  margin-top: 0.15rem;
-}
-
-.noSuggestions {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background-color: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  font-size: 0.83rem;
-  color: #94a3b8;
-  margin-top: 0.25rem;
-  z-index: 50;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-/* ── Botão Quadrado da Lupa ── */
-.iconSquareBtn {
-  width: 42px;
-  height: 42px;
-  border: none;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  padding: 0;
-  transition: transform 0.15s ease, opacity 0.15s ease;
-}
-
-.iconSquareBtn:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-.iconImg {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  display: block;
-  pointer-events: none;
-}
-
-.btnBlue {
-  background-color: #2563eb;
 }
 
 /* ── Grid Flexível de 12 Colunas ── */
