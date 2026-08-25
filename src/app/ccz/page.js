@@ -87,6 +87,7 @@ function CCZPageContent() {
             <Zoonoses
               subTab={activeSubTab}
               data={data}
+              animais={data.animais}
               reloadData={reloadData}
             />
           )}
@@ -95,6 +96,7 @@ function CCZPageContent() {
             <Esporotricose
               subTab={activeSubTab}
               data={data}
+              animais={data.animais}
               reloadData={reloadData}
             />
           )}
