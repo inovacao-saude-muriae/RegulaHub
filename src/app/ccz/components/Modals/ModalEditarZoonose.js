@@ -5,7 +5,15 @@ import styles from "./ModalEditarZoonose.module.css";
 
 function toDateInput(value) {
   if (!value) return "";
-  return String(value).split("T")[0];
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime())
+      ? ""
+      : value.toISOString().slice(0, 10);
+  }
+
+  const dateString = String(value);
+  const isoDate = dateString.match(/^\d{4}-\d{2}-\d{2}/);
+  return isoDate ? isoDate[0] : "";
 }
 
 export default function ModalEditarZoonose({
