@@ -18,7 +18,7 @@ export async function loginAction(formData) {
       return { error: "Informe a sua senha de acesso." };
     }
 
-    // 1. Busca o operador diretamente na tabela User
+    // 1. Busca o operador diretamente na tabela User pelo CPF
     const user = await prisma.user.findUnique({
       where: { cpf },
     });
@@ -33,21 +33,21 @@ export async function loginAction(formData) {
       return { error: "Senha incorreta. Tente novamente." };
     }
 
-    // 3. Gera o token e cria a sessão no banco
+    // 3. Gera o token e cria a sessão no banco usando user.cpf
     const token = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000); // 8 horas de sessão
 
     await prisma.session.create({
       data: {
-        userId: user.id,
+        userId: user.cpf, // <-- CORRIGIDO: de user.id para user.cpf
         token,
         expiresAt,
       },
     });
 
-    // 4. Atualiza o registro do último acesso
+    // 4. Atualiza o registro do último acesso buscando por cpf
     await prisma.user.update({
-      where: { id: user.id },
+      where: { cpf: user.cpf }, // <-- CORRIGIDO: de { id: user.id } para { cpf: user.cpf }
       data: { ultimoAcesso: new Date() },
     });
 
