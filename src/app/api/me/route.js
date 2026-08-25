@@ -16,9 +16,8 @@ export async function GET() {
       include: {
         user: {
           select: {
-            id: true,
+            cpf: true, // Usa o CPF como identificador
             nome: true,
-            cpf: true,
             role: true,
             cargo: true,
           },
@@ -33,7 +32,7 @@ export async function GET() {
     return NextResponse.json(
       {
         user: {
-          id: session.user.id,
+          id: session.user.cpf, // Atribui o CPF no lugar do id para manter compatibilidade com o frontend
           nomeCompleto: session.user.nome,
           cpf: session.user.cpf,
           role: session.user.role,

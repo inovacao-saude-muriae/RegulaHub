@@ -53,16 +53,17 @@ export async function GET() {
     // 5. Total de Usuários Cadastrados
     const totalUsuarios = await prisma.user.count();
 
-    // 6. Últimas Sessões Criadas no Sistema (Ajustado para o novo campo 'nome' do User)
+    // 6. Últimas Sessões Criadas no Sistema (Corrigido para usar campos reais da model User)
     const ultimosAcessos = await prisma.session.findMany({
       take: 5,
-      orderBy: { id: 'desc' },
+      orderBy: { createdAt: 'desc' },
       include: {
         user: {
           select: {
             nome: true,
+            cpf: true,
             role: true,
-            pessoa: { select: { nomeCompleto: true } },
+            cargo: true,
           },
         },
       },
@@ -82,9 +83,9 @@ export async function GET() {
         },
         logs: ultimosAcessos.map((s) => ({
           id: s.id,
-          usuario: s.user?.nome || s.user?.pessoa?.nomeCompleto || 'Usuário Sem Nome',
+          usuario: s.user?.nome || 'Usuário Sem Nome',
           role: s.user?.role || 'N/A',
-          data: new Date(s.expiresAt.getTime() - 8 * 60 * 60 * 1000).toLocaleTimeString('pt-BR', {
+          data: new Date(s.createdAt).toLocaleTimeString('pt-BR', {
             hour: '2-digit',
             minute: '2-digit',
           }),
