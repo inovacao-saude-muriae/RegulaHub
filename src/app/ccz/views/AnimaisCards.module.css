@@ -233,6 +233,46 @@
   line-height: 1.35;
 }
 
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.editButton,
+.deleteButton {
+  flex: 1;
+  border: 0;
+  border-radius: 6px;
+  padding: 0.55rem 0.5rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.editButton {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.deleteButton {
+  background: #fff1f2;
+  color: #be123c;
+}
+.editButton:hover {
+  background: #dbeafe;
+}
+.deleteButton:hover {
+  background: #ffe4e6;
+}
+.editButton:disabled,
+.deleteButton:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 /* Footer do card */
 .cardFooter {
   border-top: 1px solid #f1f5f9;

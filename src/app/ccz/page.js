@@ -108,7 +108,11 @@ function CCZPageContent() {
           )}
 
           {activeTab === "ANIMAIS" && (
-            <AnimaisCards animais={data.animais} tutores={data.tutores} />
+            <AnimaisCards
+              animais={data.animais}
+              tutores={data.tutores}
+              reloadData={reloadData}
+            />
           )}
 
           {activeTab === "PROCEDIMENTOS" && (
@@ -130,7 +134,13 @@ function CCZPageContent() {
 
 export default function CCZPage() {
   return (
-    <Suspense fallback={<div style={{ textAlign: "center", padding: "3rem" }}>Carregando...</div>}>
+    <Suspense
+      fallback={
+        <div style={{ textAlign: "center", padding: "3rem" }}>
+          Carregando...
+        </div>
+      }
+    >
       <CCZPageContent />
     </Suspense>
   );

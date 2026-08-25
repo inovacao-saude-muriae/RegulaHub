@@ -17,8 +17,6 @@ import {
   cadastrarTutor,
   desvincularTutor,
   createAnimal,
-  updateAnimal,
-  deleteAnimal,
 } from "../actions";
 
 // ── Máscaras ─────────────────────────────────────────────────────────────
@@ -237,33 +235,6 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
 
   // ── ANIMAIS ──────────────────────────────────────────────────────────
   const [animalForm, setAnimalForm] = useState(EMPTY_ANIMAL);
-  const [editingAnimalId, setEditingAnimalId] = useState(null);
-
-  const handleEditAnimal = (a) => {
-    setEditingAnimalId(a.id);
-    setAnimalForm({
-      id: a.id || "",
-      possui_responsavel:
-        a.possui_responsavel || (a.tutorCpf || a.pessoa_cpf ? "Sim" : "Não"),
-      tutorCpf: a.tutorCpf || a.pessoa_cpf || "",
-      nome: a.nome || "",
-      fotoUrl: a.fotoUrl || "",
-      especie: a.especie || "",
-      sexo: (a.sexo || "M").charAt(0).toUpperCase(),
-      porte: a.porte || "Médio",
-      idade: a.idade || "",
-      castrado: a.castrado || "Não",
-      doenca_cronica: a.doenca_cronica || "Não",
-      sintomas_vomito_diarreia: a.sintomas_vomito_diarreia || "Não",
-      apetite_normal: a.apetite_normal || "Sim",
-      em_tratamento: a.em_tratamento || "Não",
-      qual_tratamento: a.qual_tratamento || "",
-      observacoes: a.observacoes || "",
-      endereco_recolhimento: a.endereco_recolhimento || "",
-    });
-    setSubTab("ANIMAIS");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
 
   const handleSubmitAnimal = async (e) => {
     e.preventDefault();
@@ -293,19 +264,14 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
       tutorCpf:
         animalForm.possui_responsavel === "Sim" ? animalForm.tutorCpf : "",
     };
-    const res = editingAnimalId
-      ? await updateAnimal(editingAnimalId, animalPayload)
-      : await createAnimal(animalPayload);
+    const res = await createAnimal(animalPayload);
     if (res.success) {
       setMessageConfig({
         type: "success",
-        title: editingAnimalId ? "Animal atualizado" : "Animal cadastrado",
-        message: editingAnimalId
-          ? "As informações do animal foram atualizadas."
-          : `O animal foi cadastrado com o ID ${res.data.id}.`,
+        title: "Animal cadastrado",
+        message: `O animal foi cadastrado com o ID ${res.data.id}.`,
       });
       setAnimalForm(EMPTY_ANIMAL);
-      setEditingAnimalId(null);
       reloadData();
     } else {
       setMessageConfig({
@@ -908,12 +874,8 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
       {/* ══════════ ABA ANIMAIS ══════════════════════════════════════ */}
       {subTab === "ANIMAIS" && (
         <>
-          <h3>
-            {editingAnimalId ? "✏️ Editar Animal" : "➕ Cadastrar Novo Animal"}
-          </h3>
-
+          <h3>➕ Cadastrar Novo Animal</h3>
           <form onSubmit={handleSubmitAnimal} className={s.formGrid}>
-            {/* Identificador manual */}
             <div className={`${s.fieldGroup} ${s.fullWidth}`}>
               <label htmlFor="animal-id">ID do Animal *</label>
               <input
@@ -925,11 +887,8 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
                 }
                 placeholder="Ex.: 14/26"
                 required
-                disabled={Boolean(editingAnimalId)}
               />
             </div>
-
-            {/* Responsável */}
             <div className={`${s.fieldGroup} ${s.fullWidth}`}>
               <label>O animal possui responsável? *</label>
               <select
@@ -946,14 +905,10 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
               >
                 <option value="">-- Selecione --</option>
                 {SIM_NAO.map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
+                  <option key={value}>{value}</option>
                 ))}
               </select>
             </div>
-
-            {/* Tutor */}
             {animalForm.possui_responsavel === "Sim" && (
               <div className={s.fieldGroup}>
                 <label>Tutor / Responsável *</label>
@@ -965,20 +920,17 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
                   required
                 >
                   <option value="">-- Selecione --</option>
-                  {tutores.map((t) => (
-                    <option key={t.cpf} value={t.cpf}>
-                      {t.nomeCompleto}
+                  {tutores.map((tutor) => (
+                    <option key={tutor.cpf} value={tutor.cpf}>
+                      {tutor.nomeCompleto}
                     </option>
                   ))}
                 </select>
               </div>
             )}
-
-            {/* Nome */}
             <div className={s.fieldGroup}>
               <label>Nome do Animal</label>
               <input
-                type="text"
                 value={animalForm.nome}
                 onChange={(e) =>
                   setAnimalForm({ ...animalForm, nome: e.target.value })
@@ -986,7 +938,6 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
                 placeholder="Ex: Rex"
               />
             </div>
-
             <div className={s.fieldGroup}>
               <label>Foto do Animal</label>
               <input
@@ -1182,24 +1133,13 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
             </div>
 
             <div className={s.formActions}>
-              {editingAnimalId && (
-                <button
-                  type="button"
-                  className={s.secondaryBtn}
-                  onClick={() => {
-                    setAnimalForm(EMPTY_ANIMAL);
-                    setEditingAnimalId(null);
-                  }}
-                >
-                  Cancelar
-                </button>
-              )}
               <button type="submit" className={s.primaryBtn}>
-                {editingAnimalId ? "💾 Atualizar Animal" : "➕ Salvar Animal"}
+                ➕ Salvar Animal
               </button>
             </div>
           </form>
 
+          {/*
           <h4 className={s.sectionHeader}>Animais Cadastrados</h4>
           <div className={s.tableWrapper}>
             <table className={s.table}>
@@ -1314,6 +1254,7 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
               </tbody>
             </table>
           </div>
+          */}
         </>
       )}
     </div>

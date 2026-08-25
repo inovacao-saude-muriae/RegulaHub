@@ -1,7 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import st from "./AnimaisCards.module.css";
+import ModalConfirmacaoCCZ from "../components/Modals/ModalConfirmacaoCCZ";
+import ModalEditarAnimal from "../components/Modals/ModalEditarAnimal";
+import ModalMensagemCCZ from "../components/Modals/ModalMensagemCCZ";
+import { deleteAnimal, updateAnimal } from "../actions";
 
 function especieEmoji(especie) {
   const map = {
@@ -22,9 +26,17 @@ function especieBadgeClass(especie) {
   return map[especie] || st.badgeOutro;
 }
 
-export default function TabAnimaisCards({ animais = [] }) {
+export default function TabAnimaisCards({
+  animais = [],
+  tutores = [],
+  reloadData,
+}) {
   const [search, setSearch] = useState("");
   const [espFilter, setEspFilter] = useState("");
+  const [animalParaEditar, setAnimalParaEditar] = useState(null);
+  const [animalParaExcluir, setAnimalParaExcluir] = useState(null);
+  const [messageConfig, setMessageConfig] = useState(null);
+  const [isPending, startTransition] = useTransition();
 
   const especies = useMemo(() => {
     const set = new Set(animais.map((a) => a.especie).filter(Boolean));
@@ -42,6 +54,46 @@ export default function TabAnimaisCards({ animais = [] }) {
       return byText && byEsp;
     });
   }, [animais, search, espFilter]);
+
+  const handleSave = async (data) => {
+    const result = await updateAnimal(animalParaEditar.id, data);
+    if (!result.success) {
+      setMessageConfig({
+        type: "error",
+        title: "Não foi possível salvar",
+        message: result.error,
+      });
+      return;
+    }
+    setAnimalParaEditar(null);
+    setMessageConfig({
+      type: "success",
+      title: "Animal atualizado",
+      message: "As informações do animal foram atualizadas.",
+    });
+    reloadData?.();
+  };
+
+  const handleDelete = () => {
+    startTransition(async () => {
+      const result = await deleteAnimal(animalParaExcluir.id);
+      if (!result.success) {
+        setMessageConfig({
+          type: "error",
+          title: "Não foi possível excluir",
+          message: result.error,
+        });
+        return;
+      }
+      setAnimalParaExcluir(null);
+      setMessageConfig({
+        type: "success",
+        title: "Animal removido",
+        message: "O cadastro do animal foi excluído com sucesso.",
+      });
+      reloadData?.();
+    });
+  };
 
   return (
     <div className={st.container}>
@@ -180,12 +232,54 @@ export default function TabAnimaisCards({ animais = [] }) {
                         Local: {animal.endereco_recolhimento}
                       </div>
                     )}
+                    <div className={st.actions}>
+                      <button
+                        type="button"
+                        className={st.editButton}
+                        onClick={() => setAnimalParaEditar(animal)}
+                      >
+                        ✏️ Editar
+                      </button>
+                      <button
+                        type="button"
+                        className={st.deleteButton}
+                        onClick={() => setAnimalParaExcluir(animal)}
+                        disabled={isPending}
+                      >
+                        🗑️ Excluir
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      <ModalConfirmacaoCCZ
+        config={
+          animalParaExcluir
+            ? {
+                nome: animalParaExcluir.nome || "Animal sem nome",
+                detalhe: `${animalParaExcluir.especie} • ID ${animalParaExcluir.id}`,
+              }
+            : null
+        }
+        onConfirm={handleDelete}
+        onCancel={() => setAnimalParaExcluir(null)}
+      />
+      <ModalMensagemCCZ
+        config={messageConfig}
+        onClose={() => setMessageConfig(null)}
+      />
+      {animalParaEditar && (
+        <ModalEditarAnimal
+          animal={animalParaEditar}
+          tutores={tutores}
+          onSave={handleSave}
+          onCancel={() => setAnimalParaEditar(null)}
+        />
       )}
     </div>
   );
