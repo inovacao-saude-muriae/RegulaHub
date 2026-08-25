@@ -21,10 +21,8 @@ enum Role {
 
 // ── AUTENTICAÇÃO E SESSÕES ────────────────────────────────────────────────
 model User {
-  id           String    @id @default(uuid())
+  cpf          String    @id @db.VarChar(11) // CPF como Chave Primária
   nome         String    @db.VarChar(150)
-  cpf          String?   @unique @db.VarChar(11)
-  pessoaCpf    String?   @unique @map("pessoa_cpf") @db.VarChar(11) // OPCIONAL: chave de vínculo
   senhaHash    String    @map("senha_hash") @db.VarChar(255)
   cargo        String?   @db.VarChar(100)
   role         Role      @default(OPERADOR_REGULA)
@@ -33,7 +31,6 @@ model User {
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  pessoa   Pessoa?   @relation(fields: [pessoaCpf], references: [cpf], onDelete: SetNull)
   sessions Session[]
 
   @@map("users")
@@ -41,12 +38,12 @@ model User {
 
 model Session {
   id        String   @id @default(uuid())
-  userId    String   @map("user_id")
+  userId    String   @map("user_id") @db.VarChar(11) // Aponta para o CPF de User
   token     String   @unique @db.VarChar(255)
   expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [cpf], onDelete: Cascade)
 
   @@map("user_sessions")
 }
@@ -59,12 +56,11 @@ model Pessoa {
   dataNascimento DateTime @map("data_nascimento") @db.Date
   nomeMae        String   @map("nome_mae") @db.VarChar(150)
   telefone       String   @db.VarChar(20)
-  cns            String?  @db.VarChar(15)
+  cns            String?  @unique @db.VarChar(15) // Não permite CNS duplicado
 
   enderecos        Endereco[]
   pedidos          PedidoExame[]
   tutor            Tutor?
-  usuario          User?
   pacienteFarmacia PacienteFarmaciaJudicial?
   pacienteJunta    PacienteJunta?
 
@@ -423,8 +419,8 @@ model Esporotricose {
   apresentaLesoes         String?   @default("Sim") @db.VarChar(10)
   descricaoLesoes         String?   @map("descricao_lesoes")
   emTratamentoContinuo    String?   @default("Sim") @db.VarChar(10)
-  profissionalServicoRef  String?   @map("profissional_servico_ref") @db.VarChar(150)
-  medicamentosPrescritos  String?   @map("medicamentos_prescritos")
+  profissionalServicoRef String?   @map("profissional_servico_ref") @db.VarChar(150)
+  medicamentosPrescritos String?   @map("medicamentos_prescritos")
   interrupcaoTratamento   String?   @default("Não") @db.VarChar(10)
   retornoVeterinario      String?   @default("Sim") @db.VarChar(10)
   isolamentoDomiciliar    String?   @default("Sim") @db.VarChar(10)
