@@ -15,7 +15,6 @@ import {
   searchPessoasCCZ,
   vincularTutor,
   cadastrarTutor,
-  desvincularTutor,
   createAnimal,
 } from "../actions";
 
@@ -766,108 +765,6 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
               </div>
             </form>
           )}
-
-          {/* Tabela de tutores */}
-          <h4 className={s.sectionHeader}>Responsáveis Vinculados ao CCZ</h4>
-          <div className={s.tableWrapper}>
-            <table className={s.table}>
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>CPF</th>
-                  <th>Telefone</th>
-                  <th>Bairro</th>
-                  <th>Animais</th>
-                  <th className={s.actionsColumn}>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tutores.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      style={{
-                        textAlign: "center",
-                        color: "#94a3b8",
-                        padding: "2rem",
-                      }}
-                    >
-                      Nenhum responsável vinculado. Use a busca acima para
-                      vincular uma pessoa.
-                    </td>
-                  </tr>
-                )}
-                {tutores.map((t) => (
-                  <tr key={t.cpf}>
-                    <td>
-                      <strong>{t.nomeCompleto}</strong>
-                    </td>
-                    <td>{maskCpf(t.cpf)}</td>
-                    <td>
-                      {t.telefone ? (
-                        maskTel(t.telefone)
-                      ) : (
-                        <span style={{ color: "#94a3b8" }}>—</span>
-                      )}
-                    </td>
-                    <td>
-                      {t.bairro || <span style={{ color: "#94a3b8" }}>—</span>}
-                    </td>
-                    <td>
-                      <span
-                        style={{
-                          background: "#eff6ff",
-                          color: "#2563eb",
-                          borderRadius: "6px",
-                          padding: "0.15rem 0.55rem",
-                          fontSize: "0.75rem",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {animais.filter((a) => a.tutorCpf === t.cpf).length}
-                      </span>
-                    </td>
-                    <td className={s.actionsCell}>
-                      <button
-                        className={s.editBtn}
-                        onClick={() => selecionarPessoa(t)}
-                      >
-                        ✏️ Editar
-                      </button>
-                      <button
-                        className={s.deleteBtn}
-                        onClick={() =>
-                          setDeleteConfig({
-                            nome: t.nomeCompleto,
-                            detalhe: `CPF: ${maskCpf(t.cpf)} — será desvinculado do CCZ`,
-                            onConfirm: async () => {
-                              const res = await desvincularTutor(t.cpf);
-                              if (res.success) {
-                                setMessageConfig({
-                                  type: "success",
-                                  title: "Tutor desvinculado",
-                                  message:
-                                    "O responsável foi removido dos vínculos do CCZ.",
-                                });
-                                reloadData();
-                              } else
-                                setMessageConfig({
-                                  type: "error",
-                                  title: "Não foi possível desvincular",
-                                  message: res.error,
-                                });
-                            },
-                          })
-                        }
-                      >
-                        🗑️ Desvincular
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </>
       )}
 

@@ -409,6 +409,12 @@ export async function createAnimal(data) {
     return { success: true, data: record };
   } catch (error) {
     console.error("Erro ao criar animal:", error);
+    if (error?.code === "P2002") {
+      return {
+        success: false,
+        error: `Já existe um animal cadastrado com o ID ${String(data.id).trim()}. Informe um ID diferente.`,
+      };
+    }
     return { success: false, error: error.message };
   }
 }
@@ -734,5 +740,101 @@ export async function excluirEsporotricoseAction(id) {
   } catch (error) {
     console.error("Erro ao excluir esporotricose:", error);
     return { success: false, error: error.message };
+  }
+}
+
+export async function updateTutor(cpf, data) {
+  if (!cpf) return { success: false, error: "CPF não informado." };
+
+  try {
+    const pessoaCpf = String(cpf).replace(/\D/g, "");
+
+    await prisma.$transaction(async (tx) => {
+      const pessoa = await tx.pessoa.findUnique({
+        where: { cpf: pessoaCpf },
+        include: {
+          tutor: true,
+          enderecos: { where: { enderecoAtual: true }, take: 1 },
+        },
+      });
+
+      if (!pessoa) throw new Error("Responsável não encontrado.");
+
+      await tx.pessoa.update({
+        where: { cpf: pessoaCpf },
+        data: {
+          nomeCompleto: data.nomeCompleto?.trim() || pessoa.nomeCompleto,
+          telefone: data.telefone
+            ? String(data.telefone).replace(/\D/g, "")
+            : pessoa.telefone,
+          sexo: data.sexo || pessoa.sexo,
+        },
+      });
+
+      await tx.tutor.update({
+        where: { pessoaCpf },
+        data: {
+          rg: data.rg || null,
+          sexo: data.sexo || null,
+          profissao: data.profissao || null,
+          telefoneSecundario: data.telefoneSecundario
+            ? String(data.telefoneSecundario).replace(/\D/g, "")
+            : null,
+          pontoReferencia: data.pontoReferencia || null,
+          observacoes: data.observacoes || null,
+        },
+      });
+
+      const endereco = pessoa.enderecos[0];
+      const enderecoData = {
+        logradouro: data.logradouro || "Não informado",
+        numero: data.numero || "S/N",
+        bairro: data.bairro || "Não informado",
+        cidade: data.cidade || "Não informado",
+        uf: (data.uf || "MG").slice(0, 2).toUpperCase(),
+      };
+
+      if (endereco) {
+        await tx.endereco.update({
+          where: { id: endereco.id },
+          data: enderecoData,
+        });
+      } else {
+        await tx.endereco.create({
+          data: { pessoaCpf, ...enderecoData },
+        });
+      }
+    });
+
+    revalidatePath("/ccz");
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao atualizar tutor:", error);
+    return {
+      success: false,
+      error: error.message || "Erro ao salvar alterações.",
+    };
+  }
+}
+
+export async function deleteTutor(cpf) {
+  if (!cpf) return { success: false, error: "CPF não informado." };
+
+  try {
+    await prisma.pessoa.delete({
+      where: { cpf: String(cpf).replace(/\D/g, "") },
+    });
+
+    revalidatePath("/ccz");
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao excluir tutor:", error);
+    return {
+      success: false,
+      error:
+        error.code === "P2003"
+          ? "Não é possível excluir o responsável pois existem animais ou atendimentos vinculados a ele."
+          : error.message || "Erro ao excluir responsável.",
+    };
   }
 }

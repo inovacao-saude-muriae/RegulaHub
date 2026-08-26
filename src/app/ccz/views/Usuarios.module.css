@@ -37,7 +37,9 @@
   color: #1e293b;
   outline: none;
   background-color: #ffffff;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
   box-sizing: border-box;
   font-family: inherit;
 }
@@ -58,7 +60,9 @@
   padding: 0.2rem;
   line-height: 1;
 }
-.clearBtn:hover { color: #475569; }
+.clearBtn:hover {
+  color: #475569;
+}
 
 .countBadge {
   font-size: 0.83rem;
@@ -76,7 +80,9 @@
 }
 
 @media (max-width: 768px) {
-  .splitLayout { grid-template-columns: 1fr; }
+  .splitLayout {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Lista ──────────────────────────────────────────────────── */
@@ -110,8 +116,12 @@
   font-family: inherit;
 }
 
-.listItem:last-child { border-bottom: none; }
-.listItem:hover { background-color: #f8fafc; }
+.listItem:last-child {
+  border-bottom: none;
+}
+.listItem:hover {
+  background-color: #f8fafc;
+}
 
 .listItemActive {
   background-color: #eff6ff !important;
@@ -186,8 +196,12 @@
   color: #94a3b8;
 }
 
-.detailEmpty span { font-size: 2.5rem; }
-.detailEmpty p { font-size: 0.875rem; }
+.detailEmpty span {
+  font-size: 2.5rem;
+}
+.detailEmpty p {
+  font-size: 0.875rem;
+}
 
 .detailHeader {
   display: flex;
@@ -229,7 +243,9 @@
   border-bottom: 1px solid #f1f5f9;
 }
 
-.detailSection:last-child { border-bottom: none; }
+.detailSection:last-child {
+  border-bottom: none;
+}
 
 .detailSectionTitle {
   font-size: 0.75rem;
@@ -252,7 +268,9 @@
   gap: 0.15rem;
 }
 
-.detailFieldFull { grid-column: 1 / -1; }
+.detailFieldFull {
+  grid-column: 1 / -1;
+}
 
 .detailLabel {
   font-size: 0.75rem;
@@ -263,6 +281,72 @@
 .detailValue {
   font-size: 0.875rem;
   color: #1e293b;
+}
+
+.editField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.editInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1e293b;
+  font: inherit;
+}
+
+.editInput:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.editInput:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.editActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.cancelBtn,
+.saveBtn {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cancelBtn {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+}
+
+.saveBtn {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.cancelBtn:hover {
+  background: #f8fafc;
+}
+
+.saveBtn:hover {
+  background: #1d4ed8;
 }
 
 .detailObs {
@@ -289,7 +373,10 @@
   padding: 0.5rem 0.75rem;
 }
 
-.animalEmoji { font-size: 1.2rem; line-height: 1; }
+.animalEmoji {
+  font-size: 1.2rem;
+  line-height: 1;
+}
 
 .animalChipName {
   display: block;
@@ -302,4 +389,84 @@
   display: block;
   font-size: 0.75rem;
   color: #64748b;
+}
+
+/* ── Cabeçalho do Detalhe com Ações ──────────────────────── */
+.detailHeaderWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.detailHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.detailActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.editBtn {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+  font-family: inherit;
+}
+
+.editBtn:hover {
+  background-color: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.deleteBtn {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+  font-family: inherit;
+}
+
+.deleteBtn:hover {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+}
+
+@media (max-width: 600px) {
+  .detailHeaderWrapper {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .detailActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
