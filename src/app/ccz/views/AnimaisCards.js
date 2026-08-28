@@ -251,6 +251,17 @@ export default function TabAnimaisCards({
                     </div>
                   </div>
                 </div>
+                {animal.tutorNome && (
+                  <div className={st.cardFooter}>
+                    <div className={st.tutorAvatar} aria-hidden="true">
+                      {animal.tutorNome.charAt(0).toUpperCase()}
+                    </div>
+                    <div className={st.tutorInfo}>
+                      <div className={st.tutorName}>{animal.tutorNome}</div>
+                      <div className={st.tutorMeta}>Tutor / responsável</div>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
