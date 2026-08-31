@@ -12,7 +12,16 @@ const menuSections = [
         name: "Início / Módulos",
         path: "/",
         icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <rect width="7" height="7" x="3" y="3" rx="1" />
             <rect width="7" height="7" x="14" y="3" rx="1" />
             <rect width="7" height="7" x="14" y="14" rx="1" />
@@ -29,7 +38,16 @@ const menuSections = [
         path: "/regulacao",
         isDropdown: true,
         icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
           </svg>
         ),
@@ -61,7 +79,16 @@ const menuSections = [
         path: "/camara-tecnica",
         isDropdown: true,
         icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
             <path d="m8.5 8.5 7 7" />
           </svg>
@@ -70,6 +97,7 @@ const menuSections = [
           {
             name: "Farmácia Judicial",
             tab: "FARMACIA_JUDICIAL",
+            path: "/camara-tecnica/farmacia-judicial",
             isNestedDropdown: true,
             nestedItems: [
               { name: "Dashboard", subTab: "DASHBOARD" },
@@ -79,7 +107,11 @@ const menuSections = [
               { name: "Relatórios", subTab: "RELATORIOS" },
             ],
           },
-          { name: "Processos", tab: "PROCESSOS" },
+          {
+            name: "Processos",
+            tab: "PROCESSOS",
+            path: "/camara-tecnica/processos",
+          },
         ],
       },
     ],
@@ -91,7 +123,16 @@ const menuSections = [
         path: "/junta-reguladora",
         isDropdown: true,
         icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
             <circle cx="9" cy="7" r="4" />
             <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
@@ -126,7 +167,16 @@ const menuSections = [
         path: "/ccz",
         isDropdown: true,
         icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             <path d="m9 12 2 2 4-4" />
           </svg>
@@ -166,7 +216,16 @@ const menuSections = [
         name: "Gerenciar Usuários",
         path: "/admin/usuarios",
         icon: (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
             <circle cx="9" cy="7" r="4" />
             <path d="M19 8v6" />
@@ -201,7 +260,16 @@ function MenuContent() {
       {/* HEADER DA SIDEBAR */}
       <div className={styles.sidebarHeader}>
         <div className={styles.brandLogo}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <rect x="3" y="3" width="7" height="7" rx="1.5" />
             <rect x="14" y="3" width="7" height="7" rx="1.5" />
             <rect x="14" y="14" width="7" height="7" rx="1.5" />
@@ -214,7 +282,15 @@ function MenuContent() {
       {/* CAMPO DE BUSCA */}
       <div className={styles.searchContainer}>
         <div className={styles.searchWrapper}>
-          <svg className={styles.searchIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            className={styles.searchIcon}
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.3-4.3" />
           </svg>
@@ -233,13 +309,15 @@ function MenuContent() {
         {menuSections.map((section, sIdx) => {
           const filteredItems = section.items.filter((item) => {
             if (!searchTerm) return true;
-            const matchMain = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchMain = item.name
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase());
             const matchSub = item.subItems?.some(
               (sub) =>
                 sub.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 sub.nestedItems?.some((nested) =>
-                  nested.name.toLowerCase().includes(searchTerm.toLowerCase())
-                )
+                  nested.name.toLowerCase().includes(searchTerm.toLowerCase()),
+                ),
             );
             return matchMain || matchSub;
           });
@@ -249,7 +327,8 @@ function MenuContent() {
           return (
             <div key={sIdx} className={styles.sectionGroup}>
               {filteredItems.map((item) => {
-                const isDropdownOpen = Boolean(openGroup[item.path]) || Boolean(searchTerm);
+                const isDropdownOpen =
+                  Boolean(openGroup[item.path]) || Boolean(searchTerm);
 
                 if (item.isDropdown) {
                   return (
@@ -281,7 +360,9 @@ function MenuContent() {
                         <ul className={styles.subMenuList}>
                           {item.subItems.map((sub) => {
                             if (sub.isNestedDropdown) {
-                              const isNestedOpen = Boolean(openNested[sub.tab]) || Boolean(searchTerm);
+                              const isNestedOpen =
+                                Boolean(openNested[sub.tab]) ||
+                                Boolean(searchTerm);
 
                               return (
                                 <li key={sub.tab}>
@@ -309,17 +390,21 @@ function MenuContent() {
                                   {isNestedOpen && (
                                     <ul className={styles.nestedMenuList}>
                                       {sub.nestedItems.map((nested) => {
+                                        const nestedLink = `${sub.path || item.path}?tab=${sub.tab}&subTab=${nested.subTab}`;
                                         const isNestedActive =
-                                          pathname === item.path &&
+                                          pathname ===
+                                            (sub.path || item.path) &&
                                           currentTab === sub.tab &&
                                           currentSubTab === nested.subTab;
 
                                         return (
                                           <li key={nested.subTab}>
                                             <Link
-                                              href={`${item.path}?tab=${sub.tab}&subTab=${nested.subTab}`}
+                                              href={nestedLink}
                                               className={`${styles.subMenuItemLink} ${
-                                                isNestedActive ? styles.activeLink : ""
+                                                isNestedActive
+                                                  ? styles.activeLink
+                                                  : ""
                                               }`}
                                             >
                                               {nested.name}
@@ -333,13 +418,18 @@ function MenuContent() {
                               );
                             }
 
+                            const subLink =
+                              sub.path || `${item.path}?tab=${sub.tab}`;
                             const isSubActive =
-                              pathname === item.path && currentTab === sub.tab;
+                              (sub.path
+                                ? pathname === sub.path
+                                : pathname === item.path) &&
+                              currentTab === sub.tab;
 
                             return (
                               <li key={sub.tab}>
                                 <Link
-                                  href={`${item.path}?tab=${sub.tab}`}
+                                  href={subLink}
                                   className={`${styles.subMenuItemLink} ${
                                     isSubActive ? styles.activeLink : ""
                                   }`}

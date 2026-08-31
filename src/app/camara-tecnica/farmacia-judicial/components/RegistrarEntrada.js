@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import styles from './TabEstoqueMedicamentos.module.css';
+import { useState } from "react";
+import styles from "./RegistrarEntrada.module.css";
 
 export default function TabRegistrarEntrada({ catalogo = [], onCreateLote }) {
-  const [searchMedInput, setSearchMedInput] = useState('');
+  const [searchMedInput, setSearchMedInput] = useState("");
   const [showMedDropdown, setShowMedDropdown] = useState(false);
 
   const [formLote, setFormLote] = useState({
-    medicamentoId: '',
-    numeroLote: '',
-    fornecedor: '',
-    qtdInicial: '',
-    valorUnitario: '',
-    dataEntrada: new Date().toISOString().split('T')[0],
-    dataValidade: ''
+    medicamentoId: "",
+    numeroLote: "",
+    fornecedor: "",
+    qtdInicial: "",
+    valorUnitario: "",
+    dataEntrada: new Date().toISOString().split("T")[0],
+    dataValidade: "",
   });
 
   const catalogoFiltrado = catalogo.filter((med) => {
@@ -41,7 +41,9 @@ export default function TabRegistrarEntrada({ catalogo = [], onCreateLote }) {
       !formLote.qtdInicial ||
       !formLote.dataValidade
     ) {
-      return alert('Selecione o medicamento e preencha os campos obrigatórios.');
+      return alert(
+        "Selecione o medicamento e preencha os campos obrigatórios.",
+      );
     }
 
     await onCreateLote(formLote);
@@ -52,7 +54,7 @@ export default function TabRegistrarEntrada({ catalogo = [], onCreateLote }) {
       <h3 className={styles.sectionTitle}>Entrada de Novo Lote no Estoque</h3>
 
       <form onSubmit={handleSubmit} className={styles.formGrid}>
-        <div className={styles.fieldGroup} style={{ position: 'relative' }}>
+        <div className={styles.fieldGroup} style={{ position: "relative" }}>
           <label>Medicamento do Catálogo *</label>
           <input
             type="text"
@@ -60,7 +62,7 @@ export default function TabRegistrarEntrada({ catalogo = [], onCreateLote }) {
             value={searchMedInput}
             onChange={(e) => {
               setSearchMedInput(e.target.value);
-              setFormLote((prev) => ({ ...prev, medicamentoId: '' }));
+              setFormLote((prev) => ({ ...prev, medicamentoId: "" }));
               setShowMedDropdown(true);
             }}
             onFocus={() => setShowMedDropdown(true)}
@@ -88,7 +90,9 @@ export default function TabRegistrarEntrada({ catalogo = [], onCreateLote }) {
             type="text"
             placeholder="Ex: LOTE-2026-X"
             value={formLote.numeroLote}
-            onChange={(e) => setFormLote({ ...formLote, numeroLote: e.target.value })}
+            onChange={(e) =>
+              setFormLote({ ...formLote, numeroLote: e.target.value })
+            }
             required
           />
         </div>
@@ -99,7 +103,9 @@ export default function TabRegistrarEntrada({ catalogo = [], onCreateLote }) {
             type="text"
             placeholder="Ex: Eurofarma Laboratórios"
             value={formLote.fornecedor}
-            onChange={(e) => setFormLote({ ...formLote, fornecedor: e.target.value })}
+            onChange={(e) =>
+              setFormLote({ ...formLote, fornecedor: e.target.value })
+            }
             required
           />
         </div>
@@ -111,7 +117,9 @@ export default function TabRegistrarEntrada({ catalogo = [], onCreateLote }) {
             min="1"
             placeholder="Ex: 500"
             value={formLote.qtdInicial}
-            onChange={(e) => setFormLote({ ...formLote, qtdInicial: e.target.value })}
+            onChange={(e) =>
+              setFormLote({ ...formLote, qtdInicial: e.target.value })
+            }
             required
           />
         </div>
@@ -123,7 +131,9 @@ export default function TabRegistrarEntrada({ catalogo = [], onCreateLote }) {
             step="0.01"
             placeholder="Ex: 12.50"
             value={formLote.valorUnitario}
-            onChange={(e) => setFormLote({ ...formLote, valorUnitario: e.target.value })}
+            onChange={(e) =>
+              setFormLote({ ...formLote, valorUnitario: e.target.value })
+            }
           />
         </div>
 
@@ -132,7 +142,9 @@ export default function TabRegistrarEntrada({ catalogo = [], onCreateLote }) {
           <input
             type="date"
             value={formLote.dataEntrada}
-            onChange={(e) => setFormLote({ ...formLote, dataEntrada: e.target.value })}
+            onChange={(e) =>
+              setFormLote({ ...formLote, dataEntrada: e.target.value })
+            }
             required
           />
         </div>
@@ -142,7 +154,9 @@ export default function TabRegistrarEntrada({ catalogo = [], onCreateLote }) {
           <input
             type="date"
             value={formLote.dataValidade}
-            onChange={(e) => setFormLote({ ...formLote, dataValidade: e.target.value })}
+            onChange={(e) =>
+              setFormLote({ ...formLote, dataValidade: e.target.value })
+            }
             required
           />
         </div>

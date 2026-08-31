@@ -327,9 +327,9 @@ export default function Cadastros({ tutores = [], animais = [], reloadData }) {
         {[
           {
             key: "TUTORES",
-            label: `👤 Tutores / Responsáveis (${tutores.length})`,
+            label: "👤 Tutores / Responsáveis",
           },
-          { key: "ANIMAIS", label: `🐾 Animais (${animais.length})` },
+          { key: "ANIMAIS", label: "🐾 Animais" },
         ].map((tab) => (
           <button
             key={tab.key}

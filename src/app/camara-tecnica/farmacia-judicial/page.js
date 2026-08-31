@@ -16,7 +16,7 @@ import {
 } from "./actions";
 
 import Dashboard from "./views/Dashboard";
-import PacientesJudiciais from "./components/PacientesJudiciais";
+import PacientesJudiciais from "./views/PacientesJudiciais";
 import Dispensacao from "./views/Dispensacao";
 import Relatorios from "./views/Relatorios";
 
@@ -206,16 +206,11 @@ function FarmaciaJudicialPageContent() {
       )}
 
       {activeTab === "ESTOQUE" && activeSubTab === "ENTRADA" && (
-        <RegistrarEntrada
-          catalogo={catalogo}
-          onCreateLote={handleCreateLote}
-        />
+        <RegistrarEntrada catalogo={catalogo} onCreateLote={handleCreateLote} />
       )}
 
       {activeTab === "ESTOQUE" && activeSubTab === "CADASTRAR" && (
-        <CadastrarMedicamento
-          onCreateMedicamento={handleCreateMedicamento}
-        />
+        <CadastrarMedicamento onCreateMedicamento={handleCreateMedicamento} />
       )}
 
       {activeTab === "RELATORIOS" && (
