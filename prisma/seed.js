@@ -1,4 +1,4 @@
-require("dotenv").config(); // Carrega o DATABASE_URL do arquivo .env
+require("dotenv").config();
 const { PrismaClient } = require("@prisma/client");
 const { PrismaPg } = require("@prisma/adapter-pg");
 const bcrypt = require("bcryptjs");
@@ -15,13 +15,25 @@ const adapter = new PrismaPg({
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const cpfAdmin = "12912453674";
-  const NOME_ADMIN = "Jefinny de Paula Dias Souza";
+  console.log("🌱 Iniciando seed do banco de dados...\n");
 
-  // 1. Criptografa a senha diretamente
-  const senhaHash = await bcrypt.hash("regula@saude_2026", 10);
+  // ═══════════════════════════════════════════════════════════════════════
+  // USUÁRIO GESTOR PRINCIPAL (usa variáveis de ambiente)
+  // ═══════════════════════════════════════════════════════════════════════
+  
+  const cpfGestor = process.env.GESTOR_CPF || "00000000000";
+  const nomeGestor = process.env.GESTOR_NOME || "Gestor do Sistema";
+  const senhaGestor = process.env.GESTOR_SENHA || "trocar@123";
 
-  // 2. Mapeia a tabela 'user' ou 'users' de forma segura
+  // ⚠️  AVISO DE SEGURANÇA
+  if (!process.env.GESTOR_CPF || !process.env.GESTOR_SENHA) {
+    console.warn("⚠️  ATENÇÃO: Usando credenciais padrão!");
+    console.warn("   Configure GESTOR_CPF, GESTOR_NOME e GESTOR_SENHA no arquivo .env");
+    console.warn("   para evitar usar valores padrão em produção.\n");
+  }
+
+  const senhaHashGestor = await bcrypt.hash(senhaGestor, 10);
+
   const userModel = prisma.user || prisma.users;
 
   if (!userModel) {
@@ -30,35 +42,77 @@ async function main() {
     );
   }
 
-  // 3. Atualiza ou cria o Usuário ADMIN diretamente pela tabela User
-  const adminUser = await userModel.upsert({
-    where: { cpf: cpfAdmin },
+  const gestorUser = await userModel.upsert({
+    where: { cpf: cpfGestor },
     update: {
-      nome: NOME_ADMIN,
-      senhaHash: senhaHash,
-      role: "ADMIN",
+      nome: nomeGestor,
+      senhaHash: senhaHashGestor,
+      role: "GESTOR",  // ✅ Atualizado para novo enum
       cargo: "Gestor Geral do Sistema",
       ativo: true,
     },
     create: {
-      cpf: cpfAdmin,
-      nome: NOME_ADMIN,
-      senhaHash: senhaHash,
+      cpf: cpfGestor,
+      nome: nomeGestor,
+      senhaHash: senhaHashGestor,
       cargo: "Gestor Geral do Sistema",
-      role: "ADMIN",
+      role: "GESTOR",  // ✅ Atualizado para novo enum
       ativo: true,
     },
   });
 
-  console.log("✅ Usuário ADMIN configurado/atualizado com sucesso!");
-  console.log(`👤 Nome: ${adminUser.nome}`);
-  console.log(`🆔 CPF/Login: ${adminUser.cpf}`);
-  console.log(`🔑 Permissão: ${adminUser.role}`);
+  console.log("✅ Usuário GESTOR configurado com sucesso!");
+  console.log(`👤 Nome: ${gestorUser.nome}`);
+  console.log(`🆔 CPF/Login: ${gestorUser.cpf}`);
+  console.log(`🔑 Senha: ${senhaGestor}`);
+  console.log(`🎯 Permissão: ${gestorUser.role} (Acesso Total)\n`);
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // USUÁRIOS DE EXEMPLO (OPCIONAL - descomentar se precisar)
+  // ═══════════════════════════════════════════════════════════════════════
+  
+  /*
+  const senhaExemplo = await bcrypt.hash("senha123", 10);
+
+  // Regulação Admin
+  await userModel.upsert({
+    where: { cpf: "11111111111" },
+    update: { senhaHash: senhaExemplo, role: "REGULACAO_ADMIN", ativo: true },
+    create: {
+      cpf: "11111111111",
+      nome: "Admin Regulação Exemplo",
+      senhaHash: senhaExemplo,
+      cargo: "Coordenador de Regulação",
+      role: "REGULACAO_ADMIN",
+      ativo: true,
+    },
+  });
+
+  // Regulação Comum
+  await userModel.upsert({
+    where: { cpf: "22222222222" },
+    update: { senhaHash: senhaExemplo, role: "REGULACAO_COMUM", ativo: true },
+    create: {
+      cpf: "22222222222",
+      nome: "Operador Regulação Exemplo",
+      senhaHash: senhaExemplo,
+      cargo: "Auxiliar de Regulação",
+      role: "REGULACAO_COMUM",
+      ativo: true,
+    },
+  });
+
+  console.log("✅ Usuários de exemplo criados!");
+  console.log("📝 CPF: 11111111111 | Senha: senha123 | Role: REGULACAO_ADMIN");
+  console.log("📝 CPF: 22222222222 | Senha: senha123 | Role: REGULACAO_COMUM\n");
+  */
+
+  console.log("🎉 Seed concluído com sucesso!");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Erro ao atualizar senha:", e);
+    console.error("❌ Erro ao executar seed:", e);
     process.exit(1);
   })
   .finally(async () => {
