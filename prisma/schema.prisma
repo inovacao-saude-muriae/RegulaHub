@@ -53,7 +53,7 @@ model User {
 model Session {
   id        String   @id @default(uuid())
   userId    String   @map("user_id") @db.VarChar(11) // Aponta para o CPF de User
-  token     String   @unique @db.VarChar(255)
+  token     String   @unique @db.Text // JWT pode ter 200-500 caracteres
   expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 

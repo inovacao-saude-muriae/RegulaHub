@@ -18,11 +18,12 @@ export async function GET() {
     });
 
     const rolesAdministrativas = [
-      'ADMIN',
-      'ADMIN_JUNTA',
-      'ADMIN_REGULA',
-      'ADMIN_PROCESSO',
-      'ADMIN_FARMACIA',
+      'GESTOR',          // Acesso total
+      'REGULACAO_ADMIN',
+      'JUNTA_ADMIN',
+      'FARMACIA_ADMIN',
+      'PROCESSO_ADMIN',
+      'CCZ_ADMIN',
     ];
 
     const eAdministrador = session?.user && rolesAdministrativas.includes(session.user.role);

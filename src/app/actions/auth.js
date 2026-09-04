@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
-import crypto from "crypto";
+import { SignJWT } from "jose";
 
 export async function loginAction(formData) {
   try {
@@ -18,7 +18,7 @@ export async function loginAction(formData) {
       return { error: "Informe a sua senha de acesso." };
     }
 
-    // 1. Busca o operador diretamente na tabela User pelo CPF
+    // 1. Busca o usuário diretamente na tabela User pelo CPF
     const user = await prisma.user.findUnique({
       where: { cpf },
     });
@@ -33,25 +33,37 @@ export async function loginAction(formData) {
       return { error: "Senha incorreta. Tente novamente." };
     }
 
-    // 3. Gera o token e cria a sessão no banco usando user.cpf
-    const token = crypto.randomBytes(32).toString("hex");
+    // 3. Gera JWT assinado com informações do usuário
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000); // 8 horas de sessão
+    
+    const token = await new SignJWT({
+      userId: user.cpf,
+      role: user.role,
+      nome: user.nome,
+      cargo: user.cargo
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("8h")
+      .sign(secret);
 
+    // 4. Salva a sessão no banco
     await prisma.session.create({
       data: {
-        userId: user.cpf, // <-- CORRIGIDO: de user.id para user.cpf
+        userId: user.cpf,
         token,
         expiresAt,
       },
     });
 
-    // 4. Atualiza o registro do último acesso buscando por cpf
+    // 5. Atualiza o registro do último acesso
     await prisma.user.update({
-      where: { cpf: user.cpf }, // <-- CORRIGIDO: de { id: user.id } para { cpf: user.cpf }
+      where: { cpf: user.cpf },
       data: { ultimoAcesso: new Date() },
     });
 
-    // 5. Salva o Cookie HTTP-Only
+    // 6. Salva o Cookie HTTP-Only com o JWT
     const cookieStore = await cookies();
     cookieStore.set("session_token", token, {
       httpOnly: true,
