@@ -8,7 +8,7 @@ export default function AdminUsuariosPage() {
   const [nomeCompleto, setNomeCompleto] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
   const [telefone, setTelefone] = useState('');
-  const [role, setRole] = useState('OPERADOR_REGULA');
+  const [role, setRole] = useState('REGULACAO_COMUM');
   const [senha, setSenha] = useState('');
 
   const [pessoaExiste, setPessoaExiste] = useState(false);
@@ -19,22 +19,37 @@ export default function AdminUsuariosPage() {
   // Mapeia os perfis exatamente como definidos no Enum 'Role' do Prisma
   const obterNomePerfil = (perfilRole) => {
     switch (perfilRole) {
-      case 'ADMIN':
-        return 'Gestor Geral do Sistema';
-      case 'ADMIN_JUNTA':
-        return 'Gestor da Junta Reguladora';
-      case 'OPERADOR_JUNTA':
-        return 'Operador da Junta Reguladora';
-      case 'ADMIN_REGULA':
-        return 'Gestor da Regulação de Exames';
-      case 'OPERADOR_REGULA':
-        return 'Operador da Regulação de Exames';
-      case 'VETERINARIO':
-        return 'Veterinário / Operador CCZ';
-      case 'ADMIN_PROCESSO':
-        return 'Gestor de Processos (Câmara Técnica)';
-      case 'ADMIN_FARMACIA':
-        return 'Gestor da Farmácia Judicial';
+      case 'GESTOR':
+        return 'Gestor Geral do Sistema (Acesso Total)';
+      
+      // REGULAÇÃO
+      case 'REGULACAO_ADMIN':
+        return 'Administrador da Regulação (com Financeiro)';
+      case 'REGULACAO_COMUM':
+        return 'Operador da Regulação (sem Financeiro)';
+      
+      // CÂMARA TÉCNICA
+      case 'FARMACIA_ADMIN':
+        return 'Administrador da Farmácia Judicial';
+      case 'PROCESSO_ADMIN':
+        return 'Administrador de Processos';
+      
+      // JUNTA REGULADORA
+      case 'JUNTA_ADMIN':
+        return 'Administrador da Junta Reguladora (Todos Serviços)';
+      case 'JUNTA_CAEE':
+        return 'Operador do CAEE (Junta)';
+      case 'JUNTA_EDUCACAO':
+        return 'Operador da Educação (Junta)';
+      case 'JUNTA_SAUDE':
+        return 'Operador da Saúde (Junta)';
+      case 'JUNTA_ASSISTENCIA':
+        return 'Operador da Assistência Social (Junta)';
+      
+      // CCZ
+      case 'CCZ_ADMIN':
+        return 'Administrador do CCZ / Veterinário';
+      
       default:
         return 'Operador do Sistema';
     }
@@ -210,18 +225,34 @@ export default function AdminUsuariosPage() {
             onChange={(e) => setRole(e.target.value)}
             className={styles.select}
           >
-            <option value="OPERADOR_REGULA">Regulação de Exames (Operador)</option>
-            <option value="ADMIN_REGULA">Regulação de Exames (Gestor)</option>
+            {/* GESTOR GERAL */}
+            <option value="GESTOR">🌟 GESTOR (Acesso Total ao Sistema)</option>
+            
+            {/* REGULAÇÃO */}
+            <optgroup label="📋 REGULAÇÃO DE EXAMES">
+              <option value="REGULACAO_ADMIN">👨‍💼 Admin (com Financeiro)</option>
+              <option value="REGULACAO_COMUM">👤 Operador (sem Financeiro)</option>
+            </optgroup>
 
-            <option value="OPERADOR_JUNTA">Junta Reguladora (Operador)</option>
-            <option value="ADMIN_JUNTA">Junta Reguladora (Gestor)</option>
+            {/* CÂMARA TÉCNICA */}
+            <optgroup label="🏛️ CÂMARA TÉCNICA">
+              <option value="FARMACIA_ADMIN">💊 Admin Farmácia Judicial</option>
+              <option value="PROCESSO_ADMIN">📄 Admin Processos</option>
+            </optgroup>
 
-            <option value="ADMIN_FARMACIA">Câmara Técnica / Farmácia Judicial</option>
-            <option value="ADMIN_PROCESSO">Câmara Técnica / Gestor de Processos</option>
+            {/* JUNTA REGULADORA */}
+            <optgroup label="👨‍⚕️ JUNTA REGULADORA">
+              <option value="JUNTA_ADMIN">👨‍💼 Admin (Todos os Serviços)</option>
+              <option value="JUNTA_CAEE">🎓 CAEE</option>
+              <option value="JUNTA_EDUCACAO">📚 Educação</option>
+              <option value="JUNTA_SAUDE">🏥 Saúde</option>
+              <option value="JUNTA_ASSISTENCIA">🤝 Assistência Social</option>
+            </optgroup>
 
-            <option value="VETERINARIO">Vigilância & Zoonoses / CCZ (Veterinário)</option>
-
-            <option value="ADMIN">ADMIN (Gestor Geral do Sistema)</option>
+            {/* CCZ */}
+            <optgroup label="🐕 CCZ / ZOONOSES">
+              <option value="CCZ_ADMIN">🔬 Admin CCZ / Veterinário</option>
+            </optgroup>
           </select>
           <span className={styles.roleSubtext}>
             Cargo exibido no sistema: <strong>{obterNomePerfil(role)}</strong>
