@@ -41,3 +41,20 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# AI IDE folders (except .agents/)
+.claude/
+.windsurf/
+
+# Test scripts
+test-*.mjs
+test-*.js
+
+# Documentação temporária (descomentar se não quiser committar)
+# DOCUMENTACAO_PROJETO.md
+# ACOES_CORRETIVAS.md
+# RESUMO_ANALISE.md
+# ARQUITETURA_SISTEMA.md
+# GUIA_RAPIDO.md
+# INDEX_DOCUMENTACAO.md
+# _LEIA_PRIMEIRO.md

@@ -6,13 +6,19 @@
     "dev": "next dev --hostname 0.0.0.0 --port 3000 --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:studio": "prisma studio",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:reset": "prisma migrate reset --force",
+    "test:ccz": "node scripts/test-ccz.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@supabase/supabase-js": "^2.109.0",
-    "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.10",
     "jspdf": "^4.2.1",
