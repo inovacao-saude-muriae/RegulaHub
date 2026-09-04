@@ -213,8 +213,9 @@ const menuSections = [
   {
     items: [
       {
-        name: "Gerenciar Usuários",
-        path: "/admin/usuarios",
+        name: "Gerenciamento",
+        path: "/admin/gerenciamento",
+        isDropdown: true,
         icon: (
           <svg
             width="20"
@@ -232,6 +233,18 @@ const menuSections = [
             <path d="M22 11h-6" />
           </svg>
         ),
+        subItems: [
+          {
+            name: "Gerenciar Usuários",
+            path: "/admin/usuarios",
+            tab: "USUARIOS",
+          },
+          {
+            name: "Relatórios Gerais",
+            path: "/relatorios",
+            tab: "RELATORIOS",
+          },
+        ],
       },
     ],
   },
@@ -424,7 +437,7 @@ function MenuContent() {
                               (sub.path
                                 ? pathname === sub.path
                                 : pathname === item.path) &&
-                              currentTab === sub.tab;
+                              (!sub.path || currentTab === sub.tab);
 
                             return (
                               <li key={sub.tab}>
