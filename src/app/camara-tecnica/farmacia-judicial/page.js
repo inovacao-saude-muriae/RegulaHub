@@ -31,14 +31,16 @@ function FarmaciaJudicialPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // 1. Tratamento seguro de parâmetro de abas
-  let rawTab = searchParams.get("tab") || "DASHBOARD";
-  if (rawTab === "FARMACIA_JUDICIAL") {
-    rawTab = "PACIENTES";
-  }
-
-  const activeTab = rawTab;
-  const activeSubTab = searchParams.get("subTab") || "SALDO";
+  // 1. A sidebar usa FARMACIA_JUDICIAL como grupo e envia a tela em subTab.
+  const requestedTab = searchParams.get("tab") || "DASHBOARD";
+  const requestedSubTab = searchParams.get("subTab");
+  const isSidebarModuleLink = requestedTab === "FARMACIA_JUDICIAL";
+  const activeTab = isSidebarModuleLink
+    ? requestedSubTab || "PACIENTES"
+    : requestedTab;
+  const activeSubTab = isSidebarModuleLink
+    ? "SALDO"
+    : requestedSubTab || "SALDO";
 
   const [loading, setLoading] = useState(true);
   const [pacientes, setPacientes] = useState([]);
@@ -162,6 +164,7 @@ function FarmaciaJudicialPageContent() {
     const res = await registrarDispensacao(dispensacaoData);
     if (res.success) await reloadData();
     else alert("Erro: " + res.error);
+    return res;
   };
 
   return (

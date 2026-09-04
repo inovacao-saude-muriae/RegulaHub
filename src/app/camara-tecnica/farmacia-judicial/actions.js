@@ -66,7 +66,7 @@ export async function createPacienteJudicial(data) {
       // 2. Inserir Endereço se fornecido
       if (data.logradouro) {
         await tx.$executeRaw`
-          INSERT INTO public.endereco (pessoa_cpf, logradouro, numero, complemento, bairro, cidade, uf, cep, endereco_atual)
+          INSERT INTO public.pessoa_endereco (pessoa_cpf, logradouro, numero, complemento, bairro, cidade, uf, cep, endereco_atual)
           VALUES (${cleanCpf}, ${data.logradouro}, ${data.numero || "S/N"}, ${data.complemento || null}, ${data.bairro || "Centro"}, ${data.cidade || "Muriaé"}, ${data.uf || "MG"}, ${cleanCep}, true)
         `;
       }
@@ -353,7 +353,7 @@ export async function buscarPessoaExistente(termo) {
         e.uf AS uf,
         e.cep AS cep
       FROM public.pessoa p
-      LEFT JOIN public.endereco e ON p.cpf = e.pessoa_cpf AND e.endereco_atual = true
+      LEFT JOIN public.pessoa_endereco e ON p.cpf = e.pessoa_cpf AND e.endereco_atual = true
       WHERE p.cpf ILIKE ${searchTerm} 
          OR p.nome_completo ILIKE ${searchTerm}
       LIMIT 10
